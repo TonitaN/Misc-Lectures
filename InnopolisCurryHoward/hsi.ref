@@ -34,10 +34,12 @@ Deduce {
      = (e.NY)(e.Subst2); 
 }
 
+/* I have no evidence that the recursive call of UnifySubst is needed for the task, although in general it must be there. */
+
 UnifySubst {
  e.X ((e.W)(e.SF1)) e.XX ((e.W)(e.SF2)) e.XXX
  , <Unify (e.SF1)(e.SF2)> : e.NewSubst
-  = e.X ((e.W)(e.SF1)) e.XX e.XXX e.NewSubst;
+  = <UnifySubst e.X ((e.W)(e.SF1)) e.XX e.XXX e.NewSubst>;
  e.Z = e.Z;
 }
 
