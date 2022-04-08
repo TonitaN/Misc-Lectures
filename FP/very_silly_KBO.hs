@@ -21,9 +21,7 @@ instance Functor (Term a) where
   fmap f (Uno f1 arg) = Uno f1 (fmap f arg)
   fmap f (Dos f1 arg1 arg2) = Dos f1 (fmap f arg1) (fmap f arg2)
 
-type SRS a b = [(Term a b, Term a b)]
-
-closure :: (String, String) -> [(String, String)] -> [(String, String)]
+type TRS a b = [(Term a b, Term a b)]
 
 ismem term lst = foldr (||) False (map (term == ) lst)
 
