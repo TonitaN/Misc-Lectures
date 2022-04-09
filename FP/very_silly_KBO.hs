@@ -57,7 +57,7 @@ checKBO ((t1, t2) :rest) ord success failure
      | (ismem (f1,f2) ord) == True = checKBO ((fmap ((,) t1)  args2) ++ rest) ord success failure
      | (ismem (f2,f1) ord) == True = listfail (fmap (flip (,) t2)  args1) rest ord success failure
      | f1 == f2 && (length args1 == length args2) = checKBO ((fmap ((,) t1)  args2) ++ (lexic args1 args2) ++ rest) ord success failure
-     | f1 /= [] = checKBO ((fmap ((,) t1)  args2) ++ rest) (closure (f1,f2) ord) success 
+     | f1 /= [] && f1 /= f2 = checKBO ((fmap ((,) t1)  args2) ++ rest) (closure (f1,f2) ord) success 
                                                 (listfail (fmap (flip (,) t2)  args1) rest ord success failure)
      | otherwise = failure
      where
