@@ -1,0 +1,181 @@
+/* A Refallic & minimalistic purely string-rewriting lambda calculus implementation written for the demonstration purposes.
+   Kolmogorov-style CPS-translation makes innermost and normal reduction orders indistinguishable.
+   TODO: Kuroda style
+   REUSE WITH CAUTION!
+   Most functions are very context-sensitive and even minor context changes would invalidate their semantics.
+*/
+
+$ENTRY Go
+  { 
+	= <Putout 0 'Result: '
+	  <Snd <Reduction Normal
+	    <Kolmogorov_translation (<Alphabet>) '(\\x->(\\y->y x))'
+	    /* '(\\x->(\\y->y)) ((\\w->w w) (\\v->v))'*/>' (\\id->id).'
+	  /*(<Alphabet>)'(\\x->(\\y->(\\z->z (x x)))) (\\t->t) ((\\w->w w) (\\v->v)) (\\a->(\\b->b)).'*/
+	  /*<Reduction Inner '(\\x->(\\y->x)) (\\w->w) ((\\v->v) (\\q->q q))'*/
+	    /*<Kolmogorov_translation (<Alphabet>)'(\\x->x x) (\\x->x x)'>*/
+	    >>>;
+  }
+
+Kolmogorov_translation {
+ ((e.v1)(e.v2) e.variables)e.xpr1' 'e.xpr2
+  , <Balance e.xpr1> : True
+  , <LastArg e.xpr2> : True
+  , <Kolmogorov_translation (<Refill e.variables>) <NB e.xpr1>> : 
+  {(e.auxvars) e.newxpr1, 
+  <Kolmogorov_translation (<Refill e.auxvars>) <NB e.xpr2>> : 
+  { (e.newvars) e.newxpr2
+      = (<Refill e.newvars>) '(\\'e.v1'->'e.newxpr1' (\\'e.v2'->'e.v2' 'e.newxpr2' 'e.v1'))';};};
+ ((e.v1) e.variables)'(\\'e.var'->'e.expr')'
+ , <Kolmogorov_translation (<Refill e.variables>) e.expr> : 
+ { (e.newvars) e.newexpr
+     = (<Refill e.newvars>)'(\\'e.v1'->'e.v1' (\\'e.var'->'e.newexpr'))';};
+ ((e.v1) e.variables) '0'
+      = (<Refill e.variables>)'(\\'e.v1'->'e.v1' 0)'; /* Special case processing constants. */
+ ((e.v1) e.variables) e.var
+      = (<Refill e.variables>)'(\\'e.v1'->'e.var' 'e.v1')';
+}
+
+NB {
+ '(\\'e.x = '(\\'e.x;
+ '('e.x')' = e.x;
+ e.z = e.z;
+}
+
+Reduction {
+  s.Mode (e.names) e.term1'(\\'e.var'->'e.body') 'e.cont
+  , <NoApp e.term1><NoFun e.term1><NoDelim e.var><Balance e.body> : True True True True
+  , e.cont : 
+  { '('e.arg')' e.term2
+    , <Balance e.arg> : True
+    , <Putout 0 'Term: ' e.term1'(\\'e.var'->'e.body') 'e.cont> : e.qq
+    , s.Mode :
+    {Normal
+     , <Alpha_Conversion (e.names) Start <Subst ()(e.var ('('e.arg')')) '('e.body')'>> : 
+      {(e.newnames)e.result
+         = <Putout 0 e.var'::='e.arg' to 'e.body><Putout 0 e.result>
+           <Reduction s.Mode (e.newnames)e.term1 e.result e.term2>; };
+     Inner
+     /*Aggressive reduction strategy in function body: 
+         <Reduction s.Mode (e.names)'('e.body')'> : (e.fnames)'('e.newbody')'*/
+     , <Reduction s.Mode (e.names)<NB '('e.arg')'>> : 
+     {(e.auxnames) e.newarg
+     , <Alpha_Conversion (e.auxnames) Start <Subst ()(e.var (e.newarg)) '('e.body')'>> : 
+      {(e.newnames)e.result
+         = <Putout 0 e.var'::='e.newarg' to 'e.body><Putout 0 e.result>
+           <Reduction s.Mode (e.newnames)e.term1 e.result e.term2>; };
+      };
+     };
+    e.arg s.delim e.term2
+    , <NoDelim e.arg> : True
+    , ' ().' : e.x s.delim e.xx
+    , <Putout 0 'Term: ' e.term1'(\\'e.var'->'e.body') 'e.cont> : e.qq
+    , s.Mode :
+    {Normal
+     , <Alpha_Conversion (e.names) Start <Subst ()(e.var (e.arg)) '('e.body')'>> : 
+    {(e.newnames)e.result
+       = <Putout 0 e.var'::='e.arg' to 'e.body><Putout 0 e.result>
+         <Reduction s.Mode (e.newnames) e.term1 e.result s.delim e.term2>; }; 
+     Inner
+     /*Aggressive reduction strategy in function body: 
+            <Reduction s.Mode (e.names)'('e.body')'> : (e.fnames)'('e.newbody')'*/
+     , <Alpha_Conversion (e.names) Start <Subst ()(e.var (e.arg)) '('e.body')'>> : 
+    {(e.newnames)e.result
+       = <Putout 0 e.var'::='e.arg' to 'e.body><Putout 0 e.result>
+         <Reduction s.Mode (e.newnames) e.term1 e.result s.delim e.term2>; }; };
+  };
+  s.Mode (e.names) e.xpr = (e.names)e.xpr;      
+}
+
+Subst {
+  (e.result)(e.var (e.arg)) e.x1 s.del1 e.var s.del2 e.x2
+  , ' ()> ()>' : e.xx s.del1 e.xxx s.del2 e.xxxx
+   = <Subst (e.result e.x1 s.del1 e.arg)(e.var (e.arg)) s.del2 e.x2>;
+  (e.result)(e.var (e.arg))e.rest
+    , e.result e.rest : '('e.pure')'
+     = e.pure;
+}
+
+Alpha_Conversion {
+/* Placeholder for easier testing:  (e.names) Start e.expr = (e.names) e.expr;*/
+   ((e.n1) e.names) Start e.xp1 '(\\'e.var'->'e.body')' e.xp2
+   , <NoLambda e.body><NoDelim e.var><Balance e.body> : True True True
+   , <Subst ()(e.var(e.n1))'('e.body')'> : e.result
+     = <Alpha_Conversion (<Refill e.names>) Start
+        e.xp1 '(\\ 'e.n1'->'e.result')'e.xp2>;
+   (e.names) t.Mode e.xp1 '\\ 'e.xp2 = <Alpha_Conversion (e.names) Erase e.xp1'\\'e.xp2>;
+   (e.names) t.Mode e.xp = (e.names) e.xp; 
+}
+
+Balance {
+ e.X '(' e.Y ')' e.Z = <Balance e.X e.Y e.Z>;
+ e.X '(' e.Y = Positive;
+ e.X ')' e.Y = False;
+ e.Z = True;
+}
+
+LastArg {
+ e.t1' 'e.t2
+ , <Balance e.t1> : True = False;
+ e.z = True;
+}
+
+/*----------------------------------------------------------------------------------*/
+/*                             AUXILIARY CODE                                       */
+/*----------------------------------------------------------------------------------*/
+
+
+Snd {
+ (e.x) e.y = e.y;
+}
+
+/* Set definitions */
+
+NoDelim {
+  e.x1 s.s1 e.x2
+  , '( ->).' : e.y1 s.s1 e.y2  = False;
+  e.z = True;
+}
+
+NoApp {
+  e.z' ' = False;
+  e.z = True;
+}
+
+NoFun {
+  e.x1'(\\'e.x2
+  , <Balance '('e.x2> : Positive = False;
+  e.x = True;
+}
+
+NoLambda {
+   e.x1 '\\'s.sym e.x2
+   , <NoDelim s.sym> : True = False;
+   e.x = True;
+}
+
+/* Infinite alphabet generator */
+
+Refill {
+ (e.L1)(e.L2) e.Z = (e.L1)(e.L2) e.Z;
+ (e.N1) = <ReGenerate (<Alphabet>) e.N1>; 
+}
+
+Alphabet {
+  = <Wrap 'abcdefghijklmnopqrstuvwxyz'>;
+}
+
+Wrap {
+   = ;
+ s.x e.y = (s.x)<Wrap e.y>;
+}
+
+ReGenerate {
+  (e.Result) = e.Result;
+  (e.Result) s.X e.XX = <ReGenerate (<ZipConcat (e.Result)<Alphabet>>) e.XX>;
+}
+
+ZipConcat {
+  ((e.x)e.xx) (e.y) e.yy = (e.x e.y) <ZipConcat (e.xx) e.yy>;
+  e.Z = ;
+}

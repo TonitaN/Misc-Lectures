@@ -1,0 +1,129 @@
+/* A very REFALlic and minimalistic implementation of Hilbert-style proof generation from an SKI-combinator.
+   No tree representation is constructed, everything is done in terms of string rewriting.
+   A combinator is meant to be normalized, well-typed, and enclosed in the outermost brackets. 
+   The left-associativity is processed, but not necessary to be used.
+   REUSE WITH CAUTION (and only if you know Refal & SRS REALLY well)!
+   Most functions are very context-sensitive and even minor context changes would invalidate their semantics.
+*/
+
+$ENTRY Go
+  { 
+	= <PutStr <HSI (<Alphabet>)()'((S(K(SI))((S(KK))I))(S(K(SI))((S(KK))I)))'>>;
+  }
+
+HSI {
+  (e.Fresh)(e.Inference) e.w
+  , e.w : e.y1 s.C1 e.y2
+  , <Combs> : e.z1 s.C1 e.z2
+  , <NewStep (e.Fresh) s.C1> : t.X (e.Y)
+     = <HSI t.X (e.Inference (s.C1' instance: 'e.Y)) e.y1 (e.Y) e.y2>;
+  (e.Fresh)(e.Inference) e.w
+  , e.w : e.y1 '('(e.I1) (e.I2) e.y2
+  , <Deduce (e.I1) (e.I2)> : (e.YY) t.Subst
+   = <HSI (e.Fresh)(<Subst t.Subst e.Inference> ('Deduction: 'e.YY)) e.y1 '('(e.YY) e.y2>;
+   (e.Fresh)(e.Inference) e.w1'('t.Y')'e.w2
+    = <HSI (e.Fresh)(e.Inference) e.w1 t.Y e.w2>;
+   (e.Fresh)(e.Inference) t.X
+    = e.Inference;
+}
+
+Deduce {
+  ('('e.X'->'e.Y')')(e.SF)
+  , <Balance e.X> : True
+  , <Unify (e.X)(e.SF)> : e.Subst
+  , <UnifySubst e.Subst> : e.Subst2
+  , <Subst (e.Subst2)(e.Y)> : (e.NY)
+     = (e.NY)(e.Subst2); 
+}
+
+/* I have no evidence that the recursive call of UnifySubst is needed for the task, although in general it must be there. */
+
+UnifySubst {
+ e.X ((e.W)(e.SF1)) e.XX ((e.W)(e.SF2)) e.XXX
+ , <Unify (e.SF1)(e.SF2)> : e.NewSubst
+  = <UnifySubst e.X ((e.W)(e.SF1)) e.XX e.XXX e.NewSubst>;
+ e.Z = e.Z;
+}
+
+Unify {
+ (e.W)(e.SF)
+  , <NoDelim e.W> : True
+   = ((e.W)(e.SF));
+ (e.SF)(e.W)
+  , <NoDelim e.W> : True
+   = ((e.W)(e.SF));
+ ('('e.X'->'e.Y')')('('e.X2'->'e.Y2')')
+ , <Balance e.X e.X2> : True
+  = <Unify (e.X)(e.X2)><Unify (e.Y)(e.Y2)>;
+}
+
+Balance {
+ e.X '(' e.Y ')' e.Z = <Balance e.X e.Y e.Z>;
+ e.X '(' e.Y = False;
+ e.X ')' e.Y = False;
+ e.Z = True;
+}
+
+Subst {
+ (e.S)(e.W1 s.D e.W2 s.DD e.W3) e.Infer
+ , e.S : e.S1 ((e.W2)(e.SF)) e.S2
+ , <NoDelim s.D> <NoDelim s.DD>: False False
+  = <Subst (e.S)(e.W1 s.D e.SF s.DD e.W3) e.Infer>;
+  (e.S)(e.W)e.Infer
+   = (e.W)<Subst (e.S) e.Infer>;
+  (e.S) = ;
+}
+
+NewStep {
+  ((e.N1) e.Z)'I' = (<Refill (e.N1) e.Z>)('('e.N1'->'e.N1')');
+  ((e.N1)(e.N2)e.Z)'K' = (<Refill (e.N1) e.Z>)('('e.N1'->('e.N2'->'e.N1'))');
+  ((e.N1)(e.N2)(e.N3)e.Z)'S' = (<Refill (e.N1) e.Z>)('(('e.N1'->('e.N2'->'e.N3'))->(('e.N1'->'e.N2')->('e.N1'->'e.N3')))');  
+}
+
+/*----------------------------------------------------------------------------------*/
+/*                             AUXILIARY CODE                                       */
+/*----------------------------------------------------------------------------------*/
+
+
+PutStr {
+  (e.x) = <Putout 0 e.x>;
+  (e.x) e.y = <Putout 0 e.x> <PutStr e.y>; 
+}
+
+/* Set definitions */
+
+Combs {
+ = 'SKI';
+}
+
+NoDelim {
+  e.x1 s.s1 e.x2
+  , '(->)' : e.y1 s.s1 e.y2  = False;
+  e.z = True;
+}
+
+/* Infinite alphabet generator */
+
+Refill {
+ (e.L1)(e.L2)(e.L3)(e.L4) e.Z = (e.L2)(e.L3)(e.L4) e.Z;
+ (e.N1) e.Rest = <ReGenerate (<Alphabet>) e.N1>; 
+}
+
+Alphabet {
+  = <Wrap 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'>;
+}
+
+Wrap {
+   = ;
+ s.x e.y = (s.x)<Wrap e.y>;
+}
+
+ReGenerate {
+  (e.Result) = e.Result;
+  (e.Result) s.X e.XX = <ReGenerate (<ZipConcat (e.Result)<Alphabet>>) e.XX>;
+}
+
+ZipConcat {
+  ((e.x)e.xx) (e.y) e.yy = (e.x e.y) <ZipConcat (e.xx) e.yy>;
+  e.Z = ;
+}
