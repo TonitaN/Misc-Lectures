@@ -7,10 +7,10 @@
 $ENTRY Go
   { 
 	= <Putout 0 'Result: '
-	  <Snd <Reduction Inner
+	  <Snd <Reduction Normal
 	    <Kolmogorov_translation (<Alphabet>) /*'(\\x->(\\y->y x))'*/
-	    '(\\x->0) ((\\w->w w) (\\v->v v))'>' (\\id->id).'
-	  /*(<Alphabet>)'(\\x->(\\y->(\\z->z (x x)))) (\\t->t) ((\\w->w w) (\\v->v)) (\\a->(\\b->b)).'*/
+	    /*'(\\x->0) ((\\w->w) (\\v->v v))'>' (\\id->id).'*/
+	  /*(<Alphabet>)*/'(\\x->(\\y->(\\z->z (x x)))) (\\t->t) ((\\w->w w) (\\v->v)) (\\a->(\\b->b))'>' (\\id->id)'
 	  /*<Reduction Inner '(\\x->(\\y->x)) (\\w->w) ((\\v->v) (\\q->q q))'*/
 	    /*<Kolmogorov_translation (<Alphabet>)'(\\x->x x) (\\x->x x)'>*/
 	    >>>;
@@ -69,7 +69,7 @@ Reduction {
     , <Putout 0 'Term: ' e.term1'(\\'e.var'->'e.body') 'e.cont> : e.qq
     , s.Mode :
     {Normal
-     , <Alpha_Conversion (e.names) Start <Subst ()(e.var ('('e.arg')')) '('e.body')'>> : 
+     , <Subst A (e.names)()(e.var ('('e.arg')')) '('e.body')'> : 
       {(e.newnames)e.result
          = <Putout 0 e.var'::='e.arg' to 'e.body><Putout 0 e.result>
            <Reduction s.Mode (e.newnames)e.term1 e.result e.term2>; };
@@ -78,7 +78,7 @@ Reduction {
          <Reduction s.Mode (e.names)'('e.body')'> : (e.fnames)'('e.newbody')'*/
      , <Reduction s.Mode (e.names)<NB '('e.arg')'>> : 
      {(e.auxnames) e.newarg
-     , <Alpha_Conversion (e.auxnames) Start <Subst ()(e.var (e.newarg)) '('e.body')'>> : 
+     , <Subst A (e.auxnames)()(e.var (e.newarg)) '('e.body')'> : 
       {(e.newnames)e.result
          = <Putout 0 e.var'::='e.newarg' to 'e.body><Putout 0 e.result>
            <Reduction s.Mode (e.newnames)e.term1 e.result e.term2>; };
@@ -90,35 +90,44 @@ Reduction {
     , <Putout 0 'Term: ' e.term1'(\\'e.var'->'e.body') 'e.cont> : e.qq
     , s.Mode :
     {Normal
-     , <Alpha_Conversion (e.names) Start <Subst ()(e.var (e.arg)) '('e.body')'>> : 
+     , <Subst A (e.names )()(e.var (e.arg)) '('e.body')'> : 
     {(e.newnames)e.result
        = <Putout 0 e.var'::='e.arg' to 'e.body><Putout 0 e.result>
          <Reduction s.Mode (e.newnames) e.term1 e.result s.delim e.term2>; }; 
      Inner
      /*Aggressive reduction strategy in function body: 
             <Reduction s.Mode (e.names)'('e.body')'> : (e.fnames)'('e.newbody')'*/
-     , <Alpha_Conversion (e.names) Start <Subst ()(e.var (e.arg)) '('e.body')'>> : 
+     , <Subst A (e.names)()(e.var (e.arg)) '('e.body')'> : 
     {(e.newnames)e.result
        = <Putout 0 e.var'::='e.arg' to 'e.body><Putout 0 e.result>
          <Reduction s.Mode (e.newnames) e.term1 e.result s.delim e.term2>; }; };
   };
   s.Mode (e.names) e.xpr = (e.names)e.xpr;      
-}
+} 
 
 Subst {
-  (e.result)(e.var (e.arg)) e.x1 s.del1 e.var s.del2 e.x2
+  s.Mode (e.names)(e.result)(e.var (e.arg)) e.x1 s.del1 e.var s.del2 e.x2
   , ' ()> ()>' : e.xx s.del1 e.xxx s.del2 e.xxxx
-   = <Subst (e.result e.x1 s.del1 e.arg)(e.var (e.arg)) s.del2 e.x2>;
-  (e.result)(e.var (e.arg))e.rest
+  , s.Mode :
+  {B, 
+    <Alpha_Conversion (e.names) Start e.arg> : (e.newnames) e.converted
+   = <Subst B (e.newnames)(e.result e.x1 s.del1 e.converted)(e.var (e.arg)) s.del2 e.x2>;
+   s.Rest = <Subst <Upd s.Mode> (e.names)(e.result e.x1 s.del1 e.arg)(e.var (e.arg)) s.del2 e.x2>;};
+  s.Mode (e.names)(e.result)(e.var (e.arg))e.rest
     , e.result e.rest : '('e.pure')'
-     = e.pure;
+     = (e.names)e.pure;
+}
+
+Upd {
+ A = B;
+ s.x = s.x;
 }
 
 Alpha_Conversion {
 /* Placeholder for easier testing:  (e.names) Start e.expr = (e.names) e.expr;*/
    ((e.n1) e.names) Start e.xp1 '(\\'e.var'->'e.body')' e.xp2
    , <NoLambda e.body><NoDelim e.var><Balance e.body> : True True True
-   , <Subst ()(e.var(e.n1))'('e.body')'> : e.result
+   , <Subst C ()()(e.var(e.n1))'('e.body')'> : ()e.result
      = <Alpha_Conversion (<Refill e.names>) Start
         e.xp1 '(\\ 'e.n1'->'e.result')'e.xp2>;
    (e.names) t.Mode e.xp1 '\\ 'e.xp2 = <Alpha_Conversion (e.names) Erase e.xp1'\\'e.xp2>;
