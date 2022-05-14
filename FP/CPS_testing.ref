@@ -1,6 +1,5 @@
-/* A Refallic & minimalistic purely string-rewriting lambda calculus implementation written for the demonstration purposes.
-   Kolmogorov-style CPS-translation makes innermost and normal reduction orders indistinguishable.
-   TODO: Kuroda style
+/* Refallic & minimalistic purely string-rewriting lambda calculus implementation done for the demonstration purposes.
+   Kolmogorov-style and Kuroda-style CPS-translation make innermost and normal reduction orders indistinguishable.
    REUSE WITH CAUTION!
    Most functions are very context-sensitive and even minor context changes would invalidate their semantics.
 */
@@ -8,14 +7,33 @@
 $ENTRY Go
   { 
 	= <Putout 0 'Result: '
-	  <Snd <Reduction Normal
-	    <Kolmogorov_translation (<Alphabet>) '(\\x->(\\y->y x))'
-	    /* '(\\x->(\\y->y)) ((\\w->w w) (\\v->v))'*/>' (\\id->id).'
+	  <Snd <Reduction Inner
+	    <Kolmogorov_translation (<Alphabet>) /*'(\\x->(\\y->y x))'*/
+	    '(\\x->0) ((\\w->w w) (\\v->v v))'>' (\\id->id).'
 	  /*(<Alphabet>)'(\\x->(\\y->(\\z->z (x x)))) (\\t->t) ((\\w->w w) (\\v->v)) (\\a->(\\b->b)).'*/
 	  /*<Reduction Inner '(\\x->(\\y->x)) (\\w->w) ((\\v->v) (\\q->q q))'*/
 	    /*<Kolmogorov_translation (<Alphabet>)'(\\x->x x) (\\x->x x)'>*/
 	    >>>;
   }
+
+Kuroda_translation {
+ ((e.v1)(e.v2)(e.v3) e.variables)e.xpr1' 'e.xpr2
+  , <Balance e.xpr1> : True
+  , <LastArg e.xpr2> : True
+  , <Kuroda_translation (<Refill e.variables>) <NB e.xpr1>> : 
+  {(e.auxvars) e.newxpr1, 
+  <Kuroda_translation (<Refill e.auxvars>) <NB e.xpr2>> : 
+  { (e.newvars) e.newxpr2
+      = (<Refill e.newvars>) '(\\'e.v1'->'e.newxpr1' (\\'e.v2'->'e.newxpr2' (\\'e.v3'->'e.v2' 'e.v3' 'e.v1')))';};};
+ ((e.v1) e.variables)'(\\'e.var'->'e.expr')'
+ , <Kuroda_translation (<Refill e.variables>) e.expr> : 
+ { (e.newvars) e.newexpr
+     = (<Refill e.newvars>)'(\\'e.v1'->'e.v1' (\\'e.var'->'e.newexpr'))';};
+ ((e.v1) e.variables) '0'
+      = (<Refill e.variables>)'(\\'e.v1'->'e.v1' 0)'; /* Special case processing constants. */
+ ((e.v1) e.variables) e.var
+      = (<Refill e.variables>)'(\\'e.v1'->'e.v1' 'e.var')';
+}
 
 Kolmogorov_translation {
  ((e.v1)(e.v2) e.variables)e.xpr1' 'e.xpr2
@@ -157,8 +175,8 @@ NoLambda {
 /* Infinite alphabet generator */
 
 Refill {
- (e.L1)(e.L2) e.Z = (e.L1)(e.L2) e.Z;
- (e.N1) = <ReGenerate (<Alphabet>) e.N1>; 
+ (e.L1)(e.L2)(e.L3) e.Z = (e.L1)(e.L2)(e.L3) e.Z;
+ (e.N1)e.z = (e.N1)e.z<ReGenerate (<Alphabet>) e.N1>; 
 }
 
 Alphabet {
