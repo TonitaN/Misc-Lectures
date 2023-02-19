@@ -1,0 +1,33 @@
+/* Print tree in a dot-format.
+   There the stack is used not really as a stack, but rather as a global variable.
+*/
+
+$ENTRY PrintTree {
+ s.Stream (e.File) (e.Name to e.Content) 
+       = <Open 'w' s.Stream e.File>
+         <Putout s.Stream 'digraph {'>
+         <Putout s.Stream '1 [label=\"'e.Name'\", shape=rectangle]'>
+         <Br 'NodeName='2> <PrintTreeAux s.Stream ('1') e.Content>
+         <Putout s.Stream '}'>
+         <Close s.Stream>;
+ s.Stream (e.File) False = <Prout 'No tree is constructed'>;
+}
+
+PrintTreeAux {
+ s.Stream (e.Parent) ' 'e.Content = <PrintTreeAux s.Stream (e.Parent) e.Content>;
+ s.Stream (e.Parent) /* No siblings */ = /* Empty */;
+ s.Stream (e.Parent) t.Any e.Siblings
+ , <Decompose t.Any> : (e.Shape)(e.Name)e.Children
+ , <Dg 'NodeName'> : s.Num
+ , <Symb s.Num> : e.Snum
+   = <Br 'NodeName='<Add s.Num 1>> 
+     <Putout s.Stream e.Snum' [label=\"'e.Name'\", shape='e.Shape']'>
+     <Putout s.Stream e.Parent' -> 'e.Snum>
+     <PrintTreeAux s.Stream (e.Snum) e.Children>
+     <PrintTreeAux s.Stream (e.Parent) e.Siblings>;
+}
+
+Decompose {
+ (e.Name to e.Content) = ('rectangle')(e.Name) e.Content;
+ s.Single = ('none, margin=0, width=0.1')(s.Single);
+}

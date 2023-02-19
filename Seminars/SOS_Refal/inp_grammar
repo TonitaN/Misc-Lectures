@@ -1,0 +1,12 @@
+
+[S] 	->	[SS]a[SS]	b 
+[S] -> [S] [S]
+[SS] 	-> aa 
+[S] -> [SS] a [S]
+[S] -> aaa
+[F] -> [G][G]
+
+[SS] -> [SS] [SS]
+
+             [S] -> a a a c 
+[F]->[F]a

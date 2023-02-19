@@ -1,0 +1,27 @@
+$ENTRY DigAll {
+ e.StackName
+ , <Dg e.StackName> :
+ {Z0 = ;
+  e.Other = e.Other <DigAll e.StackName>;
+ };
+}
+
+$ENTRY EOFMode {
+ e.x 0 = e.x EOF;
+ e.x = e.x NonEOF;
+}
+
+$ENTRY InSet {
+ (e.Set) s.Sym e.Rest
+ , e.Set :
+ { e.S1 s.Sym e.S2 = <InSet (e.Set) e.Rest>;
+   e.NoSym = False; };
+ (e.Set) /* Empty string */ = True;
+}
+
+$ENTRY InsertByKey {                                              
+ (t.Key e.Info) e.X1 (t.Key e.ExistingInfo) e.X2 = e.X1 (t.Key e.ExistingInfo e.Info) e.X2;
+ (t.Key e.Info) e.X = e.X (t.Key e.Info);
+}
+
+$ENTRY Blank {s.Sym = <InSet (' \t') s.Sym>;}

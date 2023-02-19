@@ -1,0 +1,183 @@
+/* For `Save Our Souls from Feb, 23th`.
+  An example refal program to demonstrate some useful and refal-specific constructions such as:
+    - controlling identifiers;
+    - mapping identifiers to functions;
+    - using stacks;
+    - using pseudo-backtracking (and real backtracking in the generated code);
+    - using cheap concatenation.
+  Takes a file name F and a string S, and generates a matcher module generating the parse tree for S in the context-free grammar read from F.
+  For the sake of brevity, the CFG is assumed to be epsilon-free and chain-rule-free.
+*/
+
+$EXTERN DigAll, InsertByKey, InSet, Blank, EOFMode;
+
+$ENTRY Go
+  { , <Arg 1> : e.File /* Matching against fresh e-variables in conditions means no real backtracking, since it is always successful. */
+    , <Arg 2> : e.String /* If no command-line argument is given, then Arg function returns the empty string. */
+	= <GenerateCFG 1 (e.File) e.String>;
+  }
+
+GenerateCFG {
+ s.Stream (e.File) e.String
+ , <ExistFile e.File> :
+  { True
+    = <Open 'r' s.Stream e.File><YieldGenerator s.Stream (e.String) <ContinueParsing s.Stream (/* Empty grammar */) NonEOF>>; 
+    False
+    = <Prout 'Cannot find the file 'e.File>;
+  };
+}
+
+/*----------------------------- PARSER FUNCTIONS ----------------------------------*/
+
+ContinueParsing {
+ s.Stream (e.Grammar) EOF = Success e.Grammar;
+ s.Stream (e.Grammar) NonEOF
+ , <EOFMode <Get s.Stream>> : e.PossiblyRule s.Mode /* No real backtracking, since the output of EOFMode always matches the pattern. */
+ , <RuleParser e.PossiblyRule> :
+   { EmptyLine = <ContinueParsing s.Stream (e.Grammar) s.Mode>;
+     Success e.Rule = <ContinueParsing s.Stream (<InsertByKey (e.Rule) e.Grammar>) s.Mode>;
+     Error = Error;
+   };
+}
+
+/* ParseTokens returns a final flag (Success or Error + Error message) as a last symbol. 
+   This allows us to avoid both introduction of an accumulator or reversing the token list.
+   We simply pop the tokens until an error occurs or the string ends. 
+
+   The rules in the outer definition cannot be interchanged.
+*/
+RuleParser {
+ e.LHS '->'e.RHS
+ , <ParseTokens e.LHS> :
+ {(Nonterminal e.Nterm-left) Success
+  , <ParseTokens e.RHS> : 
+   { /* EMPTY */ Success = <Prout 'Epsilon rule found: 'e.LHS'->'e.RHS> Error;
+     (Nonterminal e.Somewhat) Success  = <Prout 'Chain rule found: 'e.LHS'->'e.RHS> Error;
+      e.ParsedRHS Success = Success (Nonterminal e.Nterm-left) (e.ParsedRHS);
+      e.ParsedRHS Error (e.ErrMessage) = <Prout e.ErrMessage> Error;
+   };
+  e.Rest = <Prout 'Invalid LHS: 'e.LHS> Error;
+ };
+ e.Otherwise, <ParseTokens e.Otherwise> :
+ {Success = EmptyLine;
+  e.NonEmptyResult = <Prout 'Invalid rule separator in line: 'e.Otherwise> Error;
+ };
+}
+
+/* To generate the function name, we transform the identifier s.Sort to a string, append the string 'Alphabet',
+   and then produce a new identifier. The identifier s.Sort is reused in the error message, token representation, and
+   mu-call of the corresponding alphabet set. */
+WrapTokenAndRecurse {
+ s.Sort (e.Token) e.Rest
+ , <InSet (<Mu <Implode <Explode s.Sort>'Alphabet'>>) e.Token> :
+ { True = (s.Sort e.Token) <ParseTokens e.Rest>; 
+   False = Error ('Invalid '<Explode s.Sort>' token name {'e.Token'}');
+ };
+}
+
+/* There the second and the third lines cannot be interchanged. */
+ParseTokens {
+ '['e.Nterm']' e.RHS = <WrapTokenAndRecurse Nonterminal (e.Nterm) e.RHS>;
+ s.Blank e.RHS, <Blank s.Blank> : True = <ParseTokens e.RHS>; /* No real backtracking there, since s.Blank is uniquely defined. */
+ s.Term e.RHS = <WrapTokenAndRecurse Terminal (s.Term) e.RHS>;
+ /* Nothing */ = Success;
+}
+
+/* These sets can be easily replaced by the alphabets read from a file. */
+NonterminalAlphabet { = 'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM_-'};
+TerminalAlphabet { = 'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM,.:+-=();'};
+/*----------------------------- GENERATOR FUNCTIONS ----------------------------------*/
+
+/* The generated file calls an extern function. 
+   Better place all the pre-defined code for the generators in modules, do not append it.
+   We use two stacks: the set of all non-terminal symbols and the set of non-terminal symbols occurring at least
+   in one LHS - to generate 'Failure functions' corresponding to the non-terminals generating no rules.
+   The stream is renewed for manipulating different files.
+*/
+YieldGenerator {
+ s.Stream (e.String) Error = <Close s.Stream>;
+ s.Stream (e.String) Success e.Grammar
+ , <InSet (<TerminalAlphabet>) e.String> :
+ {True
+  , <Add s.Stream 1> : s.NewStream /* No real backtracking there, since Add always returns a number matched against s-variable. */
+     = <Close s.Stream><Open 'w' s.NewStream 'Generated_Grammar.ref'>
+       <Putout s.NewStream '$EXTERN PrintTree;'>
+       <Putout s.NewStream '$ENTRY Go { = <PrintTree 1 (\'ParseTree.dot\') <Fun_S \''e.String'\'>>; }\n'>
+       <Br 'AllNterms='Z0><Br 'GeneratingNterms='Z0>
+       <GrammarGenerator s.NewStream e.Grammar>
+       <FailureGenerator s.NewStream ()(<DigAll 'AllNterms'>)(<DigAll 'GeneratingNterms'>)>
+       <Close s.NewStream>;
+  False = <Close s.Stream><Prout 'The input string does not belong to the terminal alphabet.'>;
+  };
+}
+
+/* 'Failure function' has no positive matches with input data, since it receives a string, but requires an identifier. */
+FailureGenerator {
+ s.Stream (e.Generated)(/* Nothing */)(e.Generating) = ;
+ s.Stream (e.Generated)(t.Term e.Other)(e.Generating)
+ , e.Generating e.Generated : /* There we append the two lists, since we need any match against their union element */
+ { e.G1 t.Term e.G2 = <FailureGenerator s.Stream (e.Generated)(e.Other)(e.Generating)>;
+   e.WithoutTerm
+   , t.Term : (e.Name) /* No real backtracking, since the term is always parenthesed. */
+         = <Putout s.Stream 'Fun_'e.Name' {Failure = ; }\n'>
+           <FailureGenerator s.Stream (e.Generated t.Term)(e.Other)(e.Generating)>;
+ };
+}
+
+/* We assume that if the non-terminal N generates the input string, then the function Fun_N returns its parse tree.
+   Otherwise it returns the empty string. */
+GrammarGenerator {
+ s.Stream ((Nonterminal e.Name) e.RHS-list) e.OtherNtermRules
+	 = <Br 'GeneratingNterms='(e.Name)><Putout s.Stream 'Fun_'e.Name' {'>
+           <Putout s.Stream <GenerateRules (e.Name) e.RHS-list>>
+           <Putout s.Stream '}\n'>                                    
+           <GrammarGenerator s.Stream e.OtherNtermRules>;
+ s.Stream /* No more nterms to process */ = /* Success */; 
+}
+
+/* The three accumulators are required there:
+   1. Pattern accumulator, to split the input string to the substrings generated by RHS tokens.
+   2. Condition accumulator, to check that the substrings really match the token languages. 
+   3. Result accumulator, to gather all the children parse trees. */
+GenerateRules {
+ (e.LeftNT) (e.RHS) e.RHS-list
+        = <GenerateRewritingRule Outer 0 (e.LeftNT)(/* EMPTY-PatternAccumulator */)(/* EMPTY-CondAccumulator */)(/* Result-Accumulator */) e.RHS>
+          <GenerateRules (e.LeftNT)e.RHS-list>;
+ (e.LeftNT) /* EMPTY */ = '  e.Otherwise = /* EMPTY */; ';
+}
+
+/* Since the grammar is epsilon-free, we can split the string to the non-empty parts. 
+   So we assume that any substring parsed by an RHS-token is matched against s.NX e.RX subpattern. 
+
+   The resulting parse tree is the term ([Name] to [Children]), thus, a term in the structural parentheses.
+   It is matched against the variable t.PX (and cannot be matched against s.PX). 
+   And forcing the parse result to match against t.PX is non-trivial: in the case of parse failure, the empty string
+   is returned, and the empty string cannot be matched against a t-variable.
+
+   The terminals are grouped together and the groups are surrounded with quotes, controlled by the flag s.Mode. */
+GenerateRewritingRule {
+ s.Mode s.Enum (e.LeftNT)(e.AccumPatt)(e.AccumCond)(e.AccumResult)(Nonterminal e.NTName) e.Rest
+ , <Symb s.Enum> : e.Ename /* No real backtracking, since the result is a fresh e-variable. */
+       = <Br 'AllNterms='(e.NTName)><GenerateRewritingRule Outer
+             <Add s.Enum 1> (e.LeftNT)
+             (e.AccumPatt<AddQuote Closing s.Mode>' s.N'e.Ename' e.R'e.Ename)
+             (e.AccumCond', <Fun_'e.NTName' s.N'e.Ename' e.R'e.Ename'> : t.P'e.Ename)
+             (e.AccumResult' t.P'e.Ename)
+             e.Rest
+         >;
+ s.Mode s.Enum (e.LeftNT) (e.AccumPatt)(e.AccumCond)(e.AccumResult)(Terminal e.TName) e.Rest
+       = <GenerateRewritingRule Inner
+             s.Enum (e.LeftNT)
+             (e.AccumPatt<AddQuote Opening s.Mode> e.TName)
+             (e.AccumCond)(e.AccumResult' 'e.TName)
+             e.Rest
+         >;
+ s.Mode s.Enum (e.LeftNT)(e.AccumPatt)(e.AccumCond)(e.AccumResult) /* No symbols left */
+      = '  'e.AccumPatt<AddQuote Closing s.Mode>e.AccumCond' = ('e.LeftNT' to'e.AccumResult');\n'; /* 'to' is an identifier, not a string. */
+}
+
+AddQuote {
+ Closing Inner = '\'';
+ Opening Outer = '\'';
+ s.Sort s.Mode = /* No need to add a quote */;
+}
