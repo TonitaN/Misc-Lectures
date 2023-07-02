@@ -3,7 +3,7 @@ from pygments.token import *
 
 class RefalLexer(RegexLexer):
     name = 'Refal'
-    aliases = ['ref']
+    aliases = ['refal']
     filenames = ['*.ref']
     KEYWORDS = [] 
     def get_tokens_unprocessed(self, text):
@@ -29,15 +29,27 @@ class RefalLexer(RegexLexer):
             (r'\}', Punctuation, '#pop'),
             (r'/\*', Comment.Multiline, 'comment'),
             (r"'", String.Single, 'string'),
+            (r'\(', Punctuation, 'paren-lhs'),
             (r'([ets]\.)([a-zA-Z0-9_-]+)',
              bygroups(Keyword.Reserved,Name.Variable)),
             (r'[a-zA-Z0-9]+', Name.Constant),
             (r'\s+', Whitespace),
             (r'=', Punctuation, 'rhs')
         ],
+        'paren-lhs': [
+            (r'\)', Punctuation, '#pop'),
+            (r'/\*', Comment.Multiline, 'comment'),
+            (r"'", String.Single, 'string'),
+            (r'\(', Punctuation, '#push'),
+            (r'([ets]\.)([a-zA-Z0-9_-]+)',
+             bygroups(Keyword.Reserved,Name.Variable)),
+            (r'[a-zA-Z0-9]+', Name.Constant),
+            (r'\s+', Whitespace)
+        ],
         'rhs': [
             (r'/\*', Comment.Multiline, 'comment'),
             (r"'", String.Single, 'string'),
+            (r"\(", Punctuation, 'paren-rhs'),
             (r'([ets]\.)([a-zA-Z0-9_-]+)',
              bygroups(Keyword.Reserved,Name.Variable)),
             (r'(<)([A-Z][a-zA-Z0-9]*)(?=[<>\s])', bygroups(Punctuation,Name.Function), 'fun'),
@@ -45,10 +57,22 @@ class RefalLexer(RegexLexer):
             (r'\s+', Whitespace),
             (r';', Punctuation, '#pop')
         ],
+        'paren-rhs': [
+            (r'/\*', Comment.Multiline, 'comment'),
+            (r"'", String.Single, 'string'),
+            (r"\(", Punctuation, '#push'),
+            (r'([ets]\.)([a-zA-Z0-9_-]+)',
+             bygroups(Keyword.Reserved,Name.Variable)),
+            (r'(<)([A-Z][a-zA-Z0-9]*)(?=[<>\s])', bygroups(Punctuation,Name.Function), 'fun'),
+            (r'[a-zA-Z0-9]+', Name.Constant),
+            (r'\s+', Whitespace),
+            (r'\)', Punctuation, '#pop')
+        ],
         'fun': [
             (r'/\*', Comment.Multiline, 'comment'),
             (r"'", String.Single, 'string'),
             (r'>', Punctuation, '#pop'),
+            (r"\(", Punctuation, 'paren-rhs'),
             (r'([ets]\.)([a-zA-Z0-9_-]+)',
              bygroups(Keyword.Reserved,Name.Variable)),
             (r'(<)([A-Z][a-zA-Z0-9]*)(?=[<>\s])', bygroups(Punctuation,Name.Function), '#push'),
