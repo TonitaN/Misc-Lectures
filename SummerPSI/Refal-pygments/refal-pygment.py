@@ -23,7 +23,8 @@ class RefalLexer(RegexLexer):
         ],
         'comment': [
             (r'[^\*/]+', Comment.Multiline),
-            (r'\*/', Comment.Multiline, '#pop')
+            (r'\*/', Comment.Multiline, '#pop'),
+            (r'\*', Comment.Multiline)
         ],
         'lhs': [
             (r'\}', Punctuation, '#pop'),
