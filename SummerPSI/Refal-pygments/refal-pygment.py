@@ -14,10 +14,9 @@ class RefalLexer(RegexLexer):
                 yield index, token, value
     tokens = {
         'root': [
-            (r'(\$ENTRY|\$EXTERN)(\s+)', bygroups(Name.Decorator,Whitespace)),
             (r'\*.*?$', Comment.Singleline),
-            (r'([A-Z][a-zA-Z0-9]*)(\s*)(\{)', 
-             bygroups(Name.Function,Whitespace,Punctuation), 'lhs'),
+            (r'(\$ENTRY|\$EXTERN)?(\s*)([A-Z][a-zA-Z0-9]*)(\s*)(\{)', 
+             bygroups(Name.Decorator,Whitespace,Name.Function,Whitespace,Punctuation), 'lhs'),
             (r'[\s]+', Whitespace),
             (r'/\*', Comment.Multiline, 'comment')
         ],
