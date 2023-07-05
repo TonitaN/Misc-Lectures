@@ -16,9 +16,15 @@ class RefalLexer(RegexLexer):
         'root': [
             (r'\*.*?$', Comment.Singleline),
             (r'(\$ENTRY|\$EXTERN)?(\s*)([A-Z][a-zA-Z0-9]*)(\s*)(\{)', 
-             bygroups(Name.Decorator,Whitespace,Name.Function,Whitespace,Punctuation), 'lhs'),
+             bygroups(Name.Decorator,Whitespace,Name.Function,Whitespace,Punctuation), 'body'),
             (r'[\s]+', Whitespace),
             (r'/\*', Comment.Multiline, 'comment')
+        ],
+        'body': [
+            (r'\}', Punctuation, '#pop'),
+            (r'\s+', Whitespace),
+            (r'/\*', Comment.Multiline, 'comment'),
+            (r'(?=.)', Whitespace, 'lhs'),
         ],
         'comment': [
             (r'[^\*]+', Comment.Multiline),
@@ -26,7 +32,6 @@ class RefalLexer(RegexLexer):
             (r'\*', Comment.Multiline)
         ],
         'lhs': [
-            (r'\}', Punctuation, '#pop'),
             (r'/\*', Comment.Multiline, 'comment'),
             (r"'", String.Single, 'string'),
             (r'\(', Punctuation, 'paren-lhs'),
@@ -34,7 +39,19 @@ class RefalLexer(RegexLexer):
              bygroups(Keyword.Reserved,Name.Variable)),
             (r'[a-zA-Z][a-zA-Z0-9-_]*', Name.Constant),
             (r'\s+', Whitespace),
-            (r'=', Punctuation, 'rhs')
+            (r'=', Punctuation, ('#pop', 'rhs')),
+            (r',', Punctuation, 'irhs'),
+        ],
+        'irhs': [
+            (r'/\*', Comment.Multiline, 'comment'),
+            (r"'", String.Single, 'string'),
+            (r"\(", Punctuation, 'paren-rhs'),
+            (r'([ets]\.)([a-zA-Z0-9_-]+)',
+             bygroups(Keyword.Reserved,Name.Variable)),
+            (r'(<)([A-Z][a-zA-Z0-9]*)(?=[<>\s])', bygroups(Punctuation,Name.Function), 'fun'),
+            (r'[a-zA-Z0-9]+', Name.Constant),
+            (r'\s+', Whitespace),
+            (r':', Punctuation, '#pop'),
         ],
         'paren-lhs': [
             (r'\)', Punctuation, '#pop'),
