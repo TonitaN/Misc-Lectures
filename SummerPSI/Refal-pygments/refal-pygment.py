@@ -39,7 +39,19 @@ class RefalLexer(RegexLexer):
              bygroups(Keyword.Reserved,Name.Variable)),
             (r'[a-zA-Z][a-zA-Z0-9-_]*', Name.Constant),
             (r'\s+', Whitespace),
-            (r'=', Punctuation, ('#pop', 'rhs'))
+            (r'=', Punctuation, ('#pop', 'rhs')),
+            (r',', Punctuation, 'irhs'),
+        ],
+        'irhs': [
+            (r'/\*', Comment.Multiline, 'comment'),
+            (r"'", String.Single, 'string'),
+            (r"\(", Punctuation, 'paren-rhs'),
+            (r'([ets]\.)([a-zA-Z0-9_-]+)',
+             bygroups(Keyword.Reserved,Name.Variable)),
+            (r'(<)([A-Z][a-zA-Z0-9]*)(?=[<>\s])', bygroups(Punctuation,Name.Function), 'fun'),
+            (r'[a-zA-Z0-9]+', Name.Constant),
+            (r'\s+', Whitespace),
+            (r':', Punctuation, '#pop'),
         ],
         'paren-lhs': [
             (r'\)', Punctuation, '#pop'),
