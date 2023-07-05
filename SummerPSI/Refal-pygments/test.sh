@@ -1,2 +1,1 @@
-python -m pygments -x -l refal-pygment.py:RefalLexer $1
-read -s -n 1
+pygmentize -f html -O full -o test.html -x -l refal-pygment.py:RefalLexer $1
