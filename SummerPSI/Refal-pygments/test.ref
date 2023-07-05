@@ -1,4 +1,13 @@
-Func {
-     e.x , <InSet (e.x e.1)> : 'T' , e12 : 'F' = 'T';
+InSet { (e.x) s.1 e.y, e.x : e.v1 s.1 e.v2 = <InSet (e.x) e.y>;
+      (e.x )/*EMPTY */ = 'T';
+       (e.x) e.y = 'F';
+}
+
+$ENTRY Func {
+     e.x 'A' e.1, <InSet (e.x e.1)> : 
+      { 'T' , e12 : 'F' = 'T';
+         'F', <Arg 1> : { /* EMPTY */ = ;
+           };
+        };
      e.x ,/* a */ ab12 : /* a */'T' , /* a */ e12 /* a */ : 'F' = 'T';
 }
