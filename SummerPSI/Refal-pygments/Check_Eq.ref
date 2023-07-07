@@ -1,0 +1,7 @@
+Check {
+    (e.X 'ab' e.Y )
+    (e.Y e.X e.X 'ba') = 
+      <Prout 'X=' e.X><Prout 'Y=' e.Y>;
+    (e.U1)(e.U2) = 'No match'; }
+
+$ENTRY Go { = <Check ('aba')('aba')>; }

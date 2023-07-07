@@ -1,0 +1,34 @@
+$ENTRY Go {
+ = <Open 'w' 1 'Check_Eq.ref'>
+   <GenProg <Get 0>><GenEntry <Get 0>><Close 1>;
+}
+
+GenProg {
+ e.X'='e.Y = <Putout 1 'Check {'>
+             <Putout 1 '    ('<GenLHS (<Small>) Free e.X>')'><Putout 1 '    ('<GenLHS (<Small>) Free e.Y>') = '><Putout 1 '      '<AllVars (<Small>)e.X e.Y>';'> 
+             <Putout 1 '    (e.U1)(e.U2) = \'No match\'; }'>;
+}
+
+Small {
+ = 'abcdefghijklmnopqrstuvwxyz';
+}
+
+GenLHS {
+ (e.w s.Sym e.w2) String = '\'';
+ (e.w s.Sym e.w2) Free = ;
+ (e.w s.Sym e.w2) Free s.Sym e.Z = '\''s.Sym <GenLHS (e.w s.Sym e.w2) String e.Z>;
+ (e.w s.Sym e.w2) String s.Sym e.Z = s.Sym <GenLHS (e.w s.Sym e.w2) String e.Z>;
+ (e.w) Free s.Sym e.Z = 'e.'s.Sym' '<GenLHS (e.w) Free e.Z>;
+ (e.w) String s.Sym e.Z = '\' e.'s.Sym' '<GenLHS (e.w) Free e.Z>;
+}
+
+AllVars {
+ (e.X s.Sym e.X2) e.Z1 s.Sym e.Z2 = <AllVars (e.X s.Sym e.X2) e.Z1 e.Z2>;
+ (e.W) e.Z1 s.Z e.Z2 s.Z e.Z3 = <AllVars (e.W) e.Z1 s.Z e.Z2 e.Z3>;
+ (e.W) s.Z e.Z = '<Prout \''s.Z'=\' e.'s.Z'>'<AllVars (e.W) e.Z>;
+ (e.W) = ;
+}
+
+GenEntry {
+ e.String = <Putout 1 '\n$ENTRY Go { = <Check (\''e.String'\')(\''e.String'\')>; }'>;
+}
