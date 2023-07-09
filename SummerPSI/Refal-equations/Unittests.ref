@@ -1,0 +1,46 @@
+$ENTRY Go { = <Prout <MapZip RunPick (1 2 3 4) <TestSet1>>>;} 
+
+TestSet1 {
+ = ((AreEqual ((Var 'X') ('A' 0)) ((Var 'Y') ('B' 0) (Var 'Y'))) (/* No constraints */) (/* No index eqs */))
+   ((AreEqual (('A' 0) (Var 'X') ('A' 0)) ((Var 'Y') ('A' 0) ('A' 0) (Var 'Y'))) ((OR (not empty (Var 'X'))) 
+                                   (OR (not ('A' 0) starts (Var 'X')) (not ('B' 0) ends (Var 'X'))) ) (/* No index eqs */))
+   ((AreEqual ((Var 'X')) ((Var 'Y'))) ((OR (not empty (Var 'X')))) (/* No index eqs */))
+   ((AreEqual ((Var 'X') ('A' 0)) (('A' 0) (Var 'Y'))) ((OR (not ('A' 0) ends (Var 'X')))) (/* No index eqs */));
+}
+
+MapZip {
+ s.FunctionName (s.X e.Y) e.X = <Mu s.FunctionName s.X e.X><MapZip s.FunctionName (e.Y) e.X>;
+ s.FunctionName (/*No more values*/) e.X = /* EMPTY */;
+}
+
+/* Dummy! Place the real implementation there */
+Pick {
+ 1 t.Eq e.Eqs
+ , t.Eq : ((AreEqual t.LHS t.RHS)(t.SomeConstraint e.Rest)(e.Everything)) = t.Eq;
+ 1 t.Eq e.Eqs = Success;
+ s.X t.Eq e.Eqs = <Pick <Sub s.X 1> e.Eqs>;
+}
+
+RunPick {
+ 1 e.Eqs
+ , <Pick 1 e.Eqs> : {
+   (e.Equation) = True;
+    e.Other = False;
+  };
+ 2 e.Eqs
+ , <Pick 2 e.Eqs> : {
+   (e.Equation) = True;
+    e.Other = False;
+  };
+ 3 e.Eqs
+ , <Pick 3 e.Eqs> : {
+    NotMinimal = True;
+    e.Other = False;
+  };
+ 4 e.Eqs
+ , <Pick 4 e.Eqs> : {
+    Success = True;
+    e.Other = False;
+  };
+}
+
