@@ -15,11 +15,25 @@ class RefalLexer(RegexLexer):
     tokens = {
         'root': [
             (r'\*.*?$', Comment.Singleline),
-            (r'(\$ENTRY)?(\s*)([A-Z][a-zA-Z0-9]*)(\s*)(\{)', 
+            (r'(\$EXTERN)(\s+)([A-Z][a-zA-Z0-9_-]*)',
+             bygroups(Name.Decorator,Whitespace,Name.Function), 'dependencies'),
+            (r'(\$ENTRY )?(\s*)([A-Z][a-zA-Z0-9_-]*)(\s*)(\{)', 
              bygroups(Name.Decorator,Whitespace,Name.Function,Whitespace,Punctuation), 'body'),
             (r'[\s]+', Whitespace),
             (r'/\*', Comment.Multiline, 'comment'),
             (r'(?=.)', Whitespace, 'bare_expr')
+        ],
+        'dependencies' : [
+            (r'/\*', Comment.Multiline, 'comment'),
+            (r'[\s]+', Whitespace),
+            (r';', Punctuation, '#pop'),
+            (r'(,)(\s*)',
+             bygroups(Punctuation,Whitespace), 'force-dep')
+        ],
+        'force-dep' : [
+            (r'/\*', Comment.Multiline, 'comment'),
+            (r'[\s]+', Whitespace),
+            (r'[A-Z][a-zA-Z0-9_-]*',Name.Function, '#pop')
         ],
         'body': [
             (r'\}', Punctuation, '#pop'),
@@ -86,7 +100,7 @@ class RefalLexer(RegexLexer):
             (r'([1-9][0-9]*|0)', Number.Integer),
             (r'([ets]\.)([a-zA-Z0-9_-]+)',
              bygroups(Keyword.Reserved,Name.Variable)),
-            (r'(<)([A-Z][a-zA-Z0-9]*)(?=[<>\s])', bygroups(Punctuation,Name.Function), 'fun'),
+            (r'(<)([A-Z][a-zA-Z0-9_-]*)(?=[<>\s])', bygroups(Punctuation,Name.Function), 'fun'),
             (r'[a-zA-Z0-9]+', Name.Constant),
             (r'\s+', Whitespace),
             (r';', Punctuation, '#pop')
@@ -100,7 +114,7 @@ class RefalLexer(RegexLexer):
              bygroups(Keyword.Reserved,Name.Variable)),
             (r'([ets]\.)([a-zA-Z0-9_-]+)',
              bygroups(Keyword.Reserved,Name.Variable)),
-            (r'(<)([A-Z][a-zA-Z0-9]*)(?=[<>\s])', bygroups(Punctuation,Name.Function), 'fun-expr'),
+            (r'(<)([A-Z][a-zA-Z0-9_-]*)(?=[<>\s])', bygroups(Punctuation,Name.Function), 'fun-expr'),
             (r'[a-zA-Z][a-zA-Z0-9]*', Name.Constant),
             (r'\s+', Whitespace),
             (r'$', Whitespace, '#pop')
@@ -112,7 +126,7 @@ class RefalLexer(RegexLexer):
             (r'([1-9][0-9]*|0)', Number.Integer),
             (r'([ets]\.)([a-zA-Z0-9_-]+)',
              bygroups(Keyword.Reserved,Name.Variable)),
-            (r'(<)([A-Z][a-zA-Z0-9]*)(?=[<>\s])', bygroups(Punctuation,Name.Function), 'fun'),
+            (r'(<)([A-Z][a-zA-Z0-9_-]*)(?=[<>\s])', bygroups(Punctuation,Name.Function), 'fun'),
             (r'[a-zA-Z][a-zA-Z0-9-_]*', Name.Constant),
             (r'\s+', Whitespace),
             (r'\)', Punctuation, '#pop')
@@ -125,7 +139,7 @@ class RefalLexer(RegexLexer):
             (r'([1-9][0-9]*|0)', Number.Integer),
             (r'([ets]\.)([a-zA-Z0-9_-]+)',
              bygroups(Keyword.Reserved,Name.Variable)),
-            (r'(<)([A-Z][a-zA-Z0-9]*)(?=[<>\s])', bygroups(Punctuation,Name.Function), '#push'),
+            (r'(<)([A-Z][a-zA-Z0-9_-]*)(?=[<>\s])', bygroups(Punctuation,Name.Function), '#push'),
             (r'[a-zA-Z][a-zA-Z0-9-_]*', Name.Constant),
             (r'\s+', Whitespace)
         ],
@@ -138,7 +152,7 @@ class RefalLexer(RegexLexer):
              bygroups(Keyword.Reserved,Name.Variable)),
             (r'([ets]\.)([a-zA-Z0-9_-]+)',
              bygroups(Keyword.Reserved,Name.Variable)),
-            (r'(<)([A-Z][a-zA-Z0-9]*)(?=[<>\s])', bygroups(Punctuation,Name.Function), 'fun'),
+            (r'(<)([A-Z][a-zA-Z0-9_-]*)(?=[<>\s])', bygroups(Punctuation,Name.Function), 'fun'),
             (r'[a-zA-Z][a-zA-Z0-9-_]*', Name.Constant),
             (r'\s+', Whitespace),
             (r'\)', Punctuation, '#pop')
@@ -153,7 +167,7 @@ class RefalLexer(RegexLexer):
              bygroups(Keyword.Reserved,Name.Variable)),
             (r'([ets]\.)([a-zA-Z0-9_-]+)',
              bygroups(Keyword.Reserved,Name.Variable)),
-            (r'(<)([A-Z][a-zA-Z0-9]*)(?=[<>\s])', bygroups(Punctuation,Name.Function), '#push'),
+            (r'(<)([A-Z][a-zA-Z0-9_-]*)(?=[<>\s])', bygroups(Punctuation,Name.Function), '#push'),
             (r'[a-zA-Z][a-zA-Z0-9-_]*', Name.Constant),
             (r'\s+', Whitespace)
         ],
