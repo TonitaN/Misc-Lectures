@@ -1,42 +1,63 @@
 $ENTRY Go {
-  = <Open 'w' 1 'Check_Eq.ref'>
-    <GenProg <Get 0>>
-    <GenEntry <Get 0>>
-    <Close 1>;
+  = <Open 'w' 1 'Check_Eq.ref'> <GenProg <DelSpaces <Get 0>>>
+    <GenEntry <DelSpaces <Get 0>>> <Close 1>;
 }
 
-GenEntry {
-  e.str =
-    <Putout 1 '$ENTRY Go {'>
-    <Putout 1 '\t= <Check (\'' e.str '\')(\'' e.str '\')>;'>
-    <Putout 1 '}\n'>;
+DelSpaces {
+  e.u1 ' ' e.u2 = <DelSpaces e.u1 e.u2>;
+  e.u = e.u;
 }
 
 GenProg {
-  e.u1 '=' e.u2 =
-    <Putout 1 'Check {'>
-    <Putout 1 '\t(' <GenLHS e.u1> ')(' <GenLHS e.u2> ') = '
-              '<Prout ' <Vars e.u1 e.u2> '>;'>
-    <Putout 1 '\t(e.u1)(e.u2) = <Prout \'No match\'>;'>
-    <Putout 1 '}\n'>;
+  e.u1 '=' e.u2
+  , (e.u1) (e.u2) : (s.x1 e.v1) (s.x2 e.v2)
+  , <IsGenBy e.u1 e.u2 (<VarNames> <ConstNames>)> : True =
+    <Putout 1 'Check { (' <GenLHS e.u1 (<VarNames>) Main> ')'
+              '(' <GenLHS e.u2 (<VarNames>) Main> ') = '
+              '<Prout ' <Vars e.u1 e.u2 (<VarNames>)> '>;'>
+    <Putout 1 '\t(e.u1)(e.u2) = <Prout \'No match\'>; }'>;
+  e.u =
+    <Putout 1 'Check { (e.u1)(e.u2) = <Prout \'Invalid equation\'>; }'>;
 }
 
-* TODO: combine consecutive constansts into a continious string
+IsGenBy {
+  s.x e.u (e.v1 s.x e.v2) = <IsGenBy e.u (e.v1 s.x e.v2)>;
+  (e.v) = True;
+  e.u (e.v) = False;
+}
+
 GenLHS {
-  s.x e.u, <VarNames>: e.n1 s.x e.n2 = 'e.' s.x ' ' <GenLHS e.u>;
-  s.x e.u = '\'' s.x '\' ' <GenLHS e.u>;
-  = ;
+  s.x e.u (e.v1 s.x e.v2) Main =
+    'e.' s.x ' ' <GenLHS e.u (e.v1 s.x e.v2) Main>;
+  s.x e.u (e.v1 s.x e.v2) String =
+    '\' e.' s.x ' ' <GenLHS e.u (e.v1 s.x e.v2) Main>;
+  s.x e.u (e.v) Main = '\'' s.x <GenLHS e.u (e.v) String>;
+  s.x e.u (e.v) String = s.x <GenLHS e.u (e.v) String>;
+  (e.v) Main = ;
+  (e.v) String = '\'';
 }
 
 Vars {
-  e.u1 s.x e.u2 s.x e.u3 = <Vars e.u1 s.x e.u2 e.u3>;
-  s.x e.u, <VarNames>: e.n1 s.x e.n2 =
-    '\'' s.x ' = \' e.' s.x ' \'\\n\'' <Vars e.u>; 
-  s.x e.u = <Vars e.u>;
-  = ;
+  e.u1 s.x e.u2 s.x e.u3 (e.v) = <Vars e.u1 s.x e.u2 e.u3 (e.v)>;
+  s.x e.u (e.v1 s.x e.v2) =
+    '\'' s.x ' = \' e.' s.x ' \'\\n\' ' <Vars e.u (e.v1 s.x e.v2)>; 
+  s.x e.u (e.v) = <Vars e.u (e.v)>;
+  (e.v) = ;
+}
+
+GenEntry {
+  e.u
+  , <IsGenBy e.u (<ConstNames>)> : True =
+    <Putout 1 '$ENTRY Go { = <Check (\'' e.u '\')(\'' e.u '\')>; }'>;
+  e.u =
+    <Putout 1 '$ENTRY Go { = <Prout \'Invalid string\'>; }'>;
 }
 
 VarNames {
   = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+}
+
+ConstNames {
+  = 'abcdefghijklmnopqrstuvwxyz';
 }
 
