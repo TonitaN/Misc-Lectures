@@ -1,75 +1,63 @@
 $ENTRY Go {
-  = <Open 'w' 1 'Check_Eq.ref'>
-    <GenProg <RemoveSpaces <Get 0>>>
-    <GenEntry <RemoveSpaces <Get 0>>>
-    <Close 1>;
+  = <Open 'w' 1 'Check_Eq.ref'> <GenProg <DelSpaces <Get 0>>>
+    <GenEntry <DelSpaces <Get 0>>> <Close 1>;
 }
 
-RemoveSpaces {
-  e.u1 ' ' e.u2 = <RemoveSpaces e.u1 e.u2>;
+DelSpaces {
+  e.u1 ' ' e.u2 = <DelSpaces e.u1 e.u2>;
   e.u = e.u;
 }
 
 GenProg {
   e.u1 '=' e.u2
-  , <IsEmpty e.u1> : False
-  , <IsEmpty e.u2> : False
-  , <IsInAlphabet e.u1 e.u2> : True =
-    <Putout 1 'Check {'>
-    <Putout 1 '\t(' <GenLHS e.u1 Main> ')(' <GenLHS e.u2 Main> ') = '
-              '<Prout ' <VerbalizeVars e.u1 e.u2> '>;'>
-    <Putout 1 '\t(e.u1)(e.u2) = <Prout \'No match\'>;'>
-    <Putout 1 '}\n'>;
-  e.u = 
-    <Putout 1 'Check {'>
-    <Putout 1 '\t(e.u1)(e.u2) = <Prout \'Invalid equation\'>;'>
-    <Putout 1 '}\n'>;
+  , (e.u1) (e.u2) : (s.x1 e.v1) (s.x2 e.v2)
+  , <IsGenBy e.u1 e.u2 (<VarNames> <ConstNames>)> : True =
+    <Putout 1 'Check { (' <GenLHS e.u1 (<VarNames>) Main> ')'
+              '(' <GenLHS e.u2 (<VarNames>) Main> ') = '
+              '<Prout ' <Vars e.u1 e.u2 (<VarNames>)> '>;'>
+    <Putout 1 '\t(e.u1)(e.u2) = <Prout \'No match\'>; }'>;
+  e.u =
+    <Putout 1 'Check { (e.u1)(e.u2) = <Prout \'Invalid equation\'>; }'>;
 }
 
-IsEmpty {
-  = True;
-  e.u = False;
-}
-
-IsInAlphabet {
-  s.x e.u, <Vars> <Consts> : e.u1 s.x e.u2 = <IsInAlphabet e.u>;
-  = True;
-  e.u = False;
+IsGenBy {
+  s.x e.u (e.v1 s.x e.v2) = <IsGenBy e.u (e.v1 s.x e.v2)>;
+  (e.v) = True;
+  e.u (e.v) = False;
 }
 
 GenLHS {
-  s.x e.u Main, <Vars>: e.u1 s.x e.u2 = 'e.' s.x ' ' <GenLHS e.u Main>;
-  s.x e.u String, <Vars>: e.u1 s.x e.u2 = '\' e.' s.x ' ' <GenLHS e.u Main>;
-  s.x e.u Main = '\'' s.x <GenLHS e.u String>;
-  s.x e.u String = s.x <GenLHS e.u String>;
-  Main = ;
-  String = '\'';
-}
-
-VerbalizeVars {
-  e.u1 s.x e.u2 s.x e.u3 = <VerbalizeVars e.u1 s.x e.u2 e.u3>;
-  s.x e.u, <Vars>: e.u1 s.x e.u2 = 
-    '\'' s.x ' = \' e.' s.x ' \'\\n\' ' <VerbalizeVars e.u>; 
-  s.x e.u = <VerbalizeVars e.u>;
-  = ;
-}
-
-GenEntry {
-  e.u, <IsInAlphabet e.u> : True =
-    <Putout 1 '$ENTRY Go {'>
-    <Putout 1 '\t= <Check (\'' e.u '\')(\'' e.u '\')>;'>
-    <Putout 1 '}\n'>;
-  e.u = 
-    <Putout 1 '$ENTRY Go {'>
-    <Putout 1 '\t= <Prout \'Invalid string\'>;'>
-    <Putout 1 '}\n'>;
+  s.x e.u (e.v1 s.x e.v2) Main =
+    'e.' s.x ' ' <GenLHS e.u (e.v1 s.x e.v2) Main>;
+  s.x e.u (e.v1 s.x e.v2) String =
+    '\' e.' s.x ' ' <GenLHS e.u (e.v1 s.x e.v2) Main>;
+  s.x e.u (e.v) Main = '\'' s.x <GenLHS e.u (e.v) String>;
+  s.x e.u (e.v) String = s.x <GenLHS e.u (e.v) String>;
+  (e.v) Main = ;
+  (e.v) String = '\'';
 }
 
 Vars {
+  e.u1 s.x e.u2 s.x e.u3 (e.v) = <Vars e.u1 s.x e.u2 e.u3 (e.v)>;
+  s.x e.u (e.v1 s.x e.v2) =
+    '\'' s.x ' = \' e.' s.x ' \'\\n\' ' <Vars e.u (e.v1 s.x e.v2)>; 
+  s.x e.u (e.v) = <Vars e.u (e.v)>;
+  (e.v) = ;
+}
+
+GenEntry {
+  e.u
+  , <IsGenBy e.u (<ConstNames>)> : True =
+    <Putout 1 '$ENTRY Go { = <Check (\'' e.u '\')(\'' e.u '\')>; }'>;
+  e.u =
+    <Putout 1 '$ENTRY Go { = <Prout \'Invalid string\'>; }'>;
+}
+
+VarNames {
   = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 }
 
-Consts {
+ConstNames {
   = 'abcdefghijklmnopqrstuvwxyz';
 }
 
