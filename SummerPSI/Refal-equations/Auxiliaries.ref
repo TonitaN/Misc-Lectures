@@ -1,0 +1,9 @@
+$ENTRY GetNewIndex {
+ s.OldIndex
+ , <Explode s.OldIndex> : s.Letter s.FirstDigit e.Digits
+ , <Symb <Add <Numb s.FirstDigit e.Digits> 1>> : e.NewNumber
+  = <Implode s.Letter e.NewNumber>;
+}
+
+$ENTRY Go { = <Prout <GetNewIndex i19>>;}
+
