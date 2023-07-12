@@ -5,5 +5,17 @@ $ENTRY GetNewIndex {
   = <Implode s.Letter e.NewNumber>;
 }
 
-$ENTRY Go { = <Prout <GetNewIndex i19>>;}
+/*Throws `Recognition Impossible` if the lists have not equal lengths. */
+$ENTRY Zip {
+ (t.X e.X) (t.Y e.Y)
+  = (t.X t.Y) <Zip (e.X)(e.Y)>;
+ (/* EMPTY */)(/* EMPTY */) = /* EMPTY */;
+}
+
+$ENTRY FormPair {
+   t.First t.Second = (t.First t.Second);
+}
+
+
+*$ENTRY Go { = <Prout <GetNewIndex i19>>;}
 

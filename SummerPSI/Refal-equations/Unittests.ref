@@ -1,5 +1,7 @@
 *$INLINE HigherOrder;
 
+$EXTERN FormPair, Zip;
+
 $ENTRY Go { = 
           <Prout <MapCall Curry (Flip <TestSet1>) <MapCall Curry (FormPair RunPick) 1 2 3 4>> >
  /*         <Prout <ZipMap RunSubstIndices 

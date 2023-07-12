@@ -1,18 +1,14 @@
-$ENTRY MapCompose {
+MapCompose {
   e.X = e.X;
 }
 
-$ENTRY FormPair {
-   t.First t.Second = (t.First t.Second);
-}
-
 /* \x y_A -> (y A x) */
-$ENTRY Flip {
+Flip {
    e.FreeArg (s.Fun e.CurriedArg) = <Mu s.Fun e.CurriedArg e.FreeArg>; /* Function with curried arguments */
    e.FreeArg s.Fun = <Mu s.Fun e.FreeArg>; /* Not curried, plain function */
 }
 
-$ENTRY MapCall {
+MapCall {
    Curry (s.FunctionName e.Args) t.Element e.List
        = <Mu s.FunctionName e.Args t.Element> <MapCall Curry (s.FunctionName e.Args) e.List>;
    Revert (s.FunctionName e.Args) t.Element e.List
@@ -22,14 +18,7 @@ $ENTRY MapCall {
    s.AnyMode t.ToApply /* No args */ = /* Empty list */;
 }
 
-/*Throws `Recognition Impossible` if the lists have not equal lengths. */
-$ENTRY Zip {
- (t.X e.X) (t.Y e.Y)
-  = (t.X t.Y) <Zip (e.X)(e.Y)>;
- (/* EMPTY */)(/* EMPTY */) = /* EMPTY */;
-}
-
-$ENTRY UnwrapCalls {
+UnwrapCalls {
  (s.FunctionName e.Data) e.MuList
   = <Mu s.FunctionName e.Data> <UnwrapCalls e.MuList>;
  /* No more pairs */ = /* EMPTY */;
