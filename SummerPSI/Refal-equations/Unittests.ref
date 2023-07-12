@@ -1,24 +1,97 @@
 $ENTRY Go { = <Prout <MapZip RunPick (1 2 3 4) <TestSet1>>>;} 
 
 TestSet1 {
- = ((AreEqual ((Var 'X') ('A' 0)) ((Var 'Y') ('B' 0) (Var 'Y'))) (/* No constraints */) (/* No index eqs */))
-   ((AreEqual (('A' 0) (Var 'X') ('A' 0)) ((Var 'Y') ('A' 0) ('A' 0) (Var 'Y'))) ((OR (not empty (Var 'X'))) 
-                                   (OR (not ('A' 0) starts (Var 'X')) (not ('B' 0) ends (Var 'X'))) ) (/* No index eqs */))
-   ((AreEqual ((Var 'X')) ((Var 'Y'))) ((OR (not empty (Var 'X')))) (/* No index eqs */))
-   ((AreEqual ((Var 'X') ('A' 0)) (('A' 0) (Var 'Y'))) ((OR (not ('A' 0) ends (Var 'X')))) (/* No index eqs */));
+ = ((AreEqual ((Var 'X') ('A' 0)) ((Var 'Y') ('B' 0) (Var 'Y')))
+    (/* No constraints */)
+    (/* No index eqs */))
+   ((AreEqual (('A' 0) (Var 'X') ('A' 0)) ((Var 'Y') ('A' 0) ('A' 0) (Var 'Y')))
+    ((OR (not empty (Var 'X')))
+     (OR (not ('A' 0) starts (Var 'X')) (not ('B' 0) ends (Var 'X'))))
+    (/* No index eqs */))
+   ((AreEqual ((Var 'X')) ((Var 'Y')))
+    ((OR (not empty (Var 'X'))))
+    (/* No index eqs */))
+   ((AreEqual ((Var 'X') ('A' 0)) (('A' 0) (Var 'Y')))
+    ((OR (not ('A' 0) ends (Var 'X'))))
+    (/* No index eqs */));
+}
+
+Pick {
+  1 t.Eq e.Rest
+  , t.Eq : ((AreEqual t.LHS t.RHS) t.Constraints t.IndexEqs)
+  , <SubstEmptyToEq t.LHS t.RHS (<GetNonEmptyVars t.Constraints>)> : {
+    t.HS t.HS = Success;
+    t.NewLHS t.NewRHS
+    , <IsNotMinimal t.NewLHS t.NewRHS> : {
+      True = NotMinimal;
+      False = t.Eq;
+    };
+  };
+  s.X t.Eq e.Rest = <Pick <Sub s.X 1> e.Rest>;
+  /* s.X = Fail; */
+}
+
+/* Wrapper function to avoid calculating GetNonEmptyVars twice. */
+SubstEmptyToEq {
+  t.LHS t.RHS t.NonEmptyVars
+    = (<SubstEmpty t.LHS t.NonEmptyVars>) (<SubstEmpty t.RHS t.NonEmptyVars>);
+}
+
+SubstEmpty {
+  (t.Struct e.Rest) t.NonEmptyVars
+  , t.Struct : (Var s.X)
+  , <BelongsTo s.X t.NonEmptyVars> : False
+    = <SubstEmpty (e.Rest) t.NonEmptyVars>;
+  (t.Struct e.Rest) t.NonEmptyVars
+    = t.Struct <SubstEmpty (e.Rest) t.NonEmptyVars>;
+  (/* EMPTY */) t.NonEmptyVars = /* EMPTY */;
+}
+
+BelongsTo {
+  s.X (e.U1 s.X e.U2) = True;
+  e.U = False;
+}
+
+GetNonEmptyVars {
+  (t.Conjunct e.Rest) 
+  , t.Conjunct : (OR e.Disjuncts)
+    = <ParseDisjuncts e.Disjuncts> <GetNonEmptyVars (e.Rest)>;
+  (/* EMPTY */) = /* EMPTY */;
+}
+
+ParseDisjuncts {
+  t.Disjunct e.Rest
+  , t.Disjunct : {
+    /* If a conjunct can contain only one disjunct with a constraint on
+       non-emptiness of a variable, the right half of the next sentence
+       can be simplified to `s.X`. */
+    (not empty (Var s.X)) = s.X <ParseDisjuncts e.Rest>;
+    t.Other = <ParseDisjuncts e.Rest>;
+  };
+  /* EMPTY */ = /* EMPTY */;
+}
+
+IsNotMinimal {
+  t.LHS t.RHS
+  , <HasVarsOnly t.LHS> <HasVarsOnly t.RHS> : {
+    True True = True;
+    e.Other = False;
+  };
+}
+
+HasVarsOnly {
+  (t.Struct e.Rest)
+  , t.Struct : {
+    (Var s.X) = <HasVarsOnly (e.Rest)>;
+    t.Other = False;
+  };
+  (/* EMPTY */) = True;
 }
 
 MapZip {
- s.FunctionName (s.X e.Y) e.X = <Mu s.FunctionName s.X e.X><MapZip s.FunctionName (e.Y) e.X>;
+ s.FunctionName (s.X e.Y) e.X
+  = <Mu s.FunctionName s.X e.X> <MapZip s.FunctionName (e.Y) e.X>;
  s.FunctionName (/*No more values*/) e.X = /* EMPTY */;
-}
-
-/* Dummy! Place the real implementation there */
-Pick {
- 1 t.Eq e.Eqs
- , t.Eq : ((AreEqual t.LHS t.RHS)(t.SomeConstraint e.Rest)(e.Everything)) = t.Eq;
- 1 t.Eq e.Eqs = Success;
- s.X t.Eq e.Eqs = <Pick <Sub s.X 1> e.Eqs>;
 }
 
 RunPick {
