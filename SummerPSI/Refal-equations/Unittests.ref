@@ -4,21 +4,33 @@ $EXTERN FormPair, Zip;
 
 $ENTRY Go { = 
           <Prout <MapCall Curry (Flip <TestSet1>) <MapCall Curry (FormPair RunPick) 1 2 3 4>> >
- /*         <Prout <ZipMap RunSubstIndices 
-                    (
-                         (1 (Subst i1 ((i2 2) (const 2))))
-                         (2 (Subst i1 ((i2 2) (i3 1) (const 0))) (Subst i4 ((i1 2) (const 1))))
-                         (3 (Subst i1 ((i2 2) (i3 1) (const 0))) (Subst i4 ((i1 2) (const 1))))
-                         (4 (Subst i1 ((i2 2) (i3 1) (const 0))) (Subst i4 ((i1 2) (const 1))))
-                    ) 
-                    <TestSet2>>        */
+         <Prout <UnwrapCalls <Zip (<MapCall Curry (FormPair RunSubstIndices) 
+                    
+                         (1 (SubstIndex i1 ((i2 2) (const 2))))
+   /*                      (2 (SubstIndex i1 ((i2 2) (i3 1) (const 0))) (SubstIndex i4 ((i1 2) (const 1))))
+                         (3 (SubstIndex i1 ((i2 2) (i3 1) (const 0))) (SubstIndex i4 ((i1 2) (const 1))))
+                         (4 (SubstIndex i1 ((i2 2) (i3 1) (const 0))) (SubstIndex i4 ((i1 2) (const 1))))  */
+                    >) 
+                    (<TestSet2>)>>>       
           ;} 
 
-/*
+
+/* Dummy implementation - to be changed. */
+SubstIndex {
+ s.CurrentIndex (e.Multiset) t.Equation = t.Equation;
+}
+
 RunSubstIndices {
   (1 e.Substs) t.EqData
-  , <ZipMap >
-} */
+   , <MapCompose (e.Substs) t.EqData> :
+ { ((AreEqual ((Var 'X')) (e.W1 (Var 'X') e.W2))
+    ((OR (not empty (Var 'X'))))
+    (('A' s.X) is (('A' 0) (i2 2) (const 2)))
+   ), e.W1 e.W2 : ('A' s.X)
+     = True;
+   e.Z = False;
+ };
+} 
 
 TestSet1 {
  = ((AreEqual ((Var 'X') ('A' 0)) ((Var 'Y') ('B' 0) (Var 'Y')))
@@ -42,24 +54,24 @@ TestSet2 {
     (('A' 1) is (('A' 0) (i1 1) (const 0)))
     (('A' 2) is (('A' 0) (i2 2) (const 2)))
     )
-   ((AreEqual (('A' 3) (Var 'Y') ('A' 3)) (('A' 2) (Var 'X') ('A' 1)))
-    (/* No constraints */)
+/*   ((AreEqual (('A' 3) (Var 'Y') ('A' 3)) (('A' 2) (Var 'X') ('A' 1)))
+    ( )
     (('A' 1) is (('A' 0) (i1 3) (const 1)))
     (('A' 2) is (('A' 0) (i2 6) (i3 3) (const 1)))
     (('A' 3) is (('A' 0) (i4 1) (const 0)))
     )
    ((AreEqual (('A' 3) (Var 'Y')) (('A' 2) (Var 'X')))
-    (/* No constraints */)
+    ( )
     (('A' 1) is (('A' 0) (i1 3) (const 1)))
     (('A' 2) is (('A' 4) (i2 6) (i3 3) (const 1)))
     (('A' 3) is (('A' 0) (i4 1) (const 0)))
     )
    ((AreEqual (('A' 3) ('B' 0) (Var 'X') ('A' 3) (Var 'Y')) (('A' 2) ('B' 0) (Var 'X') (Var 'Z') ('A' 2)))
-    (/* No constraints */)
+    ( )
     (('A' 1) is (('A' 0) (i1 3) (const 1)))
     (('A' 2) is (('A' 0) (i2 6) (i3 3) (const 1)))
     (('A' 3) is (('A' 0) (i4 1) (const 0)))
-    );
+    )*/;
 }
 
 Pick {

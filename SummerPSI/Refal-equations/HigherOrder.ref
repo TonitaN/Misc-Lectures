@@ -1,5 +1,6 @@
 MapCompose {
-  e.X = e.X;
+  ((e.Call) e.RestCalls) e.Arg = <MapCompose (e.RestCalls) <Mu e.Call e.Arg>>;
+  (/* EMPTY */) e.Arg = e.Arg;
 }
 
 /* \x y_A -> (y A x) */
@@ -21,6 +22,8 @@ MapCall {
 UnwrapCalls {
  (s.FunctionName e.Data) e.MuList
   = <Mu s.FunctionName e.Data> <UnwrapCalls e.MuList>;
+ ((s.FunctionName e.Curried) e.Data) e.MuList
+  = <Mu s.FunctionName e.Curried e.Data> <UnwrapCalls e.MuList>;
  /* No more pairs */ = /* EMPTY */;
 }
 
