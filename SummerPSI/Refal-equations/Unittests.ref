@@ -7,9 +7,9 @@ $ENTRY Go { =
          <Prout <UnwrapCalls <Zip (<MapCall Curry (FormPair RunSubstIndices) 
                     
                          (1 (SubstIndex i1 ((i2 2) (const 2))))
-   /*                      (2 (SubstIndex i1 ((i2 2) (i3 1) (const 0))) (SubstIndex i4 ((i1 2) (const 1))))
-                         (3 (SubstIndex i1 ((i2 2) (i3 1) (const 0))) (SubstIndex i4 ((i1 2) (const 1))))
-                         (4 (SubstIndex i1 ((i2 2) (i3 1) (const 0))) (SubstIndex i4 ((i1 2) (const 1))))  */
+                         (2 (SubstIndex i4 ((i1 2) (const 1))) (SubstIndex i1 ((i2 2) (i3 1) (const 0))))
+                         (3 (SubstIndex i4 ((i1 2) (const 1))) (SubstIndex i1 ((i2 2) (i3 1) (const 0))))
+                         (4 (SubstIndex i4 ((i1 2) (const 1))) (SubstIndex i1 ((i2 2) (i3 1) (const 0))))  
                     >) 
                     (<TestSet2>)>>>       
           ;} 
@@ -19,18 +19,6 @@ $ENTRY Go { =
 SubstIndex {
  s.CurrentIndex (e.Multiset) t.Equation = t.Equation;
 }
-
-RunSubstIndices {
-  (1 e.Substs) t.EqData
-   , <MapCompose (e.Substs) t.EqData> :
- { ((AreEqual ((Var 'X')) (e.W1 (Var 'X') e.W2))
-    ((OR (not empty (Var 'X'))))
-    (('A' s.X) is (('A' 0) (i2 2) (const 2)))
-   ), e.W1 e.W2 : ('A' s.X)
-     = True;
-   e.Z = False;
- };
-} 
 
 TestSet1 {
  = ((AreEqual ((Var 'X') ('A' 0)) ((Var 'Y') ('B' 0) (Var 'Y')))
@@ -49,29 +37,29 @@ TestSet1 {
 }
 
 TestSet2 {
- = ((AreEqual ((Var 'X') ('A' 2)) (('A' 1) (Var 'X') ('A' 1)))
+ = ((AreEqual (('A' 2)) (('A' 1) (Var 'X') ('A' 1)))
     ((OR (not empty (Var 'X'))))
-    (('A' 1) is (('A' 0) (i1 1) (const 0)))
-    (('A' 2) is (('A' 0) (i2 2) (const 2)))
+    ((('A' 1) is (('A' 0) (i1 1) (const 0)))
+    (('A' 2) is (('A' 0) (i2 2) (const 2))))
     )
-/*   ((AreEqual (('A' 3) (Var 'Y') ('A' 3)) (('A' 2) (Var 'X') ('A' 1)))
+   ((AreEqual (('A' 3) (Var 'Y') ('A' 3)) (('A' 2) (Var 'X') ('A' 1)))
     ( )
-    (('A' 1) is (('A' 0) (i1 3) (const 1)))
+    ((('A' 1) is (('A' 0) (i1 3) (const 1)))
     (('A' 2) is (('A' 0) (i2 6) (i3 3) (const 1)))
-    (('A' 3) is (('A' 0) (i4 1) (const 0)))
+    (('A' 3) is (('A' 0) (i4 1) (const 0))))
     )
-   ((AreEqual (('A' 3) (Var 'Y')) (('A' 2) (Var 'X')))
+   ((AreEqual (('A' 3) (Var 'Y')('A' 1)(Var 'Y')) (('A' 2) (Var 'X')))
     ( )
-    (('A' 1) is (('A' 0) (i1 3) (const 1)))
-    (('A' 2) is (('A' 4) (i2 6) (i3 3) (const 1)))
-    (('A' 3) is (('A' 0) (i4 1) (const 0)))
+    ((('A' 1) is (('A' 0) (i1 3) (const 1)))
+    (('A' 2) is (('A' 0) (i2 5) (i3 3) (const 1)))
+    (('A' 3) is (('A' 0) (i4 1) (const 0))))
     )
    ((AreEqual (('A' 3) ('B' 0) (Var 'X') ('A' 3) (Var 'Y')) (('A' 2) ('B' 0) (Var 'X') (Var 'Z') ('A' 2)))
     ( )
-    (('A' 1) is (('A' 0) (i1 3) (const 1)))
+    ((('A' 1) is (('A' 0) (i1 3) (const 1)))
     (('A' 2) is (('A' 0) (i2 6) (i3 3) (const 1)))
-    (('A' 3) is (('A' 0) (i4 1) (const 0)))
-    )*/;
+    (('A' 3) is (('A' 0) (i4 1) (const 0))))
+    );
 }
 
 Pick {
@@ -168,4 +156,40 @@ RunPick {
     e.Other = False;
   };
 }
+
+RunSubstIndices {
+  (1 e.Substs) t.EqData
+   , <MapCompose (e.Substs) t.EqData> :
+ { ((AreEqual (/* No terms */) (e.W1 (Var 'X') e.W2))
+    ((OR (not empty (Var 'X'))))
+    ((('A' s.Ind) is (('A' 0) (i2 2) (const 2))))
+   ), e.W1 e.W2 : ('A' s.Ind) /* This unit test allows the implementation to choose freely whether to prune equal constants from left or from right. */
+     = True;
+   e.Z = False;
+ };
+  (2 e.Substs) t.EqData
+   , <MapCompose (e.Substs) t.EqData> :
+ { ((AreEqual ((Var 'X')) ((Var 'Y')))
+    (/* EMPTY */)
+    (/* EMPTY */) /* All the dependencies collapsed. */
+   ) = True;
+   e.Z = False;
+ };
+  (3 e.Substs) t.EqData
+   , <MapCompose (e.Substs) t.EqData> :
+ {((AreEqual (('A' s.Ind) (Var 'Y')('A' s.Ind) (Var 'Y')) (('A' 2) (Var 'X')))
+    ( )
+    (e.IndEq1 (('A' 2) is (('A' 0) (i2 5) (i3 3) (const 1))) e.IndEq2) /* The implementation can preserve either ('A' 1) or ('A' 3) - no choice is forced. */
+    ), e.IndEq1 e.IndEq2 : (('A' s.Ind) is (('A' 0) (i2 6) (i3 3) (const 1)))  = True;
+   e.Z = False;
+ };
+  (4 e.Substs) t.EqData
+   , <MapCompose (e.Substs) t.EqData> :
+ {((AreEqual (('A' s.Ind) (Var 'Y')) ((Var 'Z') ('A' s.Ind))) /* The equal prefixes are pruned forward up to non-equal parts. */
+    ( )
+    ((('A' s.Ind) is (('A' 0) (i2 6) (i3 3) (const 1))))
+    ) = True;
+   e.Z = False;
+ };
+} 
 
