@@ -1,4 +1,22 @@
-$ENTRY Go { = <Prout <MapZip RunPick (1 2 3 4) <TestSet1>>>;} 
+*$INLINE HigherOrder;
+
+$ENTRY Go { = 
+          <Prout <MapCall Curry (Flip <TestSet1>) <MapCall Curry (FormPair RunPick) 1 2 3 4>> >
+ /*         <Prout <ZipMap RunSubstIndices 
+                    (
+                         (1 (Subst i1 ((i2 2) (const 2))))
+                         (2 (Subst i1 ((i2 2) (i3 1) (const 0))) (Subst i4 ((i1 2) (const 1))))
+                         (3 (Subst i1 ((i2 2) (i3 1) (const 0))) (Subst i4 ((i1 2) (const 1))))
+                         (4 (Subst i1 ((i2 2) (i3 1) (const 0))) (Subst i4 ((i1 2) (const 1))))
+                    ) 
+                    <TestSet2>>        */
+          ;} 
+
+/*
+RunSubstIndices {
+  (1 e.Substs) t.EqData
+  , <ZipMap >
+} */
 
 TestSet1 {
  = ((AreEqual ((Var 'X') ('A' 0)) ((Var 'Y') ('B' 0) (Var 'Y')))
@@ -14,6 +32,32 @@ TestSet1 {
    ((AreEqual ((Var 'X') ('A' 0)) (('A' 0) (Var 'Y')))
     ((OR (not ('A' 0) ends (Var 'X'))))
     (/* No index eqs */));
+}
+
+TestSet2 {
+ = ((AreEqual ((Var 'X') ('A' 2)) (('A' 1) (Var 'X') ('A' 1)))
+    ((OR (not empty (Var 'X'))))
+    (('A' 1) is (('A' 0) (i1 1) (const 0)))
+    (('A' 2) is (('A' 0) (i2 2) (const 2)))
+    )
+   ((AreEqual (('A' 3) (Var 'Y') ('A' 3)) (('A' 2) (Var 'X') ('A' 1)))
+    (/* No constraints */)
+    (('A' 1) is (('A' 0) (i1 3) (const 1)))
+    (('A' 2) is (('A' 0) (i2 6) (i3 3) (const 1)))
+    (('A' 3) is (('A' 0) (i4 1) (const 0)))
+    )
+   ((AreEqual (('A' 3) (Var 'Y')) (('A' 2) (Var 'X')))
+    (/* No constraints */)
+    (('A' 1) is (('A' 0) (i1 3) (const 1)))
+    (('A' 2) is (('A' 4) (i2 6) (i3 3) (const 1)))
+    (('A' 3) is (('A' 0) (i4 1) (const 0)))
+    )
+   ((AreEqual (('A' 3) ('B' 0) (Var 'X') ('A' 3) (Var 'Y')) (('A' 2) ('B' 0) (Var 'X') (Var 'Z') ('A' 2)))
+    (/* No constraints */)
+    (('A' 1) is (('A' 0) (i1 3) (const 1)))
+    (('A' 2) is (('A' 0) (i2 6) (i3 3) (const 1)))
+    (('A' 3) is (('A' 0) (i4 1) (const 0)))
+    );
 }
 
 Pick {
@@ -88,13 +132,7 @@ HasVarsOnly {
   (/* EMPTY */) = True;
 }
 
-MapZip {
- s.FunctionName (s.X e.Y) e.X
-  = <Mu s.FunctionName s.X e.X> <MapZip s.FunctionName (e.Y) e.X>;
- s.FunctionName (/*No more values*/) e.X = /* EMPTY */;
-}
-
-RunPick {
+$ENTRY RunPick {
  1 e.Eqs
  , <Pick 1 e.Eqs> : {
    (e.Equation) = True;
