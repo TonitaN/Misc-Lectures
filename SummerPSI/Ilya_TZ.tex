@@ -1,0 +1,462 @@
+\documentclass[12pt]{article}
+\usepackage{color}
+\usepackage[newfloat]{minted}
+\usepackage{amsfonts,latexsym,amsthm}
+%\usepackage{times}
+\usepackage[scaled=.92]{helvet}
+\usepackage[all,2cell,knot,poly]{xy}
+\usepackage{amssymb,array,amscd,enumerate}
+\usepackage[T1,T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english,russian]{babel}
+%\usepackage[cp1251]{inputenc}
+%\usepackage{pscyr}
+\def\logand{\mathrel{\&}}
+\def\logor{\mathrel{\vee}}
+\def\logimpl{\mathrel{\Rightarrow}}
+\def\lognot{\mathop{\neg}}
+\def\Kcm{\mathbf{K}}
+\def\Icm{\mathbf{I}}
+\def\Scm{\mathbf{S}}
+\def\amodal{\mathop{\Box}}
+\def\emodal{\mathop{\Diamond}}
+\def\quantall#1{\mathop{\forall #1}}
+\def\quantex#1{\mathop{\exists #1}} 
+\def\either{\mathrm{either}\,}
+\def\Leftt{\mathrm{Left}\;}
+\def\Rightt{\mathrm{Right}\;}
+\def\snd{\mathrm{snd}\;}
+\def\fst{\mathrm{fst}\;}
+\def\iff{\mathrel{\Leftrightarrow}}
+%
+\def\real{\mathop{\rm real}\nolimits}   
+\def\Mult{\mathop{\rm Mult}\nolimits}   
+\def\Inv{\mathop{\rm Inv}\nolimits}   
+\def\round{\mathop{\rm round}\nolimits}
+\newcommand{\skipper}{\hspace{-7pt}\textcolor{white}{\displaystyle !_{a_a}^{a^{a^{a^a}}}}}
+\begin{document}
+
+\section{Внутренние структуры данных}
+
+Базовые структуры данных алгоритма Ежа: переменная, константа и отрицательное условие.
+
+\begin{itemize}
+\item Поскольку множество переменных типа строка не меняется, то логично, что переменная представляется просто своим именем: например, $x$ представляется как \mintinline{refal}{(Var 'X')}.
+\item Константы могут являться результатами сжатия блоков, поэтому логично представлять их парами: имя и индекс. Например, \mintinline{refal}{('D' 1)}.
+\item Индексы дополнительно имеют расшифровки: мультимножества компонент их длины. Например, если \mintinline{refal}{('D' 1)} --- константа, хранящая блок $D^{i_1 + i_2+2}$, где $D$ --- константа исходного уравнения, то расшифровка будет: 
+
+\mintinline{refal}{('D' 1) is (('D' 0) (i1 1)(i2 1)(const 2))}.
+\item Отрицательное условие накладывается на переменную и имеет форму КНФ, где каждый литерал --- это отрицательное утверждение, чем не может кончаться или начинаться переменная, или утверждение о непустоте значения переменной. 
+
+Например, \begin{minted}[breaklines,breakafter= ]{refal}
+(OR 
+    (not ('D' 1) ends (Var 'X')) 
+    (not ('A' 2) starts (Var 'Y'))
+)
+\end{minted}
+\end{itemize}
+
+\section{Базовые операции интерактивного режима}
+\begin{itemize}
+\item Команда \mintinline{refal}{(PairComp C1 C2)}. Применить сжатие пар: 
+
+\mintinline{refal}{<PairComp (/*Const1*/) (/*Const2*/) (/*EquationData*/)>}. 
+
+Константы не должны совпадать. Результатом сжатия пар станет нумерованный набор новых уравнений с условиями (таким образом, сжатие пар преобразует одно уравнение к множеству уравнений).
+\item Команда \mintinline{refal}{(BlockComp C)}. Применить сжатие блоков: 
+
+\mintinline{refal}{<BlockComp (/*Const*/) (/*EquationData*/)>}. 
+
+Аналогично, результат --- нумерованный набор новых уравнений с условиями.
+\item Команда \mintinline{refal}{(Pick i)}. Выбрать из нумерованного списка уравнение, соответствующее номеру: \mintinline{refal}{<Pick /*Number*/ /*EquationSet*/>}. 
+
+Действие позволяет перейти от множества уравнений к единственному.
+\item Команда \mintinline{refal}{(Subst i1 (/* Multiset */))}. Осуществить подстановку мультимножества компонент, представленного в команде, вместо компоненты \mintinline{refal}{i1}.   
+\end{itemize}
+
+\section{Возможные результаты вычисления шага}
+
+\begin{itemize}
+\item Если в результате вычислений получилось уравнение вида $\varepsilon=\varepsilon$ или уравнение, которое сводится к нему после вычёркивания всех переменных, тогда объявить, что решение найдено.
+\item Если в результате вычислений получилось уравнение, содержащее только переменные, причём хотя бы одна переменная имеет условие непустоты, тогда объявить, что на ветке нет минимального решения (остались только неявные сжатия).
+\item Если команда противоречит условиям (например, требуется повторно сжимать блоки, с которых ничего начинаться не может, или требуется сжать блок, содержащий константу, не встречающуюся в уравнении) --- выдать сообщение о некорректном шаге.
+\item В противном случае результатом вычислений станет одно или несколько состояний (т.е. уравнений в паре с условиями).
+\end{itemize}
+
+\section{Построение новых констант в \texttt{BlockComp} и \texttt{PairComp}}
+
+Вопрос о том, ограничено ли множество используемых в процессе преобразования констант некоторой разумной (полиномиально зависящей от размера уравнения) величиной, пока открыт. Будем считать, что мы такое ограничение не ставим. Поэтому в дальнейшем нет смысла связывать новые имена констант со старыми, а лучше порождать их по очереди.
+
+Чтобы код был написан полностью в функциональном стиле, достаточно хранить в общем состоянии последний используемый индекс блоков и последнюю использованную новую константу. Далее порождать на их основе очередную константу, например, пользуясь алфавитным сдвигом и комбинацией встроенных функций \mintinline{refal}{<Explode s.X>} -- \mintinline{refal}{<Implode e.X>} и \mintinline{refal}{<Numb e.N>} -- \mintinline{refal}{<Symb s.N>}.
+
+\begin{itemize}
+\item Функция \mintinline{refal}{<Explode s.X>} разбирает многобуквенную константу на символы и возвращает строку: \mintinline{refal}{Term} -> \mintinline{refal}{'Term'}.
+\item Функция \mintinline{refal}{<Implode e.X>} собирает символы в многобуквенную константу (не любая последовательность символов может ей стать, выбирается самая длинная подпоследовательность значения \mintinline{refal}{e.X}): \mintinline{refal}{'Term 123'} -> \mintinline{refal}{Term '123'}.
+\item Функция \mintinline{refal}{<Symb s.X>} разбирает число на символы и возвращает строку: \mintinline{refal}{123} -> \mintinline{refal}{'123'}. Функция \mintinline{refal}{<Numb e.X>} действует обратным образом.
+\end{itemize}
+
+Простейший код для порождения новых индексов блоков всего лишь увеличивает индекс константы. Константой здесь считаем литерал (многобуквенный терм без кавычек), который начинается на букву, а следом за ней обязательно идёт цифра. Например, \mintinline{refal}{i19} (не путаем со строкой \mintinline{refal}{'i19'}).
+
+\begin{minted}{refal}
+GetNewIndex {
+ s.OldIndex
+ , <Explode s.OldIndex> : s.Letter e.Digits
+ , <Symb <Add <Numb e.Digits> 1>> : e.NewNumber
+  = <Implode s.Letter e.NewNumber>;
+}
+\end{minted}
+
+Улучшением этого базового варианта может быть вариант, который меняет сначала букву (выбирая в строке возможных вариантов ближайшую справа от текущей), а если не задействованных букв уже не осталось --- то цифру, возвращая указатель на букву в начало алфавита.
+
+\begin{minted}[breaklines, linenos]{refal}
+/* В этом варианте есть тонкость: начальным буквам стоит присвоить индексы с нулём, а порождённым - начиная с единицы, чтобы не путаться. Реализацию этой тонкости оставим за кадром ТЗ. */
+GetNewIndexUpdated {
+ s.OldIndex
+ , <Explode s.OldIndex> : s.Letter e.Digits
+ , <CharAplhabet> : {
+    e.A1 s.Letter s.NextLetter e.A2 /* Можно выбрать следующую по очереди букву */
+        = <Implode s.NextLetter e.Digits>;
+    s.FirstLetter e.A1 s.Letter /* Буква уже последняя --- переходим на первую и увеличиваем число */
+    , <Symb <Add <Numb e.Digits> 1>> : e.NewNumber
+        = <Implode s.FirstLetter e.NewNumber>;
+  };
+}
+\end{minted}
+
+Заметим, что эти же приёмы можно использовать для порождения не только индексов блоков, но и букв --- то есть пар вида \mintinline{refal}{(s.Name s.Number)}. Всё, что нужно будет поменять --- это не делать первый вызов функции \mintinline{refal}{<Explode s.OldIndex>} с последующей сборкой символов в число (и обратное ему преобразование), а просто сдвигать букву \mintinline{refal}{s.Name} и увеличивать числовой индекс \mintinline{refal}{s.Number}.
+ 
+\section{Нулевые значения переменных}
+ 
+В дальнейшем подразумевается следующее допущение. Все извлечённые блоки по умолчанию полагаются непустыми --- пустыми их может сделать только явная подстановка \mintinline{refal}{(SubstIndex ik ((Const 0)))} (или композиция таких подстановок), за которую отвечает пользователь. Более того, все извлечённые блоки по умолчанию предполагаются неравными --- в противном случае от пользователя ожидается подстановка, которая явно утверждает обратное.
+
+Однако в случае вызова \mintinline{refal}{<PairComp /* args */>} может получиться, что потребуется автоматически разобрать и случай пустой подстановки в переменную, чтобы выявить все возможности сжатия перекрёстных или явных вхождений. Например, как в следующем уравнении (назовём его Уравнением 1): 
+
+\begin{minted}{refal}
+(AreEqual 
+   ((Var 'X') ('B' 0) (Var 'Y') ('A' 0))
+   ((Var 'Y') (Var 'Y') ('B' 0) ('A' 0) (Var 'X'))
+)
+(
+   (OR (not empty (Var 'X')))
+)
+(/* Блок уравнений на компоненты пуст */)
+\end{minted}
+ 
+Вызов \mintinline{refal}{<PairComp ('B' 0) ('A' 0) (/* Уравнение 1 */)>} порождает только разбор случаев по переменной \verb|Y|. Полагаем, что новой константой, сжимающей \mintinline{refal}{('B' 0)('A' 0)}, является ('A' 1). 
+
+\begin{enumerate}
+\item Случай, когда \verb|Y| кончается на \mintinline{refal}{('B' 0)} и начинается на \mintinline{refal}{('A' 0)}:
+
+\begin{minted}{refal}
+(AreEqual 
+   ((Var 'X') ('A' 1) (Var 'Y') ('A' 1))
+   (('A' 0) (Var 'Y') ('A' 1) (Var 'Y') ('B' 0)('A' 1) (Var 'X'))
+)
+(
+   (OR (not empty (Var 'X')))
+)
+(/* Блок уравнений на компоненты пуст */)
+\end{minted}
+ 
+\item Случай, когда \verb|Y| кончается на \mintinline{refal}{('B' 0)}, но не начинается на \mintinline{refal}{('A' 0)}:
+
+\begin{minted}{refal}
+(AreEqual 
+   ((Var 'X') ('B' 0) (Var 'Y') ('A' 1))
+   ((Var 'Y') ('B' 0) (Var 'Y') ('B' 0)('A' 1) (Var 'X'))
+)
+(
+   (OR (not empty (Var 'X')))
+   (OR (not ('A' 0) starts (Var 'Y')))
+)
+(/* Блок уравнений на компоненты пуст */)
+\end{minted}
+
+\item Случай, когда \verb|Y| не кончается на \mintinline{refal}{('B' 0)}, но начинается на \mintinline{refal}{('A' 0)}:
+
+\begin{minted}{refal}
+(AreEqual 
+   ((Var 'X') ('A' 1) (Var 'Y') ('A' 0))
+   (('A' 0) (Var 'Y') ('A' 0) (Var 'Y') ('A' 1) (Var 'X'))
+)
+(
+   (OR (not empty (Var 'X')))
+   (OR (not ('B' 0) ends (Var 'Y')))
+)
+(/* Блок уравнений на компоненты пуст */)
+\end{minted}
+
+\item Случай, когда \verb|Y| не кончается на \mintinline{refal}{('B' 0)} и не начинается на \mintinline{refal}{('A' 0)}:
+
+\begin{minted}{refal}
+(AreEqual 
+   ((Var 'X') ('B' 0) (Var 'Y') ('A' 0))
+   ((Var 'Y') (Var 'Y') ('A' 1) (Var 'X'))
+)
+(
+   (OR (not empty (Var 'X')))
+   (OR (not ('A' 0) starts (Var 'Y')))
+   (OR (not ('B' 0) ends (Var 'Y')))
+)
+(/* Блок уравнений на компоненты пуст */)
+\end{minted}
+
+\item Случай, когда \verb|Y| пуст:
+
+\begin{minted}{refal}
+(AreEqual 
+   ((Var 'X') ('A' 1))
+   (('A' 1) (Var 'X'))
+)
+(
+   (OR (not empty (Var 'X')))
+)
+(/* Блок уравнений на компоненты пуст */)
+\end{minted}
+\end{enumerate}
+
+Последний случай принципиально отличается от всех предыдущих и не может быть сведён к ним. Кажется, что он похож на случай 4, но в случае 4 есть очевидное противоречие, если рассмотреть его образ в линейной целочисленной арифметике по модулю $A_1$, поскольку предполагается, что буквы $B_0$ и $A_0$, явно входящие в уравнение, уже точно не принадлежат никакому вхождению $B_0 A_0$. В случае же 5 противоречий нет, и он является единственным, приводящим к решению (после подстановки сжатия блоков $A_1$). 
+ 
+\section{Пример}
+
+Покажем пример работы цепочки операций на следующем примере.
+
+Исходное уравнение: 
+
+\begin{minted}[breaklines,breakafter= ]{refal}
+(AreEqual 
+ ((Var 'X') ('A' 0) ('A' 0)) 
+ (('B' 0) (Var 'Y'))
+)
+(/* Блок условий пуст */)
+(/* Блок уравнений на компоненты пуст */)
+\end{minted}
+
+\begin{itemize}
+
+\item Применяем \mintinline{refal}{(BlockComp ('A' 0))}. Получаем набор уравнений:
+\begin{enumerate}
+\item Случай, когда все переменные коллапсируют в блоки:
+\begin{minted}[breaklines,breakafter= ]{refal}
+(AreEqual 
+ (('A' 1)) 
+ (('B' 0) ('A' 2))
+)
+(/* Блок условий пуст */)
+( 
+ (('A' 1) is ('A' (i1 1) (const 2))) 
+ (('A' 2) is ('A' (i2 1) (const 0))) 
+)
+\end{minted}
+\item В блок коллапсирует только \verb|X|:
+\begin{minted}[breaklines,breakafter= ]{refal}
+(AreEqual 
+ (('A' 1)) 
+ (('B' 0) ('A' 2) (Var 'Y') ('A' 3))
+)
+(
+  (OR (not empty (Var 'Y')))
+  (OR (not ('A' 1) ends (Var 'Y'))
+  (OR (not ('A' 2) ends (Var 'Y'))
+  (OR (not ('A' 3) ends (Var 'Y'))
+  (OR (not ('A' 1) starts (Var 'Y'))
+  (OR (not ('A' 2) starts (Var 'Y'))
+  (OR (not ('A' 3) starts (Var 'Y'))
+)
+( 
+ (('A' 1) is (('A' 0) (i1 1) (const 2))) 
+ (('A' 2) is (('A' 0) (i2 1) (const 0))) 
+ (('A' 3) is (('A' 0) (i3 1) (const 0))) 
+)
+\end{minted}
+\item В блок коллапсирует только \verb|Y|:
+\begin{minted}[breaklines,breakafter= ]{refal}
+(AreEqual 
+ (('A' 1) (Var 'X') ('A' 2)) 
+ (('B' 0) ('A' 3))
+)
+(
+  (OR (not empty (Var 'X')))
+  (OR (not ('A' 1) ends (Var 'X'))
+  (OR (not ('A' 2) ends (Var 'X'))
+  (OR (not ('A' 3) ends (Var 'X'))
+  (OR (not ('A' 1) starts (Var 'X'))
+  (OR (not ('A' 2) starts (Var 'X'))
+  (OR (not ('A' 3) starts (Var 'X'))
+)
+( 
+ (('A' 1) is (('A' 0) (i1 1) (const 0))) 
+ (('A' 2) is (('A' 0) (i2 1) (const 2))) 
+ (('A' 3) is (('A' 0) (i3 1) (const 0))) 
+)
+\end{minted}
+\item Ничего не коллапсирует:
+\begin{minted}[breaklines,breakafter= ]{refal}
+(AreEqual 
+ (('A' 1) (Var 'X') ('A' 2)) 
+ (('B' 0) ('A' 3) (Var 'Y') ('A' 4))
+)
+(
+  (OR (not empty (Var 'X')))
+  (OR (not empty (Var 'Y')))
+  (OR (not ('A' 1) ends (Var 'X'))
+  (OR (not ('A' 2) ends (Var 'X'))
+  (OR (not ('A' 3) ends (Var 'X'))
+  (OR (not ('A' 4) ends (Var 'X'))
+  (OR (not ('A' 1) starts (Var 'X'))
+  (OR (not ('A' 2) starts (Var 'X'))
+  (OR (not ('A' 3) starts (Var 'X'))
+  (OR (not ('A' 4) starts (Var 'X'))
+  (OR (not ('A' 1) ends (Var 'Y'))
+  (OR (not ('A' 2) ends (Var 'Y'))
+  (OR (not ('A' 3) ends (Var 'Y'))
+  (OR (not ('A' 4) ends (Var 'Y'))
+  (OR (not ('A' 1) starts (Var 'Y'))
+  (OR (not ('A' 2) starts (Var 'Y'))
+  (OR (not ('A' 3) starts (Var 'Y'))
+  (OR (not ('A' 4) starts (Var 'Y'))
+)
+ (('A' 1) is (('A' 0) (i1 1) (const 0))) 
+ (('A' 2) is (('A' 0) (i2 1) (const 2))) 
+ (('A' 3) is (('A' 0) (i3 1) (const 0))) 
+ (('A' 4) is (('A' 0) (i4 1) (const 0))) 
+)
+\end{minted}
+
+\end{enumerate}
+\item Выбираем четвёртый случай: \mintinline{refal}{(Pick 4)}. Осуществляем ряд подстановок индексов: 
+
+\mintinline{refal}{(Subst i1 ((const 0)))}
+
+\mintinline{refal}{(Subst i3 ((const 0)))}
+
+\mintinline{refal}{(Subst i4 ((i2 1) (const 2)))}
+
+Интерактивный режим сам сократит одинаковые суффиксы и удалит ненужные зависимости, ведь констант \mintinline{refal}{('A' k)} после этого в уравнении не останется:
+
+\begin{minted}[breaklines,breakafter= ]{refal}
+(AreEqual 
+ ((Var 'X')) 
+ (('B' 0) (Var 'Y'))
+)
+(/* Тут ничего нет, кроме условий на непустоту: 
+    все упоминания констант, связанных с 'A', 
+    исчезли из уравнения, и нет никаких связей этих 
+    констант ни с чем, кроме как с собой, в блоке
+    индексов, значит, и условия на них уже не нужны */
+  (OR (not empty (Var 'X')))
+  (OR (not empty (Var 'Y')))    
+ )
+(/* Тут тоже ничего нет --- всё сократилось */)
+\end{minted}
+\item Сжимаем блоки \mintinline{refal}{('B' 0)}. Опять получаем четыре случая.
+\begin{enumerate}
+\item Случай, когда все переменные коллапсируют в блоки:
+\begin{minted}[breaklines,breakafter= ]{refal}
+(AreEqual 
+ (('B' 1)) 
+ (('B' 2))
+)
+(/* Блок условий пуст */)
+( 
+ (('B' 1) is ('B' (i1 1) (const 0))) 
+ (('B' 2) is ('B' (i2 1) (const 1))) 
+)
+\end{minted}
+\item В блок коллапсирует только \verb|X|:
+\begin{minted}[breaklines,breakafter= ]{refal}
+(AreEqual 
+ (('B' 1)) 
+ (('B' 2) (Var 'Y') ('B' 3))
+)
+(
+  (OR (not empty (Var 'Y')))
+  (OR (not ('B' 1) ends (Var 'Y'))
+  (OR (not ('B' 2) ends (Var 'Y'))
+  (OR (not ('B' 3) ends (Var 'Y'))
+  (OR (not ('B' 1) starts (Var 'Y'))
+  (OR (not ('B' 2) starts (Var 'Y'))
+  (OR (not ('B' 3) starts (Var 'Y'))
+)
+( 
+ (('B' 1) is (('B' 0) (i1 1) (const 0))) 
+ (('B' 2) is (('B' 0) (i2 1) (const 1))) 
+ (('B' 3) is (('B' 0) (i3 1) (const 0))) 
+)
+\end{minted}
+\item В блок коллапсирует только \verb|Y|:
+\begin{minted}[breaklines,breakafter= ]{refal}
+(AreEqual 
+ (('B' 1) (Var 'X') ('B' 2)) 
+ (('B' 3))
+)
+(
+  (OR (not empty (Var 'X')))
+  (OR (not ('B' 1) ends (Var 'X'))
+  (OR (not ('B' 2) ends (Var 'X'))
+  (OR (not ('B' 3) ends (Var 'X'))
+  (OR (not ('B' 1) starts (Var 'X'))
+  (OR (not ('B' 2) starts (Var 'X'))
+  (OR (not ('B' 3) starts (Var 'X'))
+)
+( 
+ (('B' 1) is (('B' 0) (i1 1) (const 0))) 
+ (('B' 2) is (('B' 0) (i2 1) (const 0))) 
+ (('B' 3) is (('B' 0) (i3 1) (const 1))) 
+)
+\end{minted}
+\item Ничего не коллапсирует:
+\begin{minted}[breaklines,breakafter= ]{refal}
+(AreEqual 
+ (('B' 1) (Var 'X') ('B' 2)) 
+ (('B' 3) (Var 'Y') ('B' 4))
+)
+(
+  (OR (not empty (Var 'X')))
+  (OR (not empty (Var 'Y')))
+  (OR (not ('B' 1) ends (Var 'X'))
+  (OR (not ('B' 2) ends (Var 'X'))
+  (OR (not ('B' 3) ends (Var 'X'))
+  (OR (not ('B' 4) ends (Var 'X'))
+  (OR (not ('B' 1) starts (Var 'X'))
+  (OR (not ('B' 2) starts (Var 'X'))
+  (OR (not ('B' 3) starts (Var 'X'))
+  (OR (not ('B' 4) starts (Var 'X'))
+  (OR (not ('B' 1) ends (Var 'Y'))
+  (OR (not ('B' 2) ends (Var 'Y'))
+  (OR (not ('B' 3) ends (Var 'Y'))
+  (OR (not ('B' 4) ends (Var 'Y'))
+  (OR (not ('B' 1) starts (Var 'Y'))
+  (OR (not ('B' 2) starts (Var 'Y'))
+  (OR (not ('B' 3) starts (Var 'Y'))
+  (OR (not ('B' 4) starts (Var 'Y'))
+)
+ (('B' 1) is (('B' 0) (i1 1) (const 0))) 
+ (('B' 2) is (('B' 0) (i2 1) (const 0))) 
+ (('B' 3) is (('B' 0) (i3 1) (const 1))) 
+ (('B' 4) is (('B' 0) (i4 1) (const 0))) 
+)
+\end{minted}
+
+\end{enumerate}
+\item Пусть далее рассматривается опять ветка 4: \mintinline{refal}{(Pick 4)}, и аналогичные рассмотренным ранее подстановки:
+
+\mintinline{refal}{(Subst i1 ((i3 1) (const 1)))}
+
+\mintinline{refal}{(Subst i2 ((i4 1) (const 0)))}
+
+После такого преобразования останется только уравнение 
+
+\mintinline{refal}{(AreEqual ((Var 'X')) ((Var 'Y')))} 
+
+с условиями непустоты, и интерактивный режим должен сообщить, что минимальное решение на этой ветке не существует (т.к. остались только переменные).
+
+\item Если бы рассматривалась первая ветка, то следующая подстановка:
+
+\mintinline{refal}{(Subst i1 ((i2 1) (const 1)))}
+
+привела бы к сообщению о нахождении решения.
+\end{itemize}
+
+
+\end{document} 
