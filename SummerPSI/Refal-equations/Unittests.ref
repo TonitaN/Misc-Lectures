@@ -146,7 +146,7 @@ HasVarsOnly {
   (/* EMPTY */) = True;
 }
 
-$ENTRY RunPick {
+RunPick {
  1 e.Eqs
  , <Pick 1 e.Eqs> : {
    (e.Equation) = True;
