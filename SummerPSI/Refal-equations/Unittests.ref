@@ -7,9 +7,9 @@ $ENTRY Go { =
          <Prout <UnwrapCalls <Zip (<MapCall Curry (FormPair RunSubstIndices) 
                     
                          (1 (SubstIndex i1 ((i2 2) (const 2))))
-                         (2 (SubstIndex i4 ((i1 2) (const 1))) (SubstIndex i1 ((i2 2) (i3 1) (const 0))))
-                         (3 (SubstIndex i4 ((i1 2) (const 1))) (SubstIndex i1 ((i2 2) (i3 1) (const 0))))
-                         (4 (SubstIndex i4 ((i1 2) (const 1))) (SubstIndex i1 ((i2 2) (i3 1) (const 0))))  
+                         (2 (SubstIndex i4 ((i1 3) (const 1))) (SubstIndex i1 ((i2 2) (i3 1) (const 0))))
+                         (3 (SubstIndex i4 ((i1 3) (const 1))) (SubstIndex i1 ((i2 2) (i3 1) (const 0))))
+                         (4 (SubstIndex i4 ((i1 3) (const 1))) (SubstIndex i1 ((i2 2) (i3 1) (const 0))))  
                     >) 
                     (<TestSet2>)>>>       
           ;} 
