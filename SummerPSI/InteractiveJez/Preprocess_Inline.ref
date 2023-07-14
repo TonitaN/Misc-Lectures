@@ -1,0 +1,40 @@
+$ENTRY Go {
+ , <Arg 1> : e.FileName
+ , <GetFullName ('ref') e.FileName> : 
+  { e.RefalFile'.ref'
+          = <Open 'w' 4 'temp'><Putout 4 e.RefalFile'_INLINED'><Close 4>
+            <Open 'r' 1 e.RefalFile'.ref'><Open 'w' 2 e.RefalFile'_INLINED.ref'>
+            <StoreInline (/*List Of Appended Modules*/)<Get 1>><Close 2><Close 1>;
+    e.Other = <Prout 'Incorrect file name.'>;
+  };
+}
+
+GetFullName {
+ (e.Opt) e.X'.'e.Ext = e.X'.'e.Ext;
+ (e.Opt) e.X = e.X'.'e.Opt;
+}
+
+StoreInline {
+ (/*EMPTY */) e.X 0 = <Putout 2 e.X>;
+ (e.Inlined) e.X 0 = <Putout 2 e.X><InlineModules e.Inlined>;
+ (e.Any)e.Trim1 '*$INLINE' e.FileName';' e.Trim2 = <StoreInline (e.Any (<GetFullName ('ref')<TrimLeft e.FileName>>))<Get 1>>;
+ (e.Any)e.Other = <Putout 2 e.Other><StoreInline (e.Any) <Get 1>>;
+}
+
+TrimLeft {
+ ' 'e.X = <TrimLeft e.X>;
+ e.X = e.X;
+}
+
+InlineModules {
+ (e.FileName) e.Rest = <Open 'r' 3 e.FileName><CopyContents 3 2><Close 3><InlineModules e.Rest>;
+ /* EMPTY */ = /* EMPTY */;
+}
+
+CopyContents {
+ s.InStream s.OutStream
+ , <Get s.InStream> : {
+  e.X 0 = <Putout s.OutStream e.X>;
+  e.NotEOF = <Putout s.OutStream e.NotEOF><CopyContents s.InStream s.OutStream>;
+ };
+}

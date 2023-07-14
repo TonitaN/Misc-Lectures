@@ -1,0 +1,341 @@
+*$INLINE HigherOrder;
+
+$EXTERN FormPair, Zip;
+
+$ENTRY Go {
+  = <Prout <MapCall Curry (Flip <TestSet1>) <MapCall Curry (FormPair RunPick) 1 2 3 4>>>
+    <Prout <UnwrapCalls <Zip (<MapCall Curry (FormPair RunSubstIndices)
+      (1 (SubstIndex i1 ((i2 2) (const 2))))
+      (2 (SubstIndex i4 ((i1 3) (const 1)))
+         (SubstIndex i1 ((i2 2) (i3 1) (const 0))))
+      (3 (SubstIndex i4 ((i1 3) (const 1)))
+         (SubstIndex i1 ((i2 2) (i3 1) (const 0))))
+      (4 (SubstIndex i4 ((i1 3) (const 1)))
+         (SubstIndex i1 ((i2 2) (i3 1) (const 0))))
+      >) (<TestSet2>)>>>;
+}
+
+SubstIndex {
+  s.Index t.Multiset ((AreEqual t.LHS t.RHS) t.Constraints (e.IndexEqs))
+  , <MapCall
+      Curry
+      (SubstToIndexEq (s.Index t.Multiset))
+      e.IndexEqs
+    > : e.SubstIndexEqs /* Duplicated equations will be removed later */
+  , <TrimEqRight
+      <TrimEqLeft t.LHS t.RHS (e.SubstIndexEqs)> (e.SubstIndexEqs)
+    > : t.TrimmedLHS t.TrimmedRHS
+  , <MapCall
+      Curry
+      (CheckIndexEqToCollapse (<UniqueValues
+        <GetConsts t.TrimmedLHS> <GetConsts t.TrimmedRHS>
+      >))
+      e.SubstIndexEqs
+    > : e.InvolvedIndexEqs
+  , <ReplaceRepeatedIndexEqs
+      (e.InvolvedIndexEqs)
+      (/* No replaces at start */)
+    > : t.UniqueIndexEqs t.Replaces
+  , <MapCall
+      Curry
+      (ReplaceEqConsts t.Replaces)
+      t.TrimmedLHS t.TrimmedRHS
+    > : t.ReplacedLHS t.ReplacedRHS
+    = ((AreEqual t.ReplacedLHS t.ReplacedRHS) t.Constraints t.UniqueIndexEqs);
+  e.Other = <Prout 'SubstIndex: Invalid input ' e.Other>;
+}
+
+SubstToIndexEq {
+  /* Component (Comp) is a term of the form (s.X s.Y).
+     "Comps" and "Multiset" are interchangeable definitions. */
+  t.Subst (t.Const is (e.Comps))
+  , t.Const : (s.Name s.Number)
+    = (t.Const is (<SumComps <MapCall Curry (SubstToComp t.Subst) e.Comps>>));
+  e.Other = <Prout 'SubstToIndexEq: Invalid input ' e.Other>;
+}
+
+SubstToComp {
+  (s.Index (e.Multiset)) t.Comp
+  , t.Comp : {
+    (s.Index s.Number) = <MapCall Curry (MulComp s.Number) e.Multiset>;
+    t.Other = t.Other;
+  };
+  e.Other = <Prout 'SubstToComp: Invalid input ' e.Other>;
+}
+
+MulComp {
+  s.Factor (s.Index s.Number) = (s.Index <Mul s.Factor s.Number>);
+  e.Other = <Prout 'MulComp: Invalid input ' e.Other>;
+}
+
+SumComps {
+  e.U1 (s.Index s.Number1) e.U2 (s.Index s.Number2) e.U3
+    = <SumComps e.U1 e.U2 (s.Index <Add s.Number1 s.Number2>) e.U3>;
+  e.Other = e.Other;
+}
+
+TrimEqLeft {
+  (t.Comp1 e.Comps1) (t.Comp2 e.Comps2) t.IndexEqs
+  , <AreCompsEqual t.Comp1 t.Comp2 t.IndexEqs> : {
+    True = <TrimEqLeft (e.Comps1) (e.Comps2) t.IndexEqs>;
+    False = (t.Comp1 e.Comps1) (t.Comp2 e.Comps2);
+  };
+  t.LHS t.RHS t.IndexEqs /* t.LHS or t.RHS is empty or both are empty. */
+    = t.LHS t.RHS;
+  e.Other = <Prout 'TrimEqLeft: Invalid input ' e.Other>;
+}
+
+TrimEqRight {
+  (e.Comps1 t.Comp1) (e.Comps2 t.Comp2) t.IndexEqs
+  , <AreCompsEqual t.Comp1 t.Comp2 t.IndexEqs> : {
+    True = <TrimEqRight (e.Comps1) (e.Comps2) t.IndexEqs>;
+    False = (e.Comps1 t.Comp1) (e.Comps2 t.Comp2);
+  };
+  t.LHS t.RHS t.IndexEqs /* t.LHS or t.RHS is empty or both are empty. */
+    = t.LHS t.RHS;
+  e.Other = <Prout 'TrimEqRight: Invalid input ' e.Other>;
+}
+
+AreCompsEqual {
+  (s.Name s.Value) (s.Name s.Value) t.IndexEqs = True;
+  (s.Name s.Value1) (s.Name s.Value2) t.IndexEqs
+  , s.Name : {
+    Var = False; /* Two different variables. */
+    e.Other /* Check whether constants have the same index equations. */
+    , <MapCall
+        Curry
+        (GetIndexEqRHS t.IndexEqs)
+        (s.Name s.Value1)
+        (s.Name s.Value2)
+      > : {
+      t.Comps t.Comps = True;
+      t.Comps1 t.Comp2 = False;
+    };
+  };
+  e.Other = False;
+}
+
+GetIndexEqRHS {
+  (e.U1 (t.Const is t.Comps) e.U2) t.Const = t.Comps;
+  e.Other /* Index equation wasn't found for some reasons. */
+    = /* EMPTY */; 
+}
+
+GetConsts {
+  (t.Comp e.Comps)
+  , t.Comp : {
+    (Var s.Value) = <GetConsts (e.Comps)>;
+    (s.Name s.Number) = t.Comp <GetConsts (e.Comps)>;
+  };
+  (/* EMPTY */) = /* EMPTY */;
+}
+
+UniqueValues {
+  e.U1 t.X e.U2 t.X e.U3 = <UniqueValues e.U1 t.X e.U2 e.U3>;
+  e.Other = e.Other;
+}
+
+CheckIndexEqToCollapse {
+  (e.U1 t.Const e.U2) (t.Const is t.Comps) /* Is involved, not collapsing. */ 
+    = (t.Const is t.Comps);
+  e.Other /* No appropriate const found. Not involved, collapsing. */
+    = /* EMPTY */;
+}
+
+ReplaceRepeatedIndexEqs {
+  (e.U1 (t.Const1 is t.Comps) e.U2 (t.Const2 is t.Comps) e.U3) (e.Replaces) 
+    = <ReplaceRepeatedIndexEqs
+        (e.U1 (t.Const1 is t.Comps) e.U2 e.U3)
+        ((t.Const1 replaces t.Const2) e.Replaces)
+      >;
+  (e.UniqueIndexEqs) (e.Replaces) = (e.UniqueIndexEqs) (e.Replaces);
+  e.Other = <Prout 'ReplaceRepeatedIndexEqs: Invalid input ' e.Other>;
+}
+
+ReplaceEqConsts {
+  ((t.Const1 replaces t.Const2) e.Rest) t.EqHalf
+  , t.EqHalf : {
+    (e.U1 t.Const2 e.U2)
+      = <ReplaceEqConsts
+        ((t.Const1 replaces t.Const2) e.Rest)
+        (e.U1 t.Const1 e.U2)
+      >;
+    (e.U)
+      = <ReplaceEqConsts (e.Rest) (e.U)>;
+  };
+  (/* No more replacements */) t.EqHalf = t.EqHalf;
+  e.Other = <Prout 'ReplaceEqConsts: Invalid input ' e.Other>;
+}
+
+TestSet1 {
+ = ((AreEqual ((Var 'X') ('A' 0)) ((Var 'Y') ('B' 0) (Var 'Y')))
+    (/* No constraints */)
+    (/* No index eqs */))
+   ((AreEqual (('A' 0) (Var 'X') ('A' 0)) ((Var 'Y') ('A' 0) ('A' 0) (Var 'Y')))
+    ((OR (not empty (Var 'X')))
+     (OR (not ('A' 0) starts (Var 'X')) (not ('B' 0) ends (Var 'X'))))
+    (/* No index eqs */))
+   ((AreEqual ((Var 'X')) ((Var 'Y')))
+    ((OR (not empty (Var 'X'))))
+    (/* No index eqs */))
+   ((AreEqual ((Var 'X') ('A' 0)) (('A' 0) (Var 'Y')))
+    ((OR (not ('A' 0) ends (Var 'X'))))
+    (/* No index eqs */));
+}
+
+TestSet2 {
+ = ((AreEqual (('A' 2)) (('A' 1) (Var 'X') ('A' 1)))
+    ((OR (not empty (Var 'X'))))
+    ((('A' 1) is (('A' 0) (i1 1) (const 0)))
+     (('A' 2) is (('A' 0) (i2 2) (const 2)))))
+   ((AreEqual (('A' 3) (Var 'Y') ('A' 3)) (('A' 2) (Var 'X') ('A' 1)))
+    ( )
+    ((('A' 1) is (('A' 0) (i1 3) (const 1)))
+    (('A' 2) is (('A' 0) (i2 6) (i3 3) (const 1)))
+    (('A' 3) is (('A' 0) (i4 1) (const 0))))
+    )
+   ((AreEqual (('A' 3) (Var 'Y')('A' 1)(Var 'Y')) (('A' 2) (Var 'X')))
+    ( )
+    ((('A' 1) is (('A' 0) (i1 3) (const 1)))
+    (('A' 2) is (('A' 0) (i2 5) (i3 3) (const 1)))
+    (('A' 3) is (('A' 0) (i4 1) (const 0))))
+    )
+   ((AreEqual (('A' 3) ('B' 0) (Var 'X') ('A' 3) (Var 'Y')) (('A' 2) ('B' 0) (Var 'X') (Var 'Z') ('A' 2)))
+    ( )
+    ((('A' 1) is (('A' 0) (i1 3) (const 1)))
+    (('A' 2) is (('A' 0) (i2 6) (i3 3) (const 1)))
+    (('A' 3) is (('A' 0) (i4 1) (const 0))))
+    );
+}
+
+Pick {
+  1 t.Eq e.Rest
+  , t.Eq : ((AreEqual t.LHS t.RHS) t.Constraints t.IndexEqs)
+  , <SubstEmptyToEq t.LHS t.RHS (<GetNonEmptyVars t.Constraints>)> : {
+    t.HS t.HS = Success;
+    t.NewLHS t.NewRHS
+    , <IsNotMinimal t.NewLHS t.NewRHS> : {
+      True = NotMinimal;
+      False = t.Eq;
+    };
+  };
+  s.X t.Eq e.Rest = <Pick <Sub s.X 1> e.Rest>;
+  /* s.X = Fail; */
+}
+
+SubstEmptyToEq {
+  t.LHS t.RHS t.NonEmptyVars
+    = (<SubstEmpty t.LHS t.NonEmptyVars>) (<SubstEmpty t.RHS t.NonEmptyVars>);
+}
+
+SubstEmpty {
+  (t.Struct e.Rest) t.NonEmptyVars
+  , t.Struct : (Var s.X)
+  , <BelongsTo s.X t.NonEmptyVars> : False
+    = <SubstEmpty (e.Rest) t.NonEmptyVars>;
+  (t.Struct e.Rest) t.NonEmptyVars
+    = t.Struct <SubstEmpty (e.Rest) t.NonEmptyVars>;
+  (/* EMPTY */) t.NonEmptyVars = /* EMPTY */;
+}
+
+BelongsTo {
+  t.X (e.U1 t.X e.U2) = True;
+  e.Other = False;
+}
+
+/* Wrapper function to avoid calculating GetNonEmptyVars twice. */
+GetNonEmptyVars {
+  (t.Conjunct e.Rest) 
+  , t.Conjunct : (OR e.Disjuncts)
+    = <ParseDisjuncts e.Disjuncts> <GetNonEmptyVars (e.Rest)>;
+  (/* EMPTY */) = /* EMPTY */;
+}
+
+ParseDisjuncts {
+  t.Disjunct e.Rest
+  , t.Disjunct : {
+    /* If a conjunct can contain only one disjunct with a constraint on
+       non-emptiness of a variable, the right half of the next sentence
+       can be simplified to `s.X`. */
+    (not empty (Var s.X)) = s.X <ParseDisjuncts e.Rest>;
+    t.Other = <ParseDisjuncts e.Rest>;
+  };
+  /* EMPTY */ = /* EMPTY */;
+}
+
+IsNotMinimal {
+  t.LHS t.RHS
+  , <HasVarsOnly t.LHS> <HasVarsOnly t.RHS> : {
+    True True = True;
+    e.Other = False;
+  };
+}
+
+HasVarsOnly {
+  (t.Struct e.Rest)
+  , t.Struct : {
+    (Var s.X) = <HasVarsOnly (e.Rest)>;
+    t.Other = False;
+  };
+  (/* EMPTY */) = True;
+}
+
+RunPick {
+ 1 e.Eqs
+ , <Pick 1 e.Eqs> : {
+   (e.Equation) = True;
+    e.Other = False;
+  };
+ 2 e.Eqs
+ , <Pick 2 e.Eqs> : {
+   (e.Equation) = True;
+    e.Other = False;
+  };
+ 3 e.Eqs
+ , <Pick 3 e.Eqs> : {
+    NotMinimal = True;
+    e.Other = False;
+  };
+ 4 e.Eqs
+ , <Pick 4 e.Eqs> : {
+    Success = True;
+    e.Other = False;
+  };
+}
+
+RunSubstIndices {
+  (1 e.Substs) t.EqData
+   , <MapCompose (e.Substs) t.EqData> :
+ { ((AreEqual (/* No terms */) (e.W1 (Var 'X') e.W2))
+    ((OR (not empty (Var 'X'))))
+    ((('A' s.Ind) is (('A' 0) (i2 2) (const 2))))
+   ), e.W1 e.W2 : ('A' s.Ind) /* This unit test allows the implementation to choose freely whether to prune equal constants from left or from right. */
+     = True;
+   e.Z = False;
+ };
+  (2 e.Substs) t.EqData
+   , <MapCompose (e.Substs) t.EqData> :
+ { ((AreEqual ((Var 'Y')) ((Var 'X')))
+    (/* EMPTY */)
+    (/* EMPTY */) /* All the dependencies collapsed. */
+   ) = True;
+   e.Z = False;
+ };
+  (3 e.Substs) t.EqData
+   , <MapCompose (e.Substs) t.EqData> :
+ {((AreEqual (('A' s.Ind) (Var 'Y')('A' s.Ind) (Var 'Y')) (('A' 2) (Var 'X')))
+    ( )
+    (e.IndEq1 (('A' 2) is (('A' 0) (i2 5) (i3 3) (const 1))) e.IndEq2) /* The implementation can preserve either ('A' 1) or ('A' 3) - no choice is forced. */
+    ), e.IndEq1 e.IndEq2 : (('A' s.Ind) is (('A' 0) (i2 6) (i3 3) (const 1)))  = True;
+   e.Z = False;
+ };
+  (4 e.Substs) t.EqData
+   , <MapCompose (e.Substs) t.EqData> :
+ {((AreEqual (('A' s.Ind) (Var 'Y')) ((Var 'Z') ('A' s.Ind))) /* The equal prefixes are pruned forward up to non-equal parts. */
+    ( )
+    ((('A' s.Ind) is (('A' 0) (i2 6) (i3 3) (const 1))))
+    ) = True;
+   e.Z = False;
+ };
+}
+
