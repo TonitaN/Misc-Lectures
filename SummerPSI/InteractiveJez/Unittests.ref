@@ -9,36 +9,34 @@ $ENTRY Go {
         (Flip <TestSet-Pick>)
         <MapCall Curry (FormPair RunPick) 1 2 3 4>
       >
-    >;
+    >
 
     <Prout
       <UnwrapCalls
         <Zip
-          (
-            <MapCall
-              Curry
-              (FormPair RunSubstIndices)
-              (
-                1
-                (SubstIndex i1 ((i2 2) (const 2)))
-              )
-              (
-                2
-                (SubstIndex i4 ((i1 3) (const 1)))
-                (SubstIndex i1 ((i2 2) (i3 1) (const 0)))
-              )
-              (
-                3
-                (SubstIndex i4 ((i1 3) (const 1)))
-                (SubstIndex i1 ((i2 2) (i3 1) (const 0)))
-              )
-              (
-                4
-                (SubstIndex i4 ((i1 3) (const 1)))
-                (SubstIndex i1 ((i2 2) (i3 1) (const 0)))
-              )
-            >
-          )
+          (<MapCall
+            Curry
+            (FormPair RunSubstIndices)
+            (
+              1
+              (SubstIndex i1 ((i2 2) (const 2)))
+            )
+            (
+              2
+              (SubstIndex i4 ((i1 3) (const 1)))
+              (SubstIndex i1 ((i2 2) (i3 1) (const 0)))
+            )
+            (
+              3
+              (SubstIndex i4 ((i1 3) (const 1)))
+              (SubstIndex i1 ((i2 2) (i3 1) (const 0)))
+            )
+            (
+              4
+              (SubstIndex i4 ((i1 3) (const 1)))
+              (SubstIndex i1 ((i2 2) (i3 1) (const 0)))
+            )
+          >)
           (<TestSet-SubstIndex>)
         >
       >
@@ -203,6 +201,131 @@ RunSubstIndices {
       };
 }
 
+Pick {
+  1 ((AreEqual t.LHS t.RHS) t.Constraints t.IndexEqs) e.RestEqs
+    , <SubtractSets
+        (<GetUniqueValues <MapCall Plain GetVars t.LHS t.RHS>>)
+        (<GetNonEmptyVars t.Constraints>)
+      > : (e.VarsToSubst)
+    , <MapCall
+        Curry
+        (Subst (<MapCall Revert (GenSubst (/* to EMPTY */)) e.VarsToSubst>))
+        t.LHS t.RHS
+      > : {
+      t.EqHalf t.EqHalf = Success;
+
+      t.NewLHS t.NewRHS
+        , <MapCall Plain GetConsts t.NewLHS t.NewRHS> : {
+          /* No consts were found */ = NotMinimal;
+
+          e.SomeConsts
+            = ((AreEqual t.NewLHS t.NewRHS) t.Constraints t.IndexEqs); 
+        };
+    };
+
+  s.Number t.Eq e.RestEqs = <Pick <Sub s.Number 1> e.RestEqs>;
+
+  e.Other = <Prout 'Pick: Invalid input ' e.Other>;
+}
+
+/* Non-recursive substitution. */
+Subst {
+  (e.Substs) (e.ApplyTo)
+    , e.Substs : {
+      t.Subst e.RestSubsts
+        = <Subst (e.RestSubsts) (<Subst-Aux t.Subst e.ApplyTo>)>;
+
+      /* No more substs */ = (e.ApplyTo);
+    };
+
+  e.Other = <Prout 'Subst: Invalid input ' e.Other>;
+}
+
+Subst-Aux {
+  t.Subst e.ApplyTo
+    , t.Subst : (assign t.Old (e.New))
+    , e.ApplyTo : {
+      e.U1 t.Old e.U2 = <Subst-Aux t.Subst e.U1 e.New e.U2>;
+
+      e.Other = e.Other;
+    };
+
+  e.Other = <Prout 'Subst-Aux: Invalid input ' e.Other>;
+}
+
+/* Maybe `assign` is redundant. */
+GenSubst {
+  t.From t.To = (assign t.From t.To);
+  
+  e.Other = <Prout 'GenSubst: Invalid input ' e.Other>;
+}
+
+/* Accepts equation's constraints */
+GetNonEmptyVars {
+  ((OR e.Disjuncts) e.RestConjuncts) 
+    = <GetNonEmptyVars-Aux e.Disjuncts> <GetNonEmptyVars (e.RestConjuncts)>;
+
+  (/* No more conjuncts */) = /* EMPTY */;
+
+  e.Other = <Prout 'GetNonEmptyVars: Invalid input ' e.Other>;
+}
+
+GetNonEmptyVars-Aux {
+  t.Disjunct e.RestDisjuncts
+  , t.Disjunct : {
+    /* If a conjunct can contain only one disjunct with a constraint on
+       non-emptiness of a variable, the right half of the next sentence
+       can be simplified to `(Var s.X)`. */
+    (not empty (Var s.X)) = (Var s.X) <GetNonEmptyVars-Aux e.RestDisjuncts>;
+
+    e.Other = <GetNonEmptyVars-Aux e.RestDisjuncts>;
+  };
+
+  /* No more disjuncts */ = /* EMPTY */;
+
+  e.Other = <Prout 'GetNonEmptyVars-Aux: Invalid input ' e.Other>;
+}
+
+GetVars {
+  (t.Comp e.RestComps)
+    , t.Comp : {
+      (Var s.Name) = t.Comp <GetVars (e.RestComps)>;
+
+      (s.Name s.Number) = <GetVars (e.RestComps)>; /* Ignore consts. */
+
+      e.Other = <Prout 'GetVars: Invalid component ' e.Other>;
+    };
+
+  (/* No more comps */) = /* EMPTY */;
+
+  e.Other = <Prout 'GetVars: Invalid input ' e.Other>;
+}
+
+GetConsts {
+  (t.Comp e.RestComps)
+    , t.Comp : {
+      (Var s.Name) = <GetConsts (e.RestComps)>; /* Ignore vars. */
+
+      (s.Name s.Number) = t.Comp <GetConsts (e.RestComps)>;
+      
+      e.Other = <Prout 'GetConsts: Invalid component ' e.Other>;
+    };
+
+  (/* No more comps */) = /* EMPTY */;
+
+  e.Other = <Prout 'GetConsts: Invalid input ' e.Other>;
+}
+
+SubtractSets {
+  (e.U1 t.CommonElement e.U2) (e.V1 t.CommonElement e.V2)
+    = <SubtractSets (e.U1 e.U2) (e.V1 e.V2)>;
+
+  /* No more comment elements. Returning reduced set. */
+  t.Reduced t.Subtracted = t.Reduced;
+
+  e.Other = <Prout 'SubtractSets: Invalid input ' e.Other>;
+}
+
 SubstIndex {
   s.Index t.Multiset ((AreEqual t.LHS t.RHS) t.Constraints (e.IndexEqs))
   , <MapCall
@@ -215,7 +338,7 @@ SubstIndex {
     > : t.TrimmedLHS t.TrimmedRHS
   , <MapCall
       Curry
-      (CheckIndexEqToCollapse (<UniqueValues
+      (CheckIndexEqToCollapse (<GetUniqueValues
         <GetConsts t.TrimmedLHS> <GetConsts t.TrimmedRHS>
       >))
       e.SubstIndexEqs
@@ -309,17 +432,8 @@ GetIndexEqRHS {
     = /* EMPTY */; 
 }
 
-GetConsts {
-  (t.Comp e.Comps)
-  , t.Comp : {
-    (Var s.Value) = <GetConsts (e.Comps)>;
-    (s.Name s.Number) = t.Comp <GetConsts (e.Comps)>;
-  };
-  (/* EMPTY */) = /* EMPTY */;
-}
-
-UniqueValues {
-  e.U1 t.X e.U2 t.X e.U3 = <UniqueValues e.U1 t.X e.U2 e.U3>;
+GetUniqueValues {
+  e.U1 t.X e.U2 t.X e.U3 = <GetUniqueValues e.U1 t.X e.U2 e.U3>;
   e.Other = e.Other;
 }
 
@@ -353,87 +467,5 @@ ReplaceEqConsts {
   };
   (/* No more replacements */) t.EqHalf = t.EqHalf;
   e.Other = <Prout 'ReplaceEqConsts: Invalid input ' e.Other>;
-}
-
-Pick {
-  1 t.Eq e.Rest
-  , t.Eq : ((AreEqual t.LHS t.RHS) t.Constraints t.IndexEqs)
-  , <SubstEmptyToEq t.LHS t.RHS (<GetNonEmptyVars t.Constraints>)> : {
-    t.HS t.HS = Success;
-    t.NewLHS t.NewRHS
-    , <IsNotMinimal t.NewLHS t.NewRHS> : {
-      True = NotMinimal;
-      False = t.Eq;
-    };
-  };
-  s.X t.Eq e.Rest = <Pick <Sub s.X 1> e.Rest>;
-  e.Other = <Prout 'Pick: Invalid input ' e.Other>;
-}
-Pick {
-  1 t.Eq e.Rest
-  , t.Eq : {
-    ((AreEqual t.LHS t.RHS) t.Constraints t.IndexEqs)
-  , <SubstEmptyToEq t.LHS t.RHS (<GetNonEmptyVars t.Constraints>)> : {
-    t.HS t.HS = Success;
-    t.NewLHS t.NewRHS
-    , <IsNotMinimal t.NewLHS t.NewRHS> : {
-      True = NotMinimal;
-      False = t.Eq;
-    };
-  };
-  s.X t.Eq e.Rest = <Pick <Sub s.X 1> e.Rest>;
-  e.Other = <Prout 'Pick: Invalid input ' e.Other>;
-}
-
-SubstEmptyToEq {
-  t.LHS t.RHS t.NonEmptyVars
-    = (<SubstEmpty t.LHS t.NonEmptyVars>) (<SubstEmpty t.RHS t.NonEmptyVars>);
-}
-
-SubstEmpty {
-  (t.Struct e.Rest) t.NonEmptyVars
-  , t.Struct : (Var s.X)
-  , <BelongsTo s.X t.NonEmptyVars> : False
-    = <SubstEmpty (e.Rest) t.NonEmptyVars>;
-  (t.Struct e.Rest) t.NonEmptyVars
-    = t.Struct <SubstEmpty (e.Rest) t.NonEmptyVars>;
-  (/* EMPTY */) t.NonEmptyVars = /* EMPTY */;
-}
-
-/* Wrapper function to avoid calculating GetNonEmptyVars twice. */
-GetNonEmptyVars {
-  (t.Conjunct e.Rest) 
-  , t.Conjunct : (OR e.Disjuncts)
-    = <ParseDisjuncts e.Disjuncts> <GetNonEmptyVars (e.Rest)>;
-  (/* EMPTY */) = /* EMPTY */;
-}
-
-ParseDisjuncts {
-  t.Disjunct e.Rest
-  , t.Disjunct : {
-    /* If a conjunct can contain only one disjunct with a constraint on
-       non-emptiness of a variable, the right half of the next sentence
-       can be simplified to `s.X`. */
-    (not empty (Var s.X)) = s.X <ParseDisjuncts e.Rest>;
-    t.Other = <ParseDisjuncts e.Rest>;
-  };
-  /* EMPTY */ = /* EMPTY */;
-}
-
-IsNotMinimal {
-  t.LHS t.RHS
-  , <HasVarsOnly t.LHS> <HasVarsOnly t.RHS> : {
-    True True = True;
-    e.Other = False;
-  };
-}
-
-HasVarsOnly {
-  (t.Struct e.Rest)
-  , t.Struct : {
-    (Var s.X) = <HasVarsOnly (e.Rest)>;
-    t.Other = False;
-  };
-  (/* EMPTY */) = True;
 }
 

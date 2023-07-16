@@ -12,7 +12,6 @@ Flip {
 
 /* \f_A xs -> map f_A xs */
 MapCall {
-
    Curry (s.FunctionName e.Args) t.Element e.List /* Some first args are curried */
        = <Mu s.FunctionName e.Args t.Element> <MapCall Curry (s.FunctionName e.Args) e.List>;
    Revert (s.FunctionName e.Args) t.Element e.List /* Some last args are "curried" (impossible in Haskell-style langs w/o associativity) */
