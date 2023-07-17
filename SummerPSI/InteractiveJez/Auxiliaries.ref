@@ -16,6 +16,11 @@ $ENTRY FormPair {
    t.First t.Second = (t.First t.Second);
 }
 
+$ENTRY BelongsTo {
+  t.X (e.U1 t.X e.U2) = True;
+  e.Other = False;
+}
+
 
 *$ENTRY Go { = <Prout <GetNewIndex i19>>;}
 
