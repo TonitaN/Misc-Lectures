@@ -21,6 +21,27 @@ $ENTRY BelongsTo {
   e.Other = False;
 }
 
+$ENTRY Trim {
+  e.X' 'e.Y = e.X<Trim e.Y>;
+  e.Z = e.Z;
+}
+
+$ENTRY Arrange {
+ Normal (e.1) (e.2) = e.1 e.2;
+ Inverse (e.1) (e.2) = e.2 e.1;
+}
+
+$ENTRY Unwrap {
+  (e.Preamble)(e.Preamble e.Val) = e.Val;
+  (e.Preamble)e.Preamble e.Val = e.Val;
+  (e.Preamble) e.Val = e.Val;
+}
+
+$ENTRY Wrap {
+  Plain s.Order (e.Preamble)e.Val = <Arrange s.Order (e.Preamble) (e.Val)>;
+  Inner s.Order (e.Preamble)e.Val = (<Arrange s.Order (e.Preamble) (e.Val)>);
+  Combined s.Order (e.Preamble)e.Val = <Arrange s.Order (e.Preamble) ((e.Val))>;
+}
 
 *$ENTRY Go { = <Prout <GetNewIndex i19>>;}
 
