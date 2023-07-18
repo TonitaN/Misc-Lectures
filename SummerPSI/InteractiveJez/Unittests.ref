@@ -1,6 +1,6 @@
 *$INLINE HigherOrder;
 
-$EXTERN FormPair, Zip, BelongsTo;
+$EXTERN FormPair, Zip, BelongsTo, Arrange, Take;
 
 $ENTRY Go {
   = <Prout
@@ -245,7 +245,7 @@ Subst-Aux {
   t.Subst e.ApplyTo
     , t.Subst : (assign t.Old (e.New))
     , e.ApplyTo : {
-      e.U1 t.Old e.U2 = <Subst-Aux t.Subst e.U1 e.New e.U2>;
+      e.U1 t.Old e.U2 = e.U1 e.New <Subst-Aux t.Subst e.U2>;
 
       e.Other = e.Other;
     };
@@ -253,9 +253,8 @@ Subst-Aux {
   e.Other = <Prout 'Subst-Aux: Invalid input ' e.Other>;
 }
 
-/* Maybe `assign` is redundant. */
 GenSubst {
-  t.From t.To = (assign t.From t.To);
+  t.Old t.New = (assign t.Old t.New);
   
   e.Other = <Prout 'GenSubst: Invalid input ' e.Other>;
 }
@@ -316,156 +315,211 @@ GetConsts {
   e.Other = <Prout 'GetConsts: Invalid input ' e.Other>;
 }
 
+GetUniqueValues {
+  e.U1 t.X e.U2 t.X e.U3 = <GetUniqueValues e.U1 t.X e.U2 e.U3>;
+  
+  e.AlreadyUnique = e.AlreadyUnique;
+}
+
+
 SubtractSets {
   (e.U1 t.CommonElement e.U2) (e.V1 t.CommonElement e.V2)
     = <SubtractSets (e.U1 e.U2) (e.V1 e.V2)>;
 
-  /* No more comment elements. Returning reduced set. */
+  /* No more common elements. Returning reduced set. */
   t.Reduced t.Subtracted = t.Reduced;
 
   e.Other = <Prout 'SubtractSets: Invalid input ' e.Other>;
 }
 
+/*
+  <SubstIndex s.Index (e.Subst) (e.Eq) == (e.SubstEq)
+*/
 SubstIndex {
-  s.Index t.Multiset ((AreEqual t.LHS t.RHS) t.Constraints (e.IndexEqs))
-  , <MapCall
-      Curry
-      (SubstToIndexEq (s.Index t.Multiset))
-      e.IndexEqs
-    > : e.SubstIndexEqs /* Duplicated equations will be removed later */
-  , <TrimEqRight
-      <TrimEqLeft t.LHS t.RHS (e.SubstIndexEqs)> (e.SubstIndexEqs)
-    > : t.TrimmedLHS t.TrimmedRHS
-  , <MapCall
-      Curry
-      (CheckIndexEqToCollapse (<GetUniqueValues
-        <GetConsts t.TrimmedLHS> <GetConsts t.TrimmedRHS>
-      >))
-      e.SubstIndexEqs
-    > : e.InvolvedIndexEqs
-  , <ReplaceRepeatedIndexEqs
-      (e.InvolvedIndexEqs)
-      (/* No replaces at start */)
-    > : t.UniqueIndexEqs t.Replaces
-  , <MapCall
-      Curry
-      (ReplaceEqConsts t.Replaces)
-      t.TrimmedLHS t.TrimmedRHS
-    > : t.ReplacedLHS t.ReplacedRHS
-    = ((AreEqual t.ReplacedLHS t.ReplacedRHS) t.Constraints t.UniqueIndexEqs);
+  s.Index
+  (e.Multiset)
+  ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.IndexEqs))
+    , <MapCall
+        Curry
+        (SubstToIndexEq (s.Index (e.Multiset)))
+        e.IndexEqs
+      > : e.SubstIndexEqs
+    , <TrimEq
+        Right
+        (e.SubstIndexEqs)
+        <TrimEq Left (e.SubstIndexEqs) (e.LHS) (e.RHS)>
+      > : (e.TrimmedLHS) (e.TrimmedRHS)
+    , <MapCall
+        Curry
+        (CheckIndexEqToCollapse (<GetUniqueValues
+          <GetConsts (e.TrimmedLHS)> <GetConsts (e.TrimmedRHS)>
+        >))
+        e.SubstIndexEqs
+      > : e.InvolvedIndexEqs
+    , <ReplaceRepeatedIndexEqs
+        (e.InvolvedIndexEqs)
+        (/* No substitutions at start */)
+      > : (e.UniqueIndexEqs) (e.Substs)
+    , <MapCall
+        Curry
+        (Subst (e.Substs))
+        (e.TrimmedLHS) (e.TrimmedRHS)
+      > : (e.SubstLHS) (e.SubstRHS)
+    = ((AreEqual (e.SubstLHS) (e.SubstRHS)) (e.Constraints) (e.UniqueIndexEqs));
+  
   e.Other = <Prout 'SubstIndex: Invalid input ' e.Other>;
 }
 
+/*
+  <SubstToIndexEq (s.Index (e.Multiset)) (e.IndexEq)> == (e.SubstIndexEq)
+*/
 SubstToIndexEq {
-  /* Component (Comp) is a term of the form (s.X s.Y).
-     "Comps" and "Multiset" are interchangeable definitions. */
-  t.Subst (t.Const is (e.Comps))
-  , t.Const : (s.Name s.Number)
-    = (t.Const is (<SumComps <MapCall Curry (SubstToComp t.Subst) e.Comps>>));
+  (s.Index (e.Multiset)) ((s.Name s.Number) is (e.RHS))
+    = (
+        (s.Name s.Number)
+        is
+        (<SumUpComps /* TODO: lexicographic sort */
+          <MapCall Curry (SubstToComp (s.Index (e.Multiset))) e.RHS>
+        >)
+      );
+    
   e.Other = <Prout 'SubstToIndexEq: Invalid input ' e.Other>;
 }
 
+/*
+  <SubstToComp (s.Index (e.Multiset)) (e.Comp)> == (e.SubstComp)
+*/
 SubstToComp {
-  (s.Index (e.Multiset)) t.Comp
-  , t.Comp : {
-    (s.Index s.Number) = <MapCall Curry (MulComp s.Number) e.Multiset>;
-    t.Other = t.Other;
-  };
+  (s.Index (e.Multiset)) (e.Comp)
+    , e.Comp : {
+      s.Index s.Number = <MapCall Curry (MulComp s.Number) e.Multiset>;
+
+      s.AnotherIndex s.Number = (e.Comp);
+
+      e.Other = <Prout 'SubstToComp: Invalid component ' e.Other>;
+    };
+    
   e.Other = <Prout 'SubstToComp: Invalid input ' e.Other>;
 }
 
+/*
+  <MulComp s.Multiplier (e.Comp)> == (e.MulComp)
+*/
 MulComp {
-  s.Factor (s.Index s.Number) = (s.Index <Mul s.Factor s.Number>);
+  s.Multiplier (s.Index s.Number) = (s.Index <Mul s.Multiplier s.Number>);
+  
   e.Other = <Prout 'MulComp: Invalid input ' e.Other>;
 }
 
-SumComps {
+/*
+  <SumUpComps e.Comps> == e.SummedUpComps
+*/
+SumUpComps {
   e.U1 (s.Index s.Number1) e.U2 (s.Index s.Number2) e.U3
-    = <SumComps e.U1 e.U2 (s.Index <Add s.Number1 s.Number2>) e.U3>;
-  e.Other = e.Other;
+    = e.U1 e.U2 (s.Index <Add s.Number1 s.Number2>) <SumUpComps e.U3>;
+    
+  e.SummedUpComps = e.SummedUpComps;
 }
 
-TrimEqLeft {
-  (t.Comp1 e.Comps1) (t.Comp2 e.Comps2) t.IndexEqs
-  , <AreCompsEqual t.Comp1 t.Comp2 t.IndexEqs> : {
-    True = <TrimEqLeft (e.Comps1) (e.Comps2) t.IndexEqs>;
-    False = (t.Comp1 e.Comps1) (t.Comp2 e.Comps2);
-  };
-  t.LHS t.RHS t.IndexEqs /* t.LHS or t.RHS is empty or both are empty. */
-    = t.LHS t.RHS;
-  e.Other = <Prout 'TrimEqLeft: Invalid input ' e.Other>;
-}
+/*
+  <TrimEq s.Mode (e.IndexEqs) (e.LHS) (e.RHS)> == (e.TrimmedLHS) (e.TrimmedRHS)
+  
+  s.Mode := Left | Right
+*/
+TrimEq {
+  s.Mode (e.IndexEqs) (e.LHS) (e.RHS)
+    , <MapCall Curry (Take s.Mode) (e.LHS) (e.RHS)> : {
+      /* Both equation parts are not empty: */
+      ((e.Comp1) e.RestComps1) ((e.Comp2) e.RestComps2)
+        , <AreCompsEqual (e.Comp1) (e.Comp2) (e.IndexEqs)> : {
+          True = <TrimEq s.Mode (e.IndexEqs) (e.RestComps1) (e.RestComps2)>;
 
-TrimEqRight {
-  (e.Comps1 t.Comp1) (e.Comps2 t.Comp2) t.IndexEqs
-  , <AreCompsEqual t.Comp1 t.Comp2 t.IndexEqs> : {
-    True = <TrimEqRight (e.Comps1) (e.Comps2) t.IndexEqs>;
-    False = (e.Comps1 t.Comp1) (e.Comps2 t.Comp2);
-  };
-  t.LHS t.RHS t.IndexEqs /* t.LHS or t.RHS is empty or both are empty. */
-    = t.LHS t.RHS;
-  e.Other = <Prout 'TrimEqRight: Invalid input ' e.Other>;
-}
+          False = (e.LHS) (e.RHS);
+        };
 
-AreCompsEqual {
-  (s.Name s.Value) (s.Name s.Value) t.IndexEqs = True;
-  (s.Name s.Value1) (s.Name s.Value2) t.IndexEqs
-  , s.Name : {
-    Var = False; /* Two different variables. */
-    e.Other /* Check whether constants have the same index equations. */
-    , <MapCall
-        Curry
-        (GetIndexEqRHS t.IndexEqs)
-        (s.Name s.Value1)
-        (s.Name s.Value2)
-      > : {
-      t.Comps t.Comps = True;
-      t.Comps1 t.Comp2 = False;
+      e.Other = (e.LHS) (e.RHS);
     };
-  };
-  e.Other = False;
+  
+  e.Other = <Prout 'TrimEq: Invalid input ' e.Other>;
 }
 
-GetIndexEqRHS {
-  (e.U1 (t.Const is t.Comps) e.U2) t.Const = t.Comps;
-  e.Other /* Index equation wasn't found for some reasons. */
-    = /* EMPTY */; 
+/*
+  <AreCompsEqual (e.Comp1) (e.Comp2) (e.IndexEqs)>
+    == True
+    == False
+*/
+AreCompsEqual {
+  (e.Comp1) (e.Comp2) (e.IndexEqs)
+    , (e.Comp1) (e.Comp2) : {
+      (s.Type s.Value) (s.Type s.Value) = True;
+
+      (Var s.Value1) (Var s.Value2) = False;
+
+      (s.Type s.Value1) (s.Type s.Value2)
+        , <MapCall Curry (GetIndexEq (e.IndexEqs)) (e.Comp1) (e.Comp2)> : {
+          ((e.Comp1) is (e.RHS)) ((e.Comp2) is (e.RHS)) = True;
+              
+          e.DifferentIndexEqs = False;
+        };
+        
+      (s.Type1 s.Value1) (s.Type2 s.Value2) = False;
+
+      e.Other = <Prout 'AreCompsEqual: Invalid components ' e.Other>;
+    };
+
+  e.Other = <Prout 'AreCompsEqual: Invalid input ' e.Other>;
 }
 
-GetUniqueValues {
-  e.U1 t.X e.U2 t.X e.U3 = <GetUniqueValues e.U1 t.X e.U2 e.U3>;
-  e.Other = e.Other;
+/*
+  <GetIndexEq (e.IndexEqs) (e.Comp)>
+    == (e.IndexEq)
+    == ε
+*/
+GetIndexEq {
+  ((e.IndexEq) e.RestIndexEqs) (e.Comp)
+    , e.IndexEq : {
+      (e.Comp) is (e.RHS) = (e.IndexEq);
+
+      e.AnotherIndexEq = <GetIndexEq (e.RestIndexEqs) (e.Comp)>;
+    };
+
+  /* Abnormal case */
+  (/* No more index equations */) (e.Comp) = /* EMPTY */;
 }
 
+/*
+  <CheckIndexEqToCollapse (e.Consts) (e.IndexEq)>
+    == (e.IndexEq)
+    == ε
+*/
 CheckIndexEqToCollapse {
-  (e.U1 t.Const e.U2) (t.Const is t.Comps) /* Is involved, not collapsing. */ 
-    = (t.Const is t.Comps);
-  e.Other /* No appropriate const found. Not involved, collapsing. */
-    = /* EMPTY */;
+  (e.U1 (e.Comp) e.U2) ((e.Comp) is (e.RHS)) = ((e.Comp) is (e.RHS));
+    
+  (e.Consts) (e.NotInvolvedIndexEq) = /* EMPTY */;
+
+  e.Other = <Prout 'CheckIndexEqToCollapse: Invalid input ' e.Other>;
 }
 
+/*
+  <ReplaceRepeatedIndexEqs (e.IndexEqs) (e.Substs)>
+    == (e.ReplacedIndexEqs) (e.Substs)
+*/
 ReplaceRepeatedIndexEqs {
-  (e.U1 (t.Const1 is t.Comps) e.U2 (t.Const2 is t.Comps) e.U3) (e.Replaces) 
+  (
+    e.U1
+    ((e.Comp1) is (e.RHS))
+    e.U2
+    ((e.Comp2) is (e.RHS))
+    e.U3
+  )
+  (e.Substs) 
     = <ReplaceRepeatedIndexEqs
-        (e.U1 (t.Const1 is t.Comps) e.U2 e.U3)
-        ((t.Const1 replaces t.Const2) e.Replaces)
+        (e.U1 ((e.Comp1) is (e.RHS)) e.U2 e.U3)
+        (<GenSubst (e.Comp2) ((e.Comp1))> e.Substs)
       >;
-  (e.UniqueIndexEqs) (e.Replaces) = (e.UniqueIndexEqs) (e.Replaces);
+      
+  (e.UniqueIndexEqs) (e.Substs) = (e.UniqueIndexEqs) (e.Substs);
+  
   e.Other = <Prout 'ReplaceRepeatedIndexEqs: Invalid input ' e.Other>;
-}
-
-ReplaceEqConsts {
-  ((t.Const1 replaces t.Const2) e.Rest) t.EqHalf
-  , t.EqHalf : {
-    (e.U1 t.Const2 e.U2)
-      = <ReplaceEqConsts
-        ((t.Const1 replaces t.Const2) e.Rest)
-        (e.U1 t.Const1 e.U2)
-      >;
-    (e.U)
-      = <ReplaceEqConsts (e.Rest) (e.U)>;
-  };
-  (/* No more replacements */) t.EqHalf = t.EqHalf;
-  e.Other = <Prout 'ReplaceEqConsts: Invalid input ' e.Other>;
 }
 

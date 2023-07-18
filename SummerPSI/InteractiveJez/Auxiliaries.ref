@@ -31,6 +31,12 @@ $ENTRY Arrange {
  Inverse (e.1) (e.2) = e.2 e.1;
 }
 
+$ENTRY Take {
+  Left (t.Term e.Expr) = (t.Term e.Expr);
+  Right (e.Expr t.Term) = (t.Term e.Expr);
+  s.AnyMode (/* No term */) = (/* EMPTY */);
+}
+
 $ENTRY Unwrap {
   (e.Preamble)(e.Preamble e.Val) = e.Val;
   (e.Preamble)e.Preamble e.Val = e.Val;

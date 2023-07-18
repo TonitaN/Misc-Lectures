@@ -4,7 +4,7 @@ $ENTRY Go {
 }
 
 DelSpaces {
-  e.u1 ' ' e.u2 = <DelSpaces e.u1 e.u2>;
+  e.u1 ' ' e.u2 = e.u1 <DelSpaces e.u2>;
   e.u = e.u;
 }
 
