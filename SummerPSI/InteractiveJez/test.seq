@@ -56,7 +56,7 @@
      ((A 4) is ((A 0) ((i2) 1) ((const) 0)))
    )
  ) 
-((AreEqual ((A 2)(Var Y)(A 3)(Var X)) ((A 4)(Var X)(B 0)(A 2) (Var Y) (A 6)))
+((AreEqual ((A 2)(Var Y)(A 3)(Var X)) ((A 4)(Var X)(B 0)(A 2) (Var Y) (A 5)))
   ((OR (not empty (Var Y)))(OR (not empty (Var X)))
    (OR (not (A 3) starts (Var X)))
    (OR (not (A 3) ends (Var X)))
