@@ -164,7 +164,7 @@ ClearLevelData  {
 StoreLevelData {
   (s.Level s.Width s.Height), <Dg 'Levels'> : 
    {e.PrevVal (s.PrevLevel s.PrevWidth s.PrevHeight)
-    , <Div <Add <Add <Mul s.Height 2> s.PrevHeight> 1> 3> : s.NewHeight
+    , <ChooseMax s.Height <Div <Add <Add <Mul s.Height 2> s.PrevHeight> 1> 3>> : s.NewHeight
    , <Br 'Levels='e.PrevVal (s.PrevLevel s.PrevWidth s.PrevHeight)(s.Level s.Width s.NewHeight)> : e.Buried
     = /* EMPTY */;
    };
