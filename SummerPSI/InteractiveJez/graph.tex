@@ -6,6 +6,8 @@ level 1/.style = {sibling distance = 6em,level distance = 4em},
 level 2/.style = {sibling distance = 8em,level distance = 6em},
 level 3/.style = {sibling distance = 6em,level distance = 5em},
 level 4/.style = {sibling distance = 8em,level distance = 5em},
+level 5/.style = {sibling distance = 6em,level distance = 5em},
+level 6/.style = {sibling distance = 8em,level distance = 8em},
 ]
 
 \input{styles.tex}
@@ -21,5 +23,11 @@ child {node (2B3) [fullequation]{\nodepart{one}$A_{0}X = XA_{1}$\nodepart{two}$\
 }
 child {node [eqset,inner sep=-2em,cloud puffs=50,aspect=4,fit=(2B0)(2B1)(2B2)(2B3)] {}
 child {node [action]{$\begin{array}{c}\mathtt{Pick}\;1\end{array}$} edge from parent [draw opacity = 0]
-child {node (4B0) [fullequation]{\nodepart{one}$A_{0}X = XB_{0}$\nodepart{two}$\begin{array}{l}X\neq{}B_{0}X_{S}\\X\neq{}X_{P}A_{0}\\\mathrm{No\;conditions}\\\end{array}$}edge from parent [draw opacity = 0]};};};};
+child {node (4B0) [fullequation]{\nodepart{one}$A_{0}X = XB_{0}$\nodepart{two}$\begin{array}{l}X\neq{}B_{0}X_{S}\\X\neq{}X_{P}A_{0}\\\mathrm{No\;conditions}\\\end{array}$}edge from parent [draw opacity = 0]child {node [action]{$\begin{array}{c}\mathtt{BlockComp}\\A_{0}\end{array}$} edge from parent [draw opacity = 0]
+child {node (6B0) [fullequation]{\nodepart{one}$A_{2} = A_{3}B_{0}$\nodepart{two}$\begin{array}{l}\mathrm{No\;constraints}\\A_{2}:=A_{0}^{i_{1}+1}\\A_{3}:=A_{0}^{i_{1}}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (6B1) [fullequation]{\nodepart{one}$A_{2}XA_{3} = A_{4}XA_{3}B_{0}$\nodepart{two}$\begin{array}{l}X\neq\varepsilon\\A_{2}:=A_{0}^{i_{1}+1}\\A_{3}:=A_{0}^{i_{2}}\\A_{4}:=A_{0}^{i_{1}}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node [eqset,inner sep=-1em,cloud puffs=30,aspect=2,fit=(6B0)(6B1)] {}
+};};};};};};
 \input{postfix.tex}

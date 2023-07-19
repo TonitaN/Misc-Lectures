@@ -24,3 +24,23 @@
    (OR (not (A 0) ends (Var X))))
    ())
 
+(BlockComp (A 0))
+
+(Set
+ ((AreEqual ((A 2)) ((A 3) (B 0)))
+  ()
+   (
+     ((A 2) is ((A 0) ((i1) 1) ((const) 1)))
+     ((A 3) is ((A 0) ((i1) 1) ((const) 0)))
+   )
+ )
+((AreEqual ((A 2)(Var X)(A 3)) ((A 4)(Var X)(A 3)(B 0)))
+  ((OR (not empty (Var X))))
+   (
+     ((A 2) is ((A 0) ((i1) 1) ((const) 1)))
+     ((A 3) is ((A 0) ((i2) 1) ((const) 0)))
+     ((A 4) is ((A 0) ((i1) 1) ((const) 0)))
+   )
+ ) 
+)
+

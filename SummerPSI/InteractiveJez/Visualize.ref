@@ -217,9 +217,14 @@ VisualiseIndex {
  'i'e.Num = 'i_{'e.Num'}';
 }
 
+VisualiseMultiplier {
+ '1' = ;
+ e.AnyOther = e.AnyOther'\\cdot{}';
+}
+
 VisualiseLIA {
  e.LIA1 ((e.Term)'0') e.LIA2 = <VisualiseLIA e.LIA1 e.LIA2>;
  (('const') e.Num) = e.Num;
- ((e.Term) e.Num) = e.Num'\\cdot'<VisualiseIndex e.Term>;
- ((e.Term) e.Num) e.Rest = e.Num'\\cdot'<VisualiseIndex e.Term>'+'<VisualiseLIA e.Rest>;
+ ((e.Term) e.Num) = <VisualiseMultiplier e.Num><VisualiseIndex e.Term>;
+ ((e.Term) e.Num) e.Rest = <VisualiseMultiplier e.Num><VisualiseIndex e.Term>'+'<VisualiseLIA e.Rest>;
 }
