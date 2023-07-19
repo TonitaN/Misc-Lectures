@@ -218,7 +218,7 @@ StoreLevelData {
 
 GetEqParameters {
  ('AreEqual' (e.LHS) (e.RHS))(e.Negatives)(e.Equations)
-  = <ChooseMax 8 <CountLen 0 e.LHS e.RHS'='>><CountLen 3 e.Negatives e.Equations>;
+  = <ChooseMax 8 <CountLen 1 e.LHS e.RHS'='>><CountLen 3 e.Negatives e.Equations>;
 }
 
 CountLen {
@@ -241,6 +241,7 @@ VisualiseMultiplier {
 }
 
 VisualiseLIA {
+ (('const')'0') = '0';
  e.LIA1 ((e.Term)'0') e.LIA2 = <VisualiseLIA e.LIA1 e.LIA2>;
  (('const') e.Num) = e.Num;
  ((e.Term) e.Num) = <VisualiseMultiplier e.Num><VisualiseIndex e.Term>;
