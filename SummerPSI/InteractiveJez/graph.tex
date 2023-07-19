@@ -5,36 +5,30 @@ level 0/.style = {sibling distance = 8em,level distance = 3em},
 level 1/.style = {sibling distance = 6em,level distance = 5em},
 level 2/.style = {sibling distance = 8em,level distance = 7em},
 level 3/.style = {sibling distance = 6em,level distance = 6em},
-level 4/.style = {sibling distance = 8em,level distance = 5em},
-level 5/.style = {sibling distance = 6em,level distance = 5em},
-level 6/.style = {sibling distance = 13em,level distance = 12em},
-level 7/.style = {sibling distance = 6em,level distance = 7em},
-level 8/.style = {sibling distance = 9em,level distance = 8em},
+level 4/.style = {sibling distance = 13em,level distance = 12em},
 ]
 
 \input{styles.tex}
-\node (0B0) [fullequation]{\nodepart{one}$YA_{0}X = XB_{0}Y$\nodepart{two}$\begin{array}{l}\mathrm{No\;constraints}\\\mathrm{No\;conditions}\\\end{array}$}
+\node (0B1) [chosenequation]{\nodepart{one}$YA_{0}X = XB_{0}Y$\nodepart{two}$\begin{array}{l}\mathrm{No\;constraints}\\\mathrm{No\;conditions}\\\end{array}$}
 child {node [action]{$\begin{array}{c}\mathtt{PairComp}\\A_{0}\;B_{0}\end{array}$} edge from parent [draw opacity = 0]
-child {node (2B0) [fullequation]{\nodepart{one}$YA_{0}X = XB_{0}Y$\nodepart{two}$\begin{array}{l}X\neq{}B_{0}X_{S}\\X\neq{}X_{P}A_{0}\\\mathrm{No\;conditions}\\\end{array}$}edge from parent [draw opacity = 0]
+child {node (2B1) [chosenequation]{\nodepart{one}$YA_{0}X = XB_{0}Y$\nodepart{two}$\begin{array}{l}X\neq{}B_{0}X_{S}\\X\neq{}X_{P}A_{0}\\\mathrm{No\;conditions}\\\end{array}$}edge from parent [draw opacity = 0]
 }
-child {node (2B1) [fullequation]{\nodepart{one}$YA_{1}X = XA_{1}Y$\nodepart{two}$\begin{array}{l}\mathrm{No\;constraints}\\\mathrm{No\;conditions}\\\end{array}$}edge from parent [draw opacity = 0]
+child {node (2B2) [fullequation]{\nodepart{one}$YA_{1}X = XA_{1}Y$\nodepart{two}$\begin{array}{l}\mathrm{No\;constraints}\\\mathrm{No\;conditions}\\\end{array}$}edge from parent [draw opacity = 0]
 }
-child {node (2B2) [fullequation]{\nodepart{one}$YA_{1}X = XB_{0}Y$\nodepart{two}$\begin{array}{l}X\neq{}X_{P}A_{0}\\A_{1}:=A_{0}B_{0}\end{array}$}edge from parent [draw opacity = 0]
+child {node (2B3) [fullequation]{\nodepart{one}$YA_{1}X = XB_{0}Y$\nodepart{two}$\begin{array}{l}X\neq{}X_{P}A_{0}\\A_{1}:=A_{0}B_{0}\end{array}$}edge from parent [draw opacity = 0]
 }
-child {node (2B3) [fullequation]{\nodepart{one}$YA_{0}X = XA_{1}Y$\nodepart{two}$\begin{array}{l}X\neq{}B_{0}X_{S}\\A_{1}:=A_{0}B_{0}\end{array}$}edge from parent [draw opacity = 0]
+child {node (2B4) [fullequation]{\nodepart{one}$YA_{0}X = XA_{1}Y$\nodepart{two}$\begin{array}{l}X\neq{}B_{0}X_{S}\\A_{1}:=A_{0}B_{0}\end{array}$}edge from parent [draw opacity = 0]
 }
-child {node [eqset,inner sep=-2em,cloud puffs=50,aspect=4,fit=(2B0)(2B1)(2B2)(2B3)] {}
-child {node [action]{$\begin{array}{c}\mathtt{Pick}\;1\end{array}$} edge from parent [draw opacity = 0]
-child {node (4B0) [fullequation]{\nodepart{one}$YA_{0}X = XB_{0}Y$\nodepart{two}$\begin{array}{l}X\neq{}B_{0}X_{S}\\X\neq{}X_{P}A_{0}\\\mathrm{No\;conditions}\\\end{array}$}edge from parent [draw opacity = 0]child {node [action]{$\begin{array}{c}\mathtt{BlockComp}\\A_{0}\end{array}$} edge from parent [draw opacity = 0]
-child {node (6B0) [fullequation]{\nodepart{one}$A_{2} = A_{3}B_{0}A_{4}$\nodepart{two}$\begin{array}{l}\mathrm{No\;constraints}\\A_{2}:=A_{0}^{i_{1}+i_{2}+1}\\A_{3}:=A_{0}^{i_{1}}\\A_{4}:=A_{0}^{i_{2}}\end{array}$}edge from parent [draw opacity = 0]
+child {node [eqset,inner sep=-2em,cloud puffs=60,aspect=5,fit=(2B1)(2B2)(2B3)(2B4)] {}
+child {node [action]{$\begin{array}{c}\mathtt{BlockComp}\\A_{0}\end{array}$} edge from parent [draw opacity = 0]
+child {node (4B1) [fullequation]{\nodepart{one}$A_{2} = A_{3}B_{0}A_{4}$\nodepart{two}$\begin{array}{l}\mathrm{No\;constraints}\\A_{2}:=A_{0}^{i_{1}+i_{2}+1}\\A_{3}:=A_{0}^{i_{1}}\\A_{4}:=A_{0}^{i_{2}}\end{array}$}edge from parent [draw opacity = 0]
 }
-child {node (6B1) [fullequation]{\nodepart{one}$A_{2}XA_{3} = A_{4}XA_{3}B_{0}A_{5}$\nodepart{two}$\begin{array}{l}X\neq\varepsilon\\A_{2}:=A_{0}^{i_{1}+i_{3}+1}\\A_{3}:=A_{0}^{i_{2}}\\A_{4}:=A_{0}^{i_{1}}\\A_{5}:=A_{0}^{i_{3}}\end{array}$}edge from parent [draw opacity = 0]
+child {node (4B2) [chosenequation]{\nodepart{one}$A_{2}XA_{3} = A_{4}XA_{3}B_{0}A_{5}$\nodepart{two}$\begin{array}{l}X\neq\varepsilon\\A_{2}:=A_{0}^{i_{1}+i_{3}+1}\\A_{3}:=A_{0}^{i_{2}}\\A_{4}:=A_{0}^{i_{1}}\\A_{5}:=A_{0}^{i_{3}}\end{array}$}edge from parent [draw opacity = 0]
 }
-child {node (6B2) [fullequation]{\nodepart{one}$A_{2}YA_{3} = A_{4}B_{0}A_{2}YA_{5}$\nodepart{two}$\begin{array}{l}Y\neq\varepsilon\\A_{2}:=A_{0}^{i_{2}}\\A_{3}:=A_{0}^{i_{1}+i_{3}+1}\\A_{4}:=A_{0}^{i_{1}}\\A_{5}:=A_{0}^{i_{3}}\end{array}$}edge from parent [draw opacity = 0]
+child {node (4B3) [fullequation]{\nodepart{one}$A_{2}YA_{3} = A_{4}B_{0}A_{2}YA_{5}$\nodepart{two}$\begin{array}{l}Y\neq\varepsilon\\A_{2}:=A_{0}^{i_{2}}\\A_{3}:=A_{0}^{i_{1}+i_{3}+1}\\A_{4}:=A_{0}^{i_{1}}\\A_{5}:=A_{0}^{i_{3}}\end{array}$}edge from parent [draw opacity = 0]
 }
-child {node (6B3) [fullequation]{\nodepart{one}$A_{2}YA_{3}XA_{4} = A_{5}XA_{4}B_{0}A_{2}YA_{6}$\nodepart{two}$\begin{array}{l}Y\neq\varepsilon\\X\neq\varepsilon\\A_{2}:=A_{0}^{i_{3}}\\A_{3}:=A_{0}^{i_{1}+i_{4}+1}\\A_{4}:=A_{0}^{i_{2}}\\A_{5}:=A_{0}^{i_{1}}\\A_{6}:=A_{0}^{i_{4}}\end{array}$}edge from parent [draw opacity = 0]
+child {node (4B4) [fullequation]{\nodepart{one}$A_{2}YA_{3}XA_{4} = A_{5}XA_{4}B_{0}A_{2}YA_{6}$\nodepart{two}$\begin{array}{l}Y\neq\varepsilon\\X\neq\varepsilon\\A_{2}:=A_{0}^{i_{3}}\\A_{3}:=A_{0}^{i_{1}+i_{4}+1}\\A_{4}:=A_{0}^{i_{2}}\\A_{5}:=A_{0}^{i_{1}}\\A_{6}:=A_{0}^{i_{4}}\end{array}$}edge from parent [draw opacity = 0]
 }
-child {node [eqset,inner sep=-2em,cloud puffs=50,aspect=4,fit=(6B0)(6B1)(6B2)(6B3)] {}
-child {node [action]{$\begin{array}{c}\mathtt{Pick}\;2\end{array}$} edge from parent [draw opacity = 0]
-child {node (8B0) [fullequation]{\nodepart{one}$A_{2}XA_{3} = A_{4}XA_{3}B_{0}A_{5}$\nodepart{two}$\begin{array}{l}X\neq\varepsilon\\A_{2}:=A_{0}^{i_{1}+i_{3}+1}\\A_{3}:=A_{0}^{i_{2}}\\A_{4}:=A_{0}^{i_{1}}\\A_{5}:=A_{0}^{i_{3}}\end{array}$}edge from parent [draw opacity = 0]};};};};};};};};
+child {node [eqset,inner sep=-2em,cloud puffs=60,aspect=5,fit=(4B1)(4B2)(4B3)(4B4)] {}
+};};};};
 \input{postfix.tex}

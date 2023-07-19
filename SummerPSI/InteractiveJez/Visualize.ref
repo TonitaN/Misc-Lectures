@@ -56,7 +56,7 @@ Visualise {
  (e.Equation) e.Rest
  , <GetEqParameters e.Equation> : s.Width s.Height
  , <Br 'Levels='(0 s.Width <Add s.Height 1>)> : e.Rubbish
- , <VisualiseNode 0 0 e.Equation> : 'child {node ('e.Result'edge from parent [draw opacity = 0]\n'
+ , <VisualiseNode 1 0 1 e.Equation> : 'child {node ('e.Result'edge from parent [draw opacity = 0]\n'
   = '\\node (' e.Result'\n' <MakeTree 1 e.Rest>;
 }
 
@@ -116,12 +116,18 @@ VisualiseEqs {
 }
 
 VisualiseNode {
-  s.Level s.Sibling t.Equation (e.NegConds) (e.IndEqs)
+  s.Chosen s.Level s.Sibling t.Equation (e.NegConds) (e.IndEqs)
     = <StoreLevelData (s.Level <GetEqParameters t.Equation (e.NegConds)(e.IndEqs)>)>
-      'child {node ('<Symb s.Level>'B'<Symb s.Sibling>') [fullequation]{\\nodepart{one}$'<VisualiseEquation t.Equation>
+      'child {node ('<Symb s.Level>'B'<Symb s.Sibling>') ['<EquationFormat s.Chosen s.Sibling>']{\\nodepart{one}$'<VisualiseEquation t.Equation>
                                               '$\\nodepart{two}$\\begin{array}{l}'<VisualiseConds e.NegConds>'\\\\'<VisualiseEqs e.IndEqs>'\\end{array}$}'
                                                               'edge from parent [draw opacity = 0]\n';
 }
+
+EquationFormat {
+ s.Chosen s.Chosen = 'chosenequation';
+ s.Chosen s.Other = 'fullequation';
+}
+
 VisualiseAction {
   s.Level (e.Action)
    , 'child {node [action]{$\\begin{array}{c}' : e.Start
@@ -135,22 +141,29 @@ VisualiseAction {
  }; 
 }
 
+GetChosenEq {
+ ('Pick'e.Num)(('AreEqual' e.Eq) e.Data) e.RestSeq = <Numb e.Num> e.RestSeq;
+ ('Pick'e.Num) e.RestSeq = <Numb e.Num> ('Pick'e.Num) e.RestSeq;
+ e.Other = 0 e.Other;
+}
+
 MakeTree {
  s.Level = ;
  s.Level ('Set' e.Equations) e.Rest
- , <VisualiseSet (8 0) s.Level 0 () e.Equations> : e.Result = e.Result <MakeTree <Add s.Level 1> e.Rest>'};';
+ , <GetChosenEq e.Rest> : s.Chosen e.RestSeq
+ , <VisualiseSet (8 0) s.Chosen s.Level 1 () e.Equations> : e.Result = e.Result <MakeTree <Add s.Level 1> e.RestSeq>'};';
  s.Level (('AreEqual' e.Eq) e.EqData) e.Rest
- , <VisualiseNode s.Level 0 ('AreEqual' e.Eq) e.EqData> : e.Result s.NewLevel = e.Result <MakeTree <Add s.Level 1> e.Rest>'};';
+ , <VisualiseNode 1 s.Level 1 ('AreEqual' e.Eq) e.EqData> : e.Result s.NewLevel = e.Result <MakeTree <Add s.Level 1> e.Rest>'};';
  s.Level (e.Action) e.Rest
  , <VisualiseAction s.Level (e.Action)> : e.Result = e.Result <MakeTree <Add s.Level 1> e.Rest>'};';
 }
 
 VisualiseSet {
- (s.MaxWidth s.MaxHeight) s.Level s.Index (e.Indices)(e.Equation) e.Rest
+ (s.MaxWidth s.MaxHeight) s.Chosen s.Level s.Index (e.Indices)(e.Equation) e.Rest
  , <MapCompose ((Zip) (MapCall Curry (MapCompose ((Unwrap ()) (ChooseMax))))) (<GetEqParameters e.Equation>) (s.MaxWidth s.MaxHeight)> : s.NewMaxWidth s.NewMaxHeight 
-  = <VisualiseNode s.Level s.Index e.Equation>'}\n'
-    <VisualiseSet (s.NewMaxWidth s.NewMaxHeight) s.Level <Add s.Index 1> (e.Indices (<Symb s.Level>'B'<Symb s.Index>))e.Rest>;
- (s.MaxWidth s.MaxHeight) s.Level s.Index (e.Indices) = <GenerateSetCloud s.Index (e.Indices)><ClearLevelData s.Level>
+  = <VisualiseNode s.Chosen s.Level s.Index e.Equation>'}\n'
+    <VisualiseSet (s.NewMaxWidth s.NewMaxHeight) s.Chosen s.Level <Add s.Index 1> (e.Indices (<Symb s.Level>'B'<Symb s.Index>))e.Rest>;
+ (s.MaxWidth s.MaxHeight) s.Chosen s.Level s.Index (e.Indices) = <GenerateSetCloud s.Index (e.Indices)><ClearLevelData s.Level>
          <StoreLevelData (s.Level s.MaxWidth <Add 2 s.MaxHeight>)>;
 }
 
