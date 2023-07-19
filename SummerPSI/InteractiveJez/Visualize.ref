@@ -62,7 +62,7 @@ Visualise {
 
 
 VisualiseSingleTerm {
- ('Var' e.Name) = e.Name;
+ ('Var' e.Name) = '\\mathbf{'e.Name'}';
  (s.Char e.Num) = s.Char'_{'e.Num'}';
 }
 
