@@ -193,8 +193,11 @@ MakeTree {
 
 VisualiseSet {
  (s.MaxWidth s.MaxHeight) s.Chosen s.Level s.Index (e.Indices)(e.Equation) e.Rest
- , <MapCompose ((Zip) (MapCall Curry (MapCompose ((Unwrap ()) (ChooseMax))))) (<GetEqParameters e.Equation>) (s.MaxWidth s.MaxHeight)> : s.NewMaxWidth s.NewMaxHeight 
-  = <VisualiseNode s.Chosen s.Level s.Index e.Equation>'}\n'
+ , <VisualiseNode s.Chosen s.Level s.Index e.Equation> : e.ThisResult
+ , <Dg 'Levels'> : e.Lev (s.Level s.Width s.Height)
+ , <Br 'Levels='e.Lev> : e.Trash
+ , <MapCompose ((Zip) (MapCall Curry (MapCompose ((Unwrap ()) (ChooseMax))))) (s.Width s.Height) (s.MaxWidth s.MaxHeight)> : s.NewMaxWidth s.NewMaxHeight 
+  = e.ThisResult'}\n'
     <VisualiseSet (s.NewMaxWidth s.NewMaxHeight) s.Chosen s.Level <Add s.Index 1> (e.Indices (<Symb s.Level>'B'<Symb s.Index>))e.Rest>;
  (s.MaxWidth s.MaxHeight) s.Chosen s.Level s.Index (e.Indices) = <GenerateSetCloud s.Index (e.Indices)><ClearLevelData s.Level>
          <StoreLevelData (s.Level s.MaxWidth <Add 2 s.MaxHeight>)>;
