@@ -5,6 +5,24 @@ $ENTRY GetNewIndex {
   = <Implode s.Letter e.NewNumber>;
 }
 
+/*
+  <GetNewReplacingConst (e.Const)> == (e.NewConst)
+*/
+$ENTRY GetNewReplacingConst {
+  (s.Letter s.Number)
+    , <CharAlphabet> : {
+      e.U1 s.Letter s.NextLetter e.U2 = (s.NextLetter s.Number);
+
+      s.FirstLetter e.U s.Letter = (s.FirstLetter <Add s.Number 1>);
+    };
+
+  e.Other = <Prout 'GetNewReplacingConst: Invalid input ' e.Other>;
+}
+
+CharAlphabet {
+  = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+}
+
 /*Throws `Recognition Impossible` if the lists have not equal lengths. */
 $ENTRY Zip {
  (t.X e.X) (t.Y e.Y)
