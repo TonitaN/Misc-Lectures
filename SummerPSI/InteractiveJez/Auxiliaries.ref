@@ -44,9 +44,9 @@ $ENTRY Unwrap {
 }
 
 $ENTRY Wrap {
-  Plain s.Order (e.Preamble)e.Val = <Arrange s.Order (e.Preamble) (e.Val)>;
-  Inner s.Order (e.Preamble)e.Val = (<Arrange s.Order (e.Preamble) (e.Val)>);
-  Combined s.Order (e.Preamble)e.Val = <Arrange s.Order (e.Preamble) ((e.Val))>;
+  Plain s.Order (e.Preamble) e.Val = <Arrange s.Order (e.Preamble) (e.Val)>;
+  Inner s.Order (e.Preamble) e.Val = (<Arrange s.Order (e.Preamble) (e.Val)>);
+  Combined s.Order (e.Preamble) e.Val = <Arrange s.Order (e.Preamble) ((e.Val))>;
 }
 
 *$ENTRY Go { = <Prout <GetNewIndex i19>>;}

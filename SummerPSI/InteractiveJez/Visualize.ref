@@ -1,0 +1,210 @@
+/******************************
+Input grammar for visualization
+*******************************
+[BRANCH] ::= [1-EQ](([1-to-N-EQ][N-to-1-EQ])|[1-EQ])*([1-to-N-EQ]|[FINAL-STATE])?
+[1-EQ] ::= [EQUATION] ([SUBST-ACTION] [EQUATION]|[COMPRESS-ACTION] [EQUATION])*
+[1-to-N-EQ] ::= [COMPRESS-ACTION][1-EQ]+
+[N-to-1-EQ] ::= [PICK-ACTION][1-EQ]
+[FINAL-STATE] ::= SUCCESS | FAIL | NOT-MINIMAL
+[SUBST-ACTION] ::= (SubstIndex [ind-id] ( (([ind-id] [num]))* (const [num])))
+[COMPRESS-ACTION] ::= (PairComp [LETTER] [LETTER]) | (BlockComp [LETTER])
+[PICK-ACTION] ::= (Pick [num])
+[EQUATION] ::= (AreEqual ([EXPRESSION])([EXPRESSION]))([NEG-CONDS])([ID-CONDS])
+[NEG-CONDS] ::= (OR ((not empty [VAR]) | (not [LETTER] (ends|starts) [VAR]))+)*
+[ID-CONDS] ::= ([LETTER] is ( ((([ind-id]) [num]))* ((const) [num])))
+[VAR] ::= (Var [char])
+[LETTER] ::= ([char] [num])
+
+******************************/
+
+*$INLINE HigherOrder;
+
+$EXTERN Trim;
+
+$ENTRY Go {
+ , /*<Arg 1>*/'test.seq' : e.FileName
+ , <Open 'r' 1 e.FileName> : e.Rubbish
+ , <Visualise <PrepareData ()<Get 1>>> : e.Data
+     = <Close 1><Open 'w' 2 'graph.tex'><PrintPreamble><Putout 2 '\\begin{tikzpicture}[\n'<GetLevelsPreamble <Dg 'Levels'>>']\n'>
+       <PrintStyles><Putout 2 e.Data><PrintPostfix><Close 2>;
+}
+
+GetLevelsPreamble {
+ (s.Level s.Width s.Height) e.Rest = 'level '<Symb s.Level>'/.style = {sibling distance = '<Symb s.Width>'em,level distance = '<Symb s.Height>'em},\n'
+     <GetLevelsPreamble e.Rest>;
+ /* EMPTY */ = /*EMPTY */;
+}
+
+PrintPreamble {
+ = <Putout 2 '\\input{preamble.tex}'>;
+}
+
+PrintStyles {
+ = <Putout 2 '\\input{styles.tex}'>;
+}
+
+PrintPostfix {
+ = <Putout 2 '\\input{postfix.tex}'>;
+}
+
+PrepareData {
+   (e.Stored) = <ExtractRealParens Plain e.Stored><PrepareData ()<Get 1>>;
+   (e.Stored) e.Data = <ContinueIfNotEOF (MapCompose ((Get) (PrepareData (e.Stored <Trim e.Data>))) 1) e.Data>;
+}
+
+Visualise {
+ (e.Equation) e.Rest
+ , <GetEqParameters e.Equation> : s.Width s.Height
+ , <Br 'Levels='(0 s.Width <Add s.Height 1>)> : e.Rubbish
+ , <VisualiseNode 0 0 e.Equation> : 'child {node ('e.Result'edge from parent [draw opacity = 0]\n'
+  = '\\node (' e.Result'\n' <MakeTree 1 e.Rest>;
+}
+
+ExtractRealParens {
+ Plain e.x'('e.y')'e.z
+ , e.y : {
+   e.y1'('e.y2
+   , <ExtractRealParens Left () e.y2> : 
+  {() e.v2
+    = <ExtractRealParens Plain e.x'('e.y1 (e.v2) e.z>;
+   (e.v1'(') e.v2
+    = <ExtractRealParens Plain e.x'('e.y1'('e.v1 (e.v2) e.z>;
+  };
+   e.other = <ExtractRealParens Plain e.x (e.y) e.z>;
+ };
+ Left (e.drop) e.y
+ , e.y : 
+  {e.y1'('e.y2
+     = <ExtractRealParens Left (e.drop e.y1'(')e.y2>;
+   e.z = (e.drop) e.y;
+  };
+ Plain e.Rest = e.Rest;
+}
+
+VisualiseSingleTerm {
+ ('Var' e.Name) = e.Name;
+ (s.Char e.Num) = s.Char'_{'e.Num'}';
+}
+
+VisualiseEquation {
+ ('AreEqual' (e.Left)(e.Right))
+ , (<MapCall Plain VisualiseSingleTerm e.Left>)(<MapCall Plain VisualiseSingleTerm e.Right>) : (e.VL)(e.VR)
+    = e.VL' = 'e.VR;
+}
+
+PatternVar {
+ Prefix ('Var' e.Name) = <VisualiseSingleTerm ('Var' e.Name'_{P}')>;
+ Suffix ('Var' e.Name) = <VisualiseSingleTerm ('Var' e.Name'_{S}')>;
+}
+
+VisualiseOneCond {
+ ('not't.Char'starts't.Var) = <VisualiseSingleTerm t.Var>'\\neq{}'<VisualiseSingleTerm t.Char><PatternVar Suffix t.Var>; 
+ ('not't.Char'ends't.Var) = <VisualiseSingleTerm t.Var>'\\neq{}'<PatternVar Prefix t.Var><VisualiseSingleTerm t.Char>;
+ ('not'e.v'empty't.Var) =  <VisualiseSingleTerm t.Var>'\\neq\\varepsilon'; 
+}
+
+Purify {
+ Right (e.Term1)(e.Term2) e.W1 e.Term1 e.Term2 e.W2 = e.W1 e.Term2 <Purify Right (e.Term1)(e.Term2) e.W2>;
+ Left (e.Term1)(e.Term2) e.W1 e.Term1 e.Term2 e.W2 = e.W1 e.Term1 <Purify Right (e.Term1)(e.Term2) e.W2>;
+ s.Mode t.FirstTerm t.SecondTerm e.Word = e.Word;
+}
+
+VisualiseConds {
+  /* EMPTY */ = '\\mathrm{No\\;constraints}\\\\';
+  e.Conds
+  , <MapCall Curry 
+           (MapCompose ((Unwrap ('OR')) 
+           (MapCall Curry (MapCompose ((VisualiseOneCond) (Wrap Plain Inverse ('\\vee')))))
+           (Wrap Plain Inverse ('\\\\')) (Purify Right ('\\vee')('\\\\')))) e.Conds> : {
+           e.NewConds'\\\\' = e.NewConds;
+ };
+}
+
+VisualiseNode {
+  s.Level s.Sibling t.Equation (e.NegConds) (e.IndEqs)
+    = <StoreLevelData (s.Level <GetEqParameters t.Equation (e.NegConds)(e.IndEqs)>)>
+      'child {node ('<Symb s.Level>'B'<Symb s.Sibling>') [fullequation]{\\nodepart{one}$'<VisualiseEquation t.Equation>
+                                              '$\\nodepart{two}$\\begin{array}{l}'<VisualiseConds e.NegConds>'\\end{array}$}'
+                                                              'edge from parent [draw opacity = 0]\n';
+}
+VisualiseAction {
+  s.Level (e.Action)
+   , 'child {node [action]{$\\begin{array}{c}' : e.Start
+   , '\\end{array}$} edge from parent [draw opacity = 0]\n' : e.End
+   , e.Action :
+ { 'PairComp' t.Char1 t.Char2 = e.Start
+             '\\mathtt{PairComp}\\\\'<VisualiseSingleTerm t.Char1>'\\;'<VisualiseSingleTerm t.Char2><StoreLevelData (s.Level 6 5)> e.End;
+   'BlockComp' t.Char = e.Start '\\mathtt{BlockComp}\\\\'<VisualiseSingleTerm t.Char><StoreLevelData (s.Level 6 5)> e.End;
+   'Pick'e.N = e.Start '\\mathtt{Pick}\\;'e.N <StoreLevelData (s.Level 6 5)> e.End;
+   'SubstIndex'(e.Ind)(e.LIA) = e.Start <VisualiseIndex e.Ind>':=\\\\'<VisualiseLIA e.LIA><StoreLevelData (s.Level 6 5)> e.End;
+ }; 
+}
+
+MakeTree {
+ s.Level = ;
+ s.Level ('Set' e.Equations) e.Rest
+ , <VisualiseSet (8 0) s.Level 0 () e.Equations> : e.Result = e.Result <MakeTree <Add s.Level 1> e.Rest>'};';
+ s.Level (('AreEqual' e.Eq) e.EqData) e.Rest
+ , <VisualiseNode s.Level 0 ('AreEqual' e.Eq) e.EqData> : e.Result s.NewLevel = e.Result <MakeTree <Add s.Level 1> e.Rest>'};';
+ s.Level (e.Action) e.Rest
+ , <VisualiseAction s.Level (e.Action)> : e.Result = e.Result <MakeTree <Add s.Level 1> e.Rest>'};';
+}
+
+ChooseMax {
+ s.Val1 s.Val2
+ , <Compare s.Val1 s.Val2> :
+ {'+' = s.Val1;
+  s.Any = s.Val2;
+ };
+}
+
+VisualiseSet {
+ (s.MaxWidth s.MaxHeight) s.Level s.Index (e.Indices)(e.Equation) e.Rest
+ , <MapCompose ((Zip) (MapCall Curry (MapCompose ((Unwrap ()) (ChooseMax))))) (<GetEqParameters e.Equation>) (s.MaxWidth s.MaxHeight)> : s.NewMaxWidth s.NewMaxHeight 
+  = <VisualiseNode s.Level s.Index e.Equation>'}\n'
+    <VisualiseSet (s.NewMaxWidth s.NewMaxHeight) s.Level <Add s.Index 1> (e.Indices (<Symb s.Level>'B'<Symb s.Index>))e.Rest>;
+ (s.MaxWidth s.MaxHeight) s.Level s.Index (e.Indices) = <GenerateSetCloud s.Index (e.Indices)><ClearLevelData s.Level>
+         <StoreLevelData (s.Level s.MaxWidth <Add 2 s.MaxHeight>)>;
+}
+
+ClearLevelData  {
+ s.Level, <Dg 'Levels'> : {
+ e.Prev (s.Level e.Data) = <ClearLevelData s.Level <Br 'Levels='e.Prev>>;
+ e.Val = <Br 'Levels='e.Val>;
+};
+}
+
+StoreLevelData {
+  (s.Level s.Width s.Height), <Dg 'Levels'> : 
+   {e.PrevVal (s.PrevLevel s.PrevWidth s.PrevHeight)
+    , <Div <Add <Add <Mul s.Height 2> s.PrevHeight> 1> 3> : s.NewHeight
+   , <Br 'Levels='e.PrevVal (s.PrevLevel s.PrevWidth s.PrevHeight)(s.Level s.Width s.NewHeight)> : e.Buried
+    = /* EMPTY */;
+   };
+}
+
+GetEqParameters {
+ ('AreEqual' (e.LHS) (e.RHS))(e.Negatives)(e.Equations)
+  = <ChooseMax 8 <CountLen 0 e.LHS e.RHS'='>><CountLen 2 e.Negatives e.Equations>;
+}
+
+CountLen {
+ s.Num t.Term e.Rest = <CountLen <Add s.Num 1> e.Rest>;
+ s.Num = s.Num;
+}
+
+GenerateSetCloud {
+ s.Index (e.Indices) = 'child {node [eqset,inner sep=-'<Symb <Div s.Index 2>>'em,cloud puffs='<Symb <Mul <Add s.Index 1> 10>>',aspect='<Symb s.Index>',fit='
+                    /*<MapCall Curry (MapCompose ((Wrap Plain Normal ('(')) (Wrap Plain Inverse (')'))))*/ e.Indices/*>*/'] {}\n';
+}
+
+VisualiseIndex {
+ 'i'e.Num = 'i_{'e.Num'}';
+}
+
+VisualiseLIA {
+ e.LIA1 ((e.Term)'0') e.LIA2 = <VisualiseLIA e.LIA1 e.LIA2>;
+ (('Const') e.Num) = e.Num;
+ ((e.Term) e.Num) = e.Num'\\cdot'<VisualiseIndex e.Term>;
+ ((e.Term) e.Num) e.Rest = e.Num'\\cdot'<VisualiseIndex e.Term>'+'<VisualiseLIA e.Rest>;
+}
