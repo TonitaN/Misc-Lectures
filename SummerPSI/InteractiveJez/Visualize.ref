@@ -128,6 +128,11 @@ EquationFormat {
  s.Chosen s.Other = 'fullequation';
 }
 
+InsertNLOnNeed {
+ t.OneTerm = ;
+ e.MoreThanOneTerm = '\\\\';
+}
+
 VisualiseAction {
   s.Level (e.Action)
    , 'child {node [action]{$\\begin{array}{c}' : e.Start
@@ -137,7 +142,7 @@ VisualiseAction {
              '\\mathtt{PairComp}\\\\'<VisualiseSingleTerm t.Char1>'\\;'<VisualiseSingleTerm t.Char2><StoreLevelData (s.Level 6 5)> e.End;
    'BlockComp' t.Char = e.Start '\\mathtt{BlockComp}\\\\'<VisualiseSingleTerm t.Char><StoreLevelData (s.Level 6 5)> e.End;
    'Pick'e.N = e.Start '\\mathtt{Pick}\\;'e.N <StoreLevelData (s.Level 6 5)> e.End;
-   'SubstIndex'(e.Ind)(e.LIA) = e.Start <VisualiseIndex e.Ind>':=\\\\'<VisualiseLIA e.LIA><StoreLevelData (s.Level 6 5)> e.End;
+   'SubstIndex'(e.Ind)(e.LIA) = e.Start <VisualiseIndex e.Ind>':='<InsertNLOnNeed e.LIA><VisualiseLIA e.LIA><StoreLevelData (s.Level 6 5)> e.End;
  }; 
 }
 

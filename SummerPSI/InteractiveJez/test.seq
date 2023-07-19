@@ -77,4 +77,16 @@
    )
  ) 
 
+(SubstIndex (i3) (((i2) 1)))
+
+((AreEqual ((A 2)(Var X)) ((A 4)(Var X)(A 3)(B 0)))
+  ((OR (not empty (Var X))))
+   (
+     ((A 2) is ((A 0) ((i1) 1) ((i2) 1) ((const) 1)))
+     ((A 3) is ((A 0) ((i2) 1) ((const) 0)))
+     ((A 4) is ((A 0) ((i1) 1) ((const) 0)))
+   )
+ )
+
+
 

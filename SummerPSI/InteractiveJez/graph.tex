@@ -6,6 +6,8 @@ level 1/.style = {sibling distance = 6em,level distance = 5em},
 level 2/.style = {sibling distance = 8em,level distance = 7em},
 level 3/.style = {sibling distance = 6em,level distance = 6em},
 level 4/.style = {sibling distance = 13em,level distance = 12em},
+level 5/.style = {sibling distance = 6em,level distance = 7em},
+level 6/.style = {sibling distance = 8em,level distance = 7em},
 ]
 
 \input{styles.tex}
@@ -30,5 +32,6 @@ child {node (4B3) [fullequation]{\nodepart{one}$A_{2}YA_{3} = A_{4}B_{0}A_{2}YA_
 child {node (4B4) [fullequation]{\nodepart{one}$A_{2}YA_{3}XA_{4} = A_{5}XA_{4}B_{0}A_{2}YA_{6}$\nodepart{two}$\begin{array}{l}Y\neq\varepsilon\\X\neq\varepsilon\\A_{2}:=A_{0}^{i_{3}}\\A_{3}:=A_{0}^{i_{1}+i_{4}+1}\\A_{4}:=A_{0}^{i_{2}}\\A_{5}:=A_{0}^{i_{1}}\\A_{6}:=A_{0}^{i_{4}}\end{array}$}edge from parent [draw opacity = 0]
 }
 child {node [eqset,inner sep=-2em,cloud puffs=60,aspect=5,fit=(4B1)(4B2)(4B3)(4B4)] {}
-};};};};
+child {node [action]{$\begin{array}{c}i_{3}:=i_{2}\end{array}$} edge from parent [draw opacity = 0]
+child {node (6B1) [chosenequation]{\nodepart{one}$A_{2}X = A_{4}XA_{3}B_{0}$\nodepart{two}$\begin{array}{l}X\neq\varepsilon\\A_{2}:=A_{0}^{i_{1}+i_{2}+1}\\A_{3}:=A_{0}^{i_{2}}\\A_{4}:=A_{0}^{i_{1}}\end{array}$}edge from parent [draw opacity = 0]};};};};};};
 \input{postfix.tex}
