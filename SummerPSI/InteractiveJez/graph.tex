@@ -1,21 +1,25 @@
 \input{preamble.tex}
 \begin{tikzpicture}[
+level 0/.style = {sibling distance = 8em,level distance = 4em},
 level 0/.style = {sibling distance = 8em,level distance = 3em},
-level 0/.style = {sibling distance = 8em,level distance = 2em},
 level 1/.style = {sibling distance = 6em,level distance = 4em},
-level 2/.style = {sibling distance = 8em,level distance = 5em},
+level 2/.style = {sibling distance = 8em,level distance = 6em},
 level 3/.style = {sibling distance = 6em,level distance = 5em},
-level 4/.style = {sibling distance = 8em,level distance = 4em},
+level 4/.style = {sibling distance = 8em,level distance = 5em},
 ]
 
 \input{styles.tex}
-\node (0B0) [fullequation]{\nodepart{one}$A_{0}X = XB_{0}$\nodepart{two}$\begin{array}{l}\mathrm{No\;constraints}\\\end{array}$}
+\node (0B0) [fullequation]{\nodepart{one}$A_{0}X = XB_{0}$\nodepart{two}$\begin{array}{l}\mathrm{No\;constraints}\\\mathrm{No\;conditions}\\\end{array}$}
 child {node [action]{$\begin{array}{c}\mathtt{PairComp}\\A_{0}\;B_{0}\end{array}$} edge from parent [draw opacity = 0]
-child {node (2B0) [fullequation]{\nodepart{one}$A_{0}X = XB_{0}$\nodepart{two}$\begin{array}{l}X\neq{}B_{0}X_{S}\\X\neq{}X_{P}A_{0}\end{array}$}edge from parent [draw opacity = 0]
+child {node (2B0) [fullequation]{\nodepart{one}$A_{0}X = XB_{0}$\nodepart{two}$\begin{array}{l}X\neq{}B_{0}X_{S}\\X\neq{}X_{P}A_{0}\\\mathrm{No\;conditions}\\\end{array}$}edge from parent [draw opacity = 0]
 }
-child {node (2B1) [fullequation]{\nodepart{one}$A_{1}X = XA_{1}$\nodepart{two}$\begin{array}{l}\mathrm{No\;constraints}\\\end{array}$}edge from parent [draw opacity = 0]
+child {node (2B1) [fullequation]{\nodepart{one}$A_{1}X = XA_{1}$\nodepart{two}$\begin{array}{l}\mathrm{No\;constraints}\\\mathrm{No\;conditions}\\\end{array}$}edge from parent [draw opacity = 0]
 }
-child {node [eqset,inner sep=-1em,cloud puffs=30,aspect=2,fit=(2B0)(2B1)] {}
+child {node (2B2) [fullequation]{\nodepart{one}$A_{1}X = XB_{0}$\nodepart{two}$\begin{array}{l}X\neq{}X_{P}A_{0}\\A_{1}:=A_{0}B_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B3) [fullequation]{\nodepart{one}$A_{0}X = XA_{1}$\nodepart{two}$\begin{array}{l}X\neq{}B_{0}X_{S}\\A_{1}:=A_{0}B_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node [eqset,inner sep=-2em,cloud puffs=50,aspect=4,fit=(2B0)(2B1)(2B2)(2B3)] {}
 child {node [action]{$\begin{array}{c}\mathtt{Pick}\;1\end{array}$} edge from parent [draw opacity = 0]
-child {node (4B0) [fullequation]{\nodepart{one}$A_{0}X = XB_{0}$\nodepart{two}$\begin{array}{l}X\neq{}B_{0}X_{S}\\X\neq{}X_{P}A_{0}\end{array}$}edge from parent [draw opacity = 0]};};};};
+child {node (4B0) [fullequation]{\nodepart{one}$A_{0}X = XB_{0}$\nodepart{two}$\begin{array}{l}X\neq{}B_{0}X_{S}\\X\neq{}X_{P}A_{0}\\\mathrm{No\;conditions}\\\end{array}$}edge from parent [draw opacity = 0]};};};};
 \input{postfix.tex}

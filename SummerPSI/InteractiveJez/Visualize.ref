@@ -11,7 +11,7 @@ Input grammar for visualization
 [PICK-ACTION] ::= (Pick [num])
 [EQUATION] ::= (AreEqual ([EXPRESSION])([EXPRESSION]))([NEG-CONDS])([ID-CONDS])
 [NEG-CONDS] ::= (OR ((not empty [VAR]) | (not [LETTER] (ends|starts) [VAR]))+)*
-[ID-CONDS] ::= ([LETTER] is ( ((([ind-id]) [num]))* ((const) [num])))
+[ID-CONDS] ::= ([LETTER] is ([LETTER] ((([ind-id]) [num]))* ((const) [num]))+)
 [VAR] ::= (Var [char])
 [LETTER] ::= ([char] [num])
 
@@ -110,7 +110,7 @@ Purify {
 }
 
 VisualiseConds {
-  /* EMPTY */ = '\\mathrm{No\\;constraints}\\\\';
+  /* EMPTY */ = '\\mathrm{No\\;constraints}';
   e.Conds
   , <MapCall Curry 
            (MapCompose ((Unwrap ('OR')) 
@@ -120,11 +120,26 @@ VisualiseConds {
  };
 }
 
+VisualiseLetterDiof {
+  (t.Letter'is' e.Conditions) = <VisualiseSingleTerm t.Letter>':='<MapCall Plain VisualiseMSPowers e.Conditions>'\\\\';
+}
+
+VisualiseMSPowers {
+ (t.Letter (('const')'1')) = <VisualiseSingleTerm t.Letter>;
+ (t.Letter e.MS) = <VisualiseSingleTerm t.Letter>'^{'<VisualiseLIA e.MS>'}';
+}
+
+VisualiseEqs {
+  /* EMPTY */ = '\\mathrm{No\\;conditions}\\\\';
+  e.Conds
+ , <MapCall Plain VisualiseLetterDiof e.Conds> : e.NewConds'\\\\' = e.NewConds;
+}
+
 VisualiseNode {
   s.Level s.Sibling t.Equation (e.NegConds) (e.IndEqs)
     = <StoreLevelData (s.Level <GetEqParameters t.Equation (e.NegConds)(e.IndEqs)>)>
       'child {node ('<Symb s.Level>'B'<Symb s.Sibling>') [fullequation]{\\nodepart{one}$'<VisualiseEquation t.Equation>
-                                              '$\\nodepart{two}$\\begin{array}{l}'<VisualiseConds e.NegConds>'\\end{array}$}'
+                                              '$\\nodepart{two}$\\begin{array}{l}'<VisualiseConds e.NegConds>'\\\\'<VisualiseEqs e.IndEqs>'\\end{array}$}'
                                                               'edge from parent [draw opacity = 0]\n';
 }
 VisualiseAction {
@@ -185,7 +200,7 @@ StoreLevelData {
 
 GetEqParameters {
  ('AreEqual' (e.LHS) (e.RHS))(e.Negatives)(e.Equations)
-  = <ChooseMax 8 <CountLen 0 e.LHS e.RHS'='>><CountLen 2 e.Negatives e.Equations>;
+  = <ChooseMax 8 <CountLen 0 e.LHS e.RHS'='>><CountLen 3 e.Negatives e.Equations>;
 }
 
 CountLen {
@@ -204,7 +219,7 @@ VisualiseIndex {
 
 VisualiseLIA {
  e.LIA1 ((e.Term)'0') e.LIA2 = <VisualiseLIA e.LIA1 e.LIA2>;
- (('Const') e.Num) = e.Num;
+ (('const') e.Num) = e.Num;
  ((e.Term) e.Num) = e.Num'\\cdot'<VisualiseIndex e.Term>;
  ((e.Term) e.Num) e.Rest = e.Num'\\cdot'<VisualiseIndex e.Term>'+'<VisualiseLIA e.Rest>;
 }
