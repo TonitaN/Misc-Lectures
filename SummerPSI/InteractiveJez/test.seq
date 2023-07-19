@@ -1,0 +1,20 @@
+((AreEqual ((A 0) (Var X)) ((Var X) (B 0)))()())
+
+(PairComp (A 0) (B 0))
+
+(Set ((AreEqual ((A 0) (Var X)) ((Var X) (B 0)))
+  ((OR (not (B 0) starts (Var X)))
+   (OR (not (A 0) ends (Var X))))
+   ())
+((AreEqual ((A 1) (Var X)) ((Var X) (A 1)))
+   ()
+   ())
+)
+
+(Pick 1)
+
+((AreEqual ((A 0) (Var X)) ((Var X) (B 0)))
+  ((OR (not (B 0) starts (Var X)))
+   (OR (not (A 0) ends (Var X))))
+   ())
+
