@@ -90,8 +90,8 @@ Purify {
 }
 
 VisualiseConds {
-  /* EMPTY */ = '\\mathrm{No\\;constraints}';
-  e.Conds
+  s.Width /* EMPTY */ = '\\mathrm{No\\;constraints}';
+  s.Width e.Conds
   , <MapCall Curry 
            (MapCompose ((Unwrap ('OR')) 
            (MapCall Curry (MapCompose ((VisualiseOneCond) (Wrap Plain Inverse ('\\vee')))))
@@ -101,7 +101,29 @@ VisualiseConds {
 }
 
 VisualiseLetterDiof {
-  (t.Letter'is' e.Conditions) = <VisualiseSingleTerm t.Letter>':='<MapCall Plain VisualiseMSPowers e.Conditions>'\\\\';
+  s.Width (t.Letter'is' e.Conditions)
+  , <Dg 'CurrentWidth'> : s.CurrentWidth
+  , <MSLength 0 e.Conditions> : s.CurrentLength
+  , <Compare s.CurrentWidth s.CurrentLength> :
+  {'+'
+   , <Br 'CurrentWidth='<Sub s.CurrentWidth s.CurrentLength>><Br 'LocalGain='<Add 1 <Dg 'LocalGain'>>> : e.Trash
+      = <VisualiseSingleTerm t.Letter>':='<MapCall Plain VisualiseMSPowers e.Conditions>'\\;';
+   s.NotPlus
+   , <Br 'CurrentWidth='s.Width> : e.Trash
+   = <VisualiseSingleTerm t.Letter>':='<MapCall Plain VisualiseMSPowers e.Conditions>'\\\\';
+  };
+}
+
+CurrMSLength {
+ s.Val ((e.name)'0') e.Rest = <CurrMSLength s.Val e.Rest>;
+ s.Val = s.Val;
+ s.Val ((e.name)'1') e.Rest = <CurrMSLength <Add 1 s.Val> e.Rest>;
+ s.Val ((e.name)e.Other) e.Rest = <CurrMSLength <Add 2 s.Val> e.Rest>;
+}
+
+MSLength {
+  s.Current (t.Letter e.MS) e.Rest = <MSLength <Add s.Current <Add 1 <CurrMSLength 0 e.MS>>> e.Rest>;
+  s.Current = <Add 4 s.Current>;
 }
 
 VisualiseMSPowers {
@@ -110,16 +132,22 @@ VisualiseMSPowers {
 }
 
 VisualiseEqs {
-  /* EMPTY */ = '\\mathrm{No\\;conditions}\\\\';
-  e.Conds
- , <MapCall Plain VisualiseLetterDiof e.Conds> : e.NewConds'\\\\' = e.NewConds;
+  s.Width /* EMPTY */ = '\\mathrm{No\\;conditions}\\\\';
+  s.Width e.Conds
+ , <Br 'CurrentWidth='s.Width> : e.Trash
+ , <MapCall Curry (VisualiseLetterDiof s.Width) e.Conds> : e.NewConds s.Last1 s.Last2 = e.NewConds;
 }
 
 VisualiseNode {
   s.Chosen s.Level s.Sibling t.Equation (e.NegConds) (e.IndEqs)
-    = <StoreLevelData (s.Level <GetEqParameters t.Equation (e.NegConds)(e.IndEqs)>)>
+  , <GetEqParameters t.Equation (e.NegConds)(e.IndEqs)> : s.Width s.Height
+  , <Br 'LocalGain='0> : e.Trash
+  , <VisualiseConds s.Width e.NegConds> : e.VisConds
+  , <VisualiseEqs s.Width e.IndEqs> : e.VisEqs
+  , <Dg 'LocalGain'> : s.Gain
+    = <StoreLevelData (s.Level s.Width <Sub s.Height s.Gain>)>
       'child {node ('<Symb s.Level>'B'<Symb s.Sibling>') ['<EquationFormat s.Chosen s.Sibling>']{\\nodepart{one}$'<VisualiseEquation t.Equation>
-                                              '$\\nodepart{two}$\\begin{array}{l}'<VisualiseConds e.NegConds>'\\\\'<VisualiseEqs e.IndEqs>'\\end{array}$}'
+                                              '$\\nodepart{two}$\\begin{array}{l}'e.VisConds'\\\\'e.VisEqs'\\end{array}$}'
                                                               'edge from parent [draw opacity = 0]\n';
 }
 
