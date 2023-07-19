@@ -19,7 +19,7 @@ Input grammar for visualization
 
 *$INLINE HigherOrder;
 
-$EXTERN Trim;
+$EXTERN Trim,StructParens,ChooseMax;
 
 $ENTRY Go {
  , /*<Arg 1>*/'test.seq' : e.FileName
@@ -48,7 +48,7 @@ PrintPostfix {
 }
 
 PrepareData {
-   (e.Stored) = <ExtractRealParens Plain e.Stored><PrepareData ()<Get 1>>;
+   (e.Stored) = <StructParens e.Stored><PrepareData ()<Get 1>>;
    (e.Stored) e.Data = <ContinueIfNotEOF (MapCompose ((Get) (PrepareData (e.Stored <Trim e.Data>))) 1) e.Data>;
 }
 
@@ -60,26 +60,6 @@ Visualise {
   = '\\node (' e.Result'\n' <MakeTree 1 e.Rest>;
 }
 
-ExtractRealParens {
- Plain e.x'('e.y')'e.z
- , e.y : {
-   e.y1'('e.y2
-   , <ExtractRealParens Left () e.y2> : 
-  {() e.v2
-    = <ExtractRealParens Plain e.x'('e.y1 (e.v2) e.z>;
-   (e.v1'(') e.v2
-    = <ExtractRealParens Plain e.x'('e.y1'('e.v1 (e.v2) e.z>;
-  };
-   e.other = <ExtractRealParens Plain e.x (e.y) e.z>;
- };
- Left (e.drop) e.y
- , e.y : 
-  {e.y1'('e.y2
-     = <ExtractRealParens Left (e.drop e.y1'(')e.y2>;
-   e.z = (e.drop) e.y;
-  };
- Plain e.Rest = e.Rest;
-}
 
 VisualiseSingleTerm {
  ('Var' e.Name) = e.Name;
@@ -163,14 +143,6 @@ MakeTree {
  , <VisualiseNode s.Level 0 ('AreEqual' e.Eq) e.EqData> : e.Result s.NewLevel = e.Result <MakeTree <Add s.Level 1> e.Rest>'};';
  s.Level (e.Action) e.Rest
  , <VisualiseAction s.Level (e.Action)> : e.Result = e.Result <MakeTree <Add s.Level 1> e.Rest>'};';
-}
-
-ChooseMax {
- s.Val1 s.Val2
- , <Compare s.Val1 s.Val2> :
- {'+' = s.Val1;
-  s.Any = s.Val2;
- };
 }
 
 VisualiseSet {
