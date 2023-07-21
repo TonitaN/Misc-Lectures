@@ -173,7 +173,7 @@ TestSet-PairComp {
     )
     (
       2
-      ('Z' 0)
+      ('A' 1)
       ('A' 0)
       ('B' 0)
       (
@@ -314,7 +314,7 @@ RunPairComp {
           e.R2
         , e.L2 e.R2
         : e.L3
-          /* Y doesn't end with ('B' 0) and starts with ('A' 0) */
+          /* (Var 'Y') doesn't end with ('B' 0) and starts with ('A' 0) */
           (
             (
               AreEqual
@@ -330,7 +330,7 @@ RunPairComp {
           e.R3
         , e.L3 e.R3
         : e.L4
-          /* Y doesn't end with ('B' 0) and doesn't start with ('A' 0) */
+          /* (Var 'Y') doesn't end with ('B' 0) and doesn't start with ('A' 0) */
           (
             (
               AreEqual
@@ -347,7 +347,7 @@ RunPairComp {
           e.R4
         , e.L4 e.R4
         : e.L5
-          /* Y is empty */
+          /* (Var 'Y') is empty */
           (
             (
               AreEqual
@@ -367,19 +367,17 @@ RunPairComp {
     
   (2 e.Input)
     , <PairComp e.Input> : {
-      ('A' 1) (e.NewEqs)
+      ('B' 1) (e.NewEqs)
         , e.NewEqs
         : e.L1
           /* (Var 'Y') ends with ('A' 0) and (Var 'X') starts with ('B' 0) */
           (
             (
               AreEqual
-              (('B' 0) (Var 'X') ('Z' 0) (Var 'Y') ('A' 0))
-              ((Var 'Y') ('Z' 0) ('Z' 0) (Var 'X'))
+              (('B' 0) (Var 'X') ('A' 1) (Var 'Y') ('A' 0))
+              ((Var 'Y') ('A' 1) ('A' 1) (Var 'X'))
             )
-            (
-              (OR (not empty (Var 'Y')))
-            )
+            (/* No constraints */)
             (/* No index equations */)
           )
           e.R1
@@ -390,11 +388,10 @@ RunPairComp {
           (
             (
               AreEqual
-              ((Var 'X') ('Z' 0) (Var 'Y') ('A' 0))
-              ((Var 'Y') ('Z' 0) ('A' 0) (Var 'X'))
+              ((Var 'X') ('A' 1) (Var 'Y') ('A' 0))
+              ((Var 'Y') ('A' 1) ('A' 0) (Var 'X'))
             )
             (
-              (OR (not empty (Var 'Y')))
               (OR (not ('B' 0) starts (Var 'X')))
             )
             (/* No index equations */)
@@ -407,8 +404,8 @@ RunPairComp {
           (
             (
               AreEqual
-              (('B' 0) (Var 'X') ('Z' 0) (Var 'Y'))
-              ((Var 'Y') ('B' 0) ('Z' 0) (Var 'X'))
+              (('B' 0) (Var 'X') ('A' 1) (Var 'Y'))
+              ((Var 'Y') ('B' 0) ('A' 1) (Var 'X'))
             )
             (
               (OR (not empty (Var 'Y')))
@@ -424,7 +421,7 @@ RunPairComp {
           (
             (
               AreEqual
-              ((Var 'X') ('Z' 0) (Var 'Y'))
+              ((Var 'X') ('A' 1) (Var 'Y'))
               ((Var 'Y') ('B' 0) ('A' 0) (Var 'X'))
             )
             (
@@ -435,37 +432,6 @@ RunPairComp {
             (/* No index equations */)
           )
           e.R4
-        , e.L4 e.R4
-        : e.L5
-          /* (Var 'Y') doesn't end with ('A' 0) and (Var 'X') is empty */
-          (
-            (
-              AreEqual
-              (('Z' 0) (Var 'Y'))
-              ((Var 'Y') ('B' 0) ('A' 0))
-            )
-            (
-              (OR (not empty (Var 'Y')))
-              (OR (not ('A' 0) ends (Var 'Y')))
-            )
-            (/* No index equations */)
-          )
-          e.R5
-        , e.L5 e.R5
-        : e.L6
-          /* (Var 'Y') ends with ('A' 0) and (Var 'X') is empty */
-          (
-            (
-              AreEqual
-              (('Z' 0) (Var 'Y'))
-              ((Var 'Y') ('Z' 0))
-            )
-            (
-              (OR (not empty (Var 'Y')))
-            )
-            (/* No index equations */)
-          )
-          e.R6
         = True;
         
         e.Other = False;
