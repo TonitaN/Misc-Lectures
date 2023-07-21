@@ -9,6 +9,11 @@
 \usepackage[T1,T2A]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage[english,russian]{babel}
+\usepackage{tikz,adjustbox}
+%\usepackage{xparse}
+\usetikzlibrary{automata, graphs,positioning, arrows,patterns,shapes.geometric,shapes.multipart,shapes.symbols,shapes.arrows}
+\usetikzlibrary{arrows.meta,fit}
+
 %\usepackage[cp1251]{inputenc}
 %\usepackage{pscyr}
 \def\logand{\mathrel{\&}}
@@ -215,6 +220,38 @@ GetNewIndexUpdated {
 \end{minted}
 \end{enumerate}
 
+\begin{figure}[!htb]\hspace*{-4em}
+\adjustbox{max width=0.8\paperwidth}{
+\begin{tikzpicture}[
+level 0/.style = {sibling distance = 11em,level distance = 5em},
+level 0/.style = {sibling distance = 11em,level distance = 4em},
+level 1/.style = {sibling distance = 6em,level distance = 5em},
+level 2/.style = {sibling distance = 13em,level distance = 8em},
+]
+
+\input{styles.tex}
+\node (0B1) [chosenequation]{\nodepart{one}$\mathbf{X}B_{0}\mathbf{Y}A_{0} = \mathbf{Y}\mathbf{Y}B_{0}A_{0}\mathbf{X}$\nodepart{two}$\begin{array}{l}\mathbf{X}\neq\varepsilon\\\mathrm{No\;conditions}\\\end{array}$}
+child {node [action]{$\begin{array}{c}\mathtt{PairComp}\\B_{0}\;A_{0}\end{array}$} edge from parent [draw opacity = 0]
+child {node (2B1) [fullequation]{\nodepart{one}$\mathbf{X}A_{1}\mathbf{Y}A_{1} = A_{0}\mathbf{Y}A_{1}\mathbf{Y}B_{0}A_{1}\mathbf{X}$\nodepart{two}$\begin{array}{l}\mathbf{X}\neq\varepsilon\\A_{1}:=A_{0}B_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B2) [fullequation]{\nodepart{one}$\mathbf{X}B_{0}\mathbf{Y}A_{1} = \mathbf{Y}B_{0}\mathbf{Y}B_{0}A_{1}\mathbf{X}$\nodepart{two}$\begin{array}{l}\mathbf{X}\neq\varepsilon\\\mathbf{Y}\neq{}A_{0}\mathbf{Y_{S}}\\A_{1}:=A_{0}B_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B3) [fullequation]{\nodepart{one}$\mathbf{X}A_{1}\mathbf{Y}A_{0} = A_{0}\mathbf{Y}A_{0}\mathbf{Y}A_{1}\mathbf{X}$\nodepart{two}$\begin{array}{l}\mathbf{X}\neq\varepsilon\\\mathbf{Y}\neq{}\mathbf{Y_{P}}B_{0}\\A_{1}:=A_{0}B_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B4) [fullequation]{\nodepart{one}$\mathbf{X}B_{0}\mathbf{Y}A_{0} = \mathbf{Y}\mathbf{Y}A_{1}\mathbf{X}$\nodepart{two}$\begin{array}{l}\mathbf{X}\neq\varepsilon\\\mathbf{Y}\neq{}A_{0}\mathbf{Y_{S}}\\\mathbf{Y}\neq{}\mathbf{Y_{P}}B_{0}\\A_{1}:=A_{0}B_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B5) [fullequation]{\nodepart{one}$\mathbf{X}A_{1} = A_{1}\mathbf{X}$\nodepart{two}$\begin{array}{l}\mathbf{X}\neq\varepsilon\\\mathrm{No\;conditions}\\\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node [eqset,inner sep=-3em,cloud puffs=70,aspect=6,fit=(2B1)(2B2)(2B3)(2B4)(2B5)] {}
+};};
+\end{tikzpicture}
+}
+\caption{Пустая подстановка при сжатии пар}
+\label{fig::test1}
+\end{figure}
+
+Все подстановки показаны на Рисунке~\ref{fig::test1}.
+
 Последний случай принципиально отличается от всех предыдущих и не может быть сведён к ним. Кажется, что он похож на случай 4, но в случае 4 есть очевидное противоречие, если рассмотреть его образ в линейной целочисленной арифметике по модулю $A_1$, поскольку предполагается, что буквы $B_0$ и $A_0$, явно входящие в уравнение, уже точно не принадлежат никакому вхождению $B_0 A_0$. В случае же 5 противоречий нет, и он является единственным, приводящим к решению (после подстановки сжатия блоков $A_1$). 
 
 \section{Извлечение пар в PairComp}
@@ -266,7 +303,37 @@ GetNewIndexUpdated {
 \item (1-3)$\times$(2-2) \verb|X|$\neq$\verb|Xa|$\logand$(\verb|Z|$\neq$\verb|Xa|$\logor$\verb|Y|$\neq$\verb|bY|).
 \end{itemize}  
 
-Осталось пять вариантов. 
+Осталось пять вариантов (Рисунок~\ref{fig::test2}). 
+
+\begin{figure}[!htb]
+\hspace*{-4em}\adjustbox{max width=0.8\paperwidth}{
+\begin{tikzpicture}[
+level 0/.style = {sibling distance = 10em,level distance = 4em},
+level 0/.style = {sibling distance = 10em,level distance = 3em},
+level 1/.style = {sibling distance = 6em,level distance = 5em},
+level 2/.style = {sibling distance = 12em,level distance = 7em},
+]
+
+\input{styles.tex}
+\node (0B1) [chosenequation]{\nodepart{one}$b_{0}\mathbf{X}\mathbf{Y}a_{0} = \mathbf{X}b_{0}\mathbf{Z}\mathbf{Y}$\nodepart{two}$\begin{array}{l}\mathrm{No\;constraints}\\\mathrm{No\;conditions}\\\end{array}$}
+child {node [action]{$\begin{array}{c}\mathtt{PairComp}\\a_{0}\;b_{0}\end{array}$} edge from parent [draw opacity = 0]
+child {node (2B1) [fullequation]{\nodepart{one}$b_{0}\mathbf{X}c_{0}\mathbf{Y}a_{0} = \mathbf{X}c_{0}\mathbf{Z}c_{0}\mathbf{Y}$\nodepart{two}$\begin{array}{l}\mathrm{No\;constraints}\\c_{0}:=a_{0}b_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B2) [fullequation]{\nodepart{one}$b_{0}\mathbf{X}c_{0}\mathbf{Y}a_{0} = \mathbf{X}c_{0}\mathbf{Z}b_{0}\mathbf{Y}$\nodepart{two}$\begin{array}{l}\mathbf{Z}\neq{}\mathbf{Z_{P}}a_{0}\\c_{0}:=a_{0}b_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B3) [fullequation]{\nodepart{one}$b_{0}\mathbf{X}a_{0}\mathbf{Y}a_{0} = \mathbf{X}c_{0}\mathbf{Z}\mathbf{Y}$\nodepart{two}$\begin{array}{l}\mathbf{Y}\neq{}b_{0}\mathbf{Y_{S}}\\c_{0}:=a_{0}b_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B4) [fullequation]{\nodepart{one}$b_{0}\mathbf{X}b_{0}\mathbf{Y}a_{0} = \mathbf{X}b_{0}\mathbf{Z}c_{0}\mathbf{Y}$\nodepart{two}$\begin{array}{l}\mathbf{X}\neq{}\mathbf{X_{P}}a_{0}\\c_{0}:=a_{0}b_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B5) [fullequation]{\nodepart{one}$b_{0}\mathbf{X}\mathbf{Y}a_{0} = \mathbf{X}b_{0}\mathbf{Z}\mathbf{Y}$\nodepart{two}$\begin{array}{l}\mathbf{X}\neq{}\mathbf{X_{P}}a_{0}\\\mathbf{Y}\neq{}b_{0}\mathbf{Y_{S}}\vee\mathbf{Z}\neq{}\mathbf{Z_{P}}a_{0}\\\mathrm{No\;conditions}\\\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node [eqset,inner sep=-3em,cloud puffs=70,aspect=6,fit=(2B1)(2B2)(2B3)(2B4)(2B5)] {}
+};};
+\end{tikzpicture}
+}
+\caption{Порождение случаев при сжатии пар}
+\label{fig::test2}
+\end{figure}
  
  \medskip
 \emph{Про пустые подстановки добавлю завтра} 

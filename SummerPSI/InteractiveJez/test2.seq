@@ -1,0 +1,23 @@
+((AreEqual ((b 0)(Var X)(Var Y)(a 0))((Var X)(b 0)(Var Z)(Var Y)))()())
+
+(PairComp (a 0) (b 0))
+
+(Set 
+((AreEqual ((b 0)(Var X)(c 0)(Var Y)(a 0))((Var X)(c 0)(Var Z)(c 0)(Var Y)))
+  ()
+   (((c 0) is ((a 0)((const)1))((b 0)((const)1)))))
+((AreEqual ((b 0)(Var X)(c 0)(Var Y)(a 0))((Var X)(c 0)(Var Z)(b 0)(Var Y)))
+   ((OR (not (a 0) ends (Var Z))))
+   (((c 0) is ((a 0) ((const) 1))((b 0) ((const) 1)))))
+((AreEqual ((b 0)(Var X)(a 0)(Var Y)(a 0))((Var X)(c 0)(Var Z)(Var Y)))
+   ((OR (not (b 0) starts (Var Y))))
+   (((c 0) is ((a 0) ((const) 1))((b 0) ((const) 1)))))
+((AreEqual ((b 0)(Var X)(b 0)(Var Y)(a 0))((Var X)(b 0)(Var Z)(c 0)(Var Y)))
+   ((OR (not (a 0) ends (Var X))))
+   (((c 0) is ((a 0) ((const) 1))((b 0) ((const) 1)))))
+((AreEqual ((b 0)(Var X)(Var Y)(a 0))((Var X)(b 0)(Var Z)(Var Y)))
+   ((OR (not (a 0) ends (Var X)))
+(OR (not (b 0) starts (Var Y))(not (a 0) ends (Var Z))))
+   ())
+)
+
