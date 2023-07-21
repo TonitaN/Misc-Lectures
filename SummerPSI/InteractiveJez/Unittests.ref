@@ -775,3 +775,39 @@ PairComp {
   e.Other = <Prout 'PairComp: Invalid input ' e.Other>;
 }
 
+/*
+  <QuickSort s.LessFunc e.List>
+    == e.SortedList
+*/
+QuickSort {
+  s.LessFunc e.List
+    , e.List : {
+      /* Empty list */ = /* EMPTY */;
+      
+      t.Pivot e.Tail
+        , <Partition s.LessFunc () t.Pivot () e.Tail>
+        : (e.Left) t.Pivot (e.Right)
+        = <QuickSort s.LessFunc e.Left>
+          t.Pivot
+          <QuickSort s.LessFunc e.Right>;
+    };
+}
+ 
+/*
+  <Partition s.LessFunc (e.Left) t.Pivot (e.Right) e.List>
+    == (e.NewLeft) t.Pivot (e.NewRight)
+*/
+Partition {
+  s.LessFunc (e.Left) t.Pivot (e.Right) e.List
+    , e.List : {
+      /* Empty list */ = (e.Left) t.Pivot (e.Right);
+      
+      t.X e.Tail 
+        , <Mu s.LessFunc t.X t.Pivot> : {
+          True = <Partition s.LessFunc (e.Left t.X) t.Pivot (e.Right) e.Tail>;
+
+          False = <Partition s.LessFunc (e.Left) t.Pivot (e.Right t.X) e.Tail>;
+        };
+    };
+}
+
