@@ -1,0 +1,24 @@
+\input{preamble.tex}
+\begin{tikzpicture}[
+level 0/.style = {sibling distance = 10em,level distance = 4em},
+level 0/.style = {sibling distance = 10em,level distance = 3em},
+level 1/.style = {sibling distance = 6em,level distance = 5em},
+level 2/.style = {sibling distance = 12em,level distance = 7em},
+]
+
+\input{styles.tex}
+\node (0B1) [chosenequation]{\nodepart{one}$b_{0}\mathbf{X}\mathbf{Y}a_{0} = \mathbf{X}b_{0}\mathbf{Z}\mathbf{Y}$\nodepart{two}$\begin{array}{l}\mathrm{No\;constraints}\\\mathrm{No\;conditions}\\\end{array}$}
+child {node [action]{$\begin{array}{c}\mathtt{PairComp}\\a_{0}\;b_{0}\end{array}$} edge from parent [draw opacity = 0]
+child {node (2B1) [fullequation]{\nodepart{one}$b_{0}\mathbf{X}c_{0}\mathbf{Y}a_{0} = \mathbf{X}c_{0}\mathbf{Z}c_{0}\mathbf{Y}$\nodepart{two}$\begin{array}{l}\mathrm{No\;constraints}\\c_{0}:=a_{0}b_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B2) [fullequation]{\nodepart{one}$b_{0}\mathbf{X}c_{0}\mathbf{Y}a_{0} = \mathbf{X}c_{0}\mathbf{Z}b_{0}\mathbf{Y}$\nodepart{two}$\begin{array}{l}\mathbf{Z}\neq{}\mathbf{Z_{P}}a_{0}\\c_{0}:=a_{0}b_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B3) [fullequation]{\nodepart{one}$b_{0}\mathbf{X}a_{0}\mathbf{Y}a_{0} = \mathbf{X}c_{0}\mathbf{Z}\mathbf{Y}$\nodepart{two}$\begin{array}{l}\mathbf{Y}\neq{}b_{0}\mathbf{Y_{S}}\\c_{0}:=a_{0}b_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B4) [fullequation]{\nodepart{one}$b_{0}\mathbf{X}b_{0}\mathbf{Y}a_{0} = \mathbf{X}b_{0}\mathbf{Z}c_{0}\mathbf{Y}$\nodepart{two}$\begin{array}{l}\mathbf{X}\neq{}\mathbf{X_{P}}a_{0}\\c_{0}:=a_{0}b_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B5) [fullequation]{\nodepart{one}$b_{0}\mathbf{X}\mathbf{Y}a_{0} = \mathbf{X}b_{0}\mathbf{Z}\mathbf{Y}$\nodepart{two}$\begin{array}{l}\mathbf{X}\neq{}\mathbf{X_{P}}a_{0}\\\mathbf{Y}\neq{}b_{0}\mathbf{Y_{S}}\vee\mathbf{Z}\neq{}\mathbf{Z_{P}}a_{0}\\\mathrm{No\;conditions}\\\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node [eqset,inner sep=-3em,cloud puffs=70,aspect=6,fit=(2B1)(2B2)(2B3)(2B4)(2B5)] {}
+};};
+\input{postfix.tex}

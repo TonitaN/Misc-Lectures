@@ -22,11 +22,16 @@ Input grammar for visualization
 $EXTERN Trim,StructParens,ChooseMax;
 
 $ENTRY Go {
- , /*<Arg 1>*/'test.seq' : e.FileName
+ , <Arg 1> : e.FileName
  , <Open 'r' 1 e.FileName> : e.Rubbish
  , <Visualise <PrepareData ()<Get 1>>> : e.Data
-     = <Close 1><Open 'w' 2 'graph.tex'><PrintPreamble><Putout 2 '\\begin{tikzpicture}[\n'<GetLevelsPreamble <Dg 'Levels'>>']\n'>
+     = <Close 1><Open 'w' 2 'graph_'<GetPureName e.FileName>'.tex'><PrintPreamble><Putout 2 '\\begin{tikzpicture}[\n'<GetLevelsPreamble <Dg 'Levels'>>']\n'>
        <PrintStyles><Putout 2 e.Data><PrintPostfix><Close 2>;
+}
+
+GetPureName {
+ e.x'.'e.y = e.x;
+ e.z = e.z;
 }
 
 GetLevelsPreamble {
@@ -62,6 +67,7 @@ Visualise {
 
 
 VisualiseSingleTerm {
+ (e.X'\''e.Y'\'' e.Z) = <VisualiseSingleTerm (e.X e.Y e.Z)>;
  ('Var' e.Name) = '\\mathbf{'e.Name'}';
  (s.Char e.Num) = s.Char'_{'e.Num'}';
 }
