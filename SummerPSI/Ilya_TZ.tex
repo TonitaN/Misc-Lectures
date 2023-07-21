@@ -160,7 +160,7 @@ GetNewIndexUpdated {
 (
    (OR (not empty (Var 'X')))
 )
-(/* Блок уравнений на компоненты пуст */)
+((('A' 1) is (('A' 0) (const 1))(('B' 0) (const 1))))
 \end{minted}
  
 \item Случай, когда \verb|Y| кончается на \mintinline{refal}{('B' 0)}, но не начинается на \mintinline{refal}{('A' 0)}:
@@ -174,7 +174,7 @@ GetNewIndexUpdated {
    (OR (not empty (Var 'X')))
    (OR (not ('A' 0) starts (Var 'Y')))
 )
-(/* Блок уравнений на компоненты пуст */)
+((('A' 1) is (('A' 0) (const 1))(('B' 0) (const 1))))
 \end{minted}
 
 \item Случай, когда \verb|Y| не кончается на \mintinline{refal}{('B' 0)}, но начинается на \mintinline{refal}{('A' 0)}:
@@ -188,7 +188,7 @@ GetNewIndexUpdated {
    (OR (not empty (Var 'X')))
    (OR (not ('B' 0) ends (Var 'Y')))
 )
-(/* Блок уравнений на компоненты пуст */)
+((('A' 1) is (('A' 0) (const 1))(('B' 0) (const 1))))
 \end{minted}
 
 \item Случай, когда \verb|Y| не кончается на \mintinline{refal}{('B' 0)} и не начинается на \mintinline{refal}{('A' 0)}:
@@ -203,7 +203,7 @@ GetNewIndexUpdated {
    (OR (not ('A' 0) starts (Var 'Y')))
    (OR (not ('B' 0) ends (Var 'Y')))
 )
-(/* Блок уравнений на компоненты пуст */)
+((('A' 1) is (('A' 0) (const 1))(('B' 0) (const 1))))
 \end{minted}
 
 \item Случай, когда \verb|Y| пуст:
