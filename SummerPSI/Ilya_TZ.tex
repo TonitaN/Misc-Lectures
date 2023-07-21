@@ -1,6 +1,5 @@
 \documentclass[12pt]{article}
 \usepackage{color}
-\usepackage[newfloat]{minted}
 \usepackage{amsfonts,latexsym,amsthm}
 %\usepackage{times}
 \usepackage[scaled=.92]{helvet}
@@ -9,11 +8,12 @@
 \usepackage[T1,T2A]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage[english,russian]{babel}
-\usepackage{tikz,adjustbox}
+\usepackage{tikz,adjustbox,fancybox}  %fancybox обязательно должна предшествовать minted!
+\usepackage[newfloat]{minted}
+\usepackage{nicematrix}
 %\usepackage{xparse}
 \usetikzlibrary{automata, graphs,positioning, arrows,patterns,shapes.geometric,shapes.multipart,shapes.symbols,shapes.arrows}
 \usetikzlibrary{arrows.meta,fit}
-
 %\usepackage[cp1251]{inputenc}
 %\usepackage{pscyr}
 \def\logand{\mathrel{\&}}
