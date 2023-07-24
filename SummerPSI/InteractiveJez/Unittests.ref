@@ -1,7 +1,8 @@
 *$INLINE HigherOrder;
 
-$EXTERN FormPair, Zip, BelongsTo, Take, GetNewReplacingConst, CharAlphabet;
-
+$EXTERN FormPair, Zip, BelongsTo, Take, GetNewReplacingConst, CharAlphabet,
+        Flat;
+        
 $ENTRY Go {
   = <Prout
       <MapCall
@@ -157,8 +158,7 @@ TestSet-PairComp {
   = (
       1
       ('A' 1)
-      ('B' 0)
-      ('A' 0)
+      ('B' 0) ('A' 0)
       (
         (
           AreEqual
@@ -174,8 +174,7 @@ TestSet-PairComp {
     (
       2
       ('A' 1)
-      ('A' 0)
-      ('B' 0)
+      ('A' 0) ('B' 0)
       (
         (
           AreEqual
@@ -185,6 +184,20 @@ TestSet-PairComp {
         (
           (OR (not empty (Var 'Y')))
         )
+        (/* No index equations */)
+      )
+    )
+    (
+      3
+      ('A' 1)
+      ('A' 0) ('B' 0)
+      (
+        (
+          AreEqual
+          (('B' 0) (Var 'X') (Var 'Y') ('A' 0))
+          ((Var 'X') ('B' 0) (Var 'Z') (Var 'Y'))
+        )
+        (/* No constraints */)
         (/* No index equations */)
       )
     );
@@ -278,6 +291,7 @@ RunSubstIndices {
     == False
 */
 RunPairComp {
+  /* TODO: fix tests */
   (1 e.Input)
     , <PairComp e.Input> : {
       ('B' 1) (e.NewEqs)
@@ -293,7 +307,9 @@ RunPairComp {
             (
               (OR (not empty (Var 'X')))
             )
-            (/* No index equations */)
+            (
+              (('A' 1) is (('B' 0) (const 1)) (('A' 0) (const 1)))
+            )
           )
           e.R1
         , e.L1 e.R1
@@ -309,7 +325,9 @@ RunPairComp {
               (OR (not empty (Var 'X')))
               (OR (not ('A' 0) starts (Var 'Y')))
             )
-            (/* No index equations */)
+            (
+              (('A' 1) is (('B' 0) (const 1)) (('A' 0) (const 1)))
+            )
           )
           e.R2
         , e.L2 e.R2
@@ -325,12 +343,14 @@ RunPairComp {
               (OR (not empty (Var 'X')))
               (OR (not ('B' 0) ends (Var 'Y')))
             )
-            (/* No index equations */)
+            (
+              (('A' 1) is (('B' 0) (const 1)) (('A' 0) (const 1)))
+            )
           )
           e.R3
         , e.L3 e.R3
         : e.L4
-          /* (Var 'Y') doesn't end with ('B' 0) and doesn't start with ('A' 0) */
+          /* (Var 'Y') doesn't end with ('B' 0) and start with ('A' 0) */
           (
             (
               AreEqual
@@ -339,10 +359,13 @@ RunPairComp {
             )
             (
               (OR (not empty (Var 'X')))
+              (OR (not empty (Var 'Y')))
               (OR (not ('A' 0) starts (Var 'Y')))
               (OR (not ('B' 0) ends (Var 'Y')))
             )
-            (/* No index equations */)
+            (
+              (('A' 1) is (('B' 0) (const 1)) (('A' 0) (const 1)))
+            )
           )
           e.R4
         , e.L4 e.R4
@@ -357,7 +380,9 @@ RunPairComp {
             (
               (OR (not empty (Var 'X')))
             )
-            (/* No index equations */)
+            (
+              (('A' 1) is (('B' 0) (const 1)) (('A' 0) (const 1)))
+            )
           )
           e.R5
         = True;
@@ -378,7 +403,9 @@ RunPairComp {
               ((Var 'Y') ('A' 1) ('A' 1) (Var 'X'))
             )
             (/* No constraints */)
-            (/* No index equations */)
+            (
+              (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+            )
           )
           e.R1
         , e.L1 e.R1
@@ -394,7 +421,9 @@ RunPairComp {
             (
               (OR (not ('B' 0) starts (Var 'X')))
             )
-            (/* No index equations */)
+            (
+              (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+            )
           )
           e.R2
         , e.L2 e.R2
@@ -411,7 +440,9 @@ RunPairComp {
               (OR (not empty (Var 'Y')))
               (OR (not ('A' 0) ends (Var 'Y')))
             )
-            (/* No index equations */)
+            (
+              (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+            )
           )
           e.R3
         , e.L3 e.R3
@@ -429,9 +460,96 @@ RunPairComp {
               (OR (not ('A' 0) ends (Var 'Y')))
               (OR (not ('B' 0) starts (Var 'X')))
             )
-            (/* No index equations */)
+            (
+              (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+            )
           )
           e.R4
+        = True;
+        
+        e.Other = False;
+    };
+    
+  (3 e.Input)
+    , <PairComp e.Input> : {
+      ('B' 1) (e.NewEqs)
+        , e.NewEqs
+        : e.L1
+          (
+            (
+              AreEqual
+              (('B' 0) (Var 'X') ('A' 1) (Var 'Y') ('A' 0))
+              ((Var 'X') ('A' 1) (Var 'Z') ('A' 1) (Var 'Y'))
+            )
+            (/* No constraints */)
+            (
+              (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+            )
+          )
+          e.R1
+        , e.L1 e.R1
+        : e.L2
+          (
+            (
+              AreEqual
+              (('B' 0) (Var 'X') ('A' 1) (Var 'Y') ('A' 0))
+              ((Var 'X') ('A' 1) (Var 'Z') ('B' 0) (Var 'Y'))
+            )
+            (
+              (OR (not ('A' 0) ends (Var 'Z')))
+            )
+            (
+              (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+            )
+          )
+          e.R2
+        , e.L2 e.R2
+        : e.L3
+          (
+            (
+              AreEqual
+              (('B' 0) (Var 'X') ('A' 0) (Var 'Y') ('A' 0))
+              ((Var 'X') ('A' 1) (Var 'Z') (Var 'Y'))
+            )
+            (
+              (OR (not ('B' 0) starts (Var 'Y')))
+            )
+            (
+              (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+            )
+          )
+          e.R3
+        , e.L3 e.R3
+        : e.L4
+          (
+            (
+              AreEqual
+              (('B' 0) (Var 'X') ('B' 0) (Var 'Y') ('A' 0))
+              ((Var 'X') ('B' 0) (Var 'Z') ('A' 1) (Var 'Y'))
+            )
+            (
+              (OR (not ('A' 0) ends (Var 'X')))
+            )
+            (
+              (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+            )
+          )
+          e.R4
+        , e.L4 e.R4
+        : e.L5
+          (
+            (
+              AreEqual
+              (('B' 0) (Var 'X') (Var 'Y') ('A' 0))
+              ((Var 'X') ('B' 0) (Var 'Z') (Var 'Y'))
+            )
+            (
+              (OR (not ('A' 0) ends (Var 'X')))
+              (OR (not ('A' 0) ends (Var 'Z')) (not ('B' 0) starts (Var 'Y')))
+            )
+            (/* No index equations */)
+          )
+          e.R5
         = True;
         
         e.Other = False;
@@ -443,7 +561,7 @@ RunPairComp {
 Pick {
   1 ((AreEqual t.LHS t.RHS) t.Constraints t.IndexEqs) e.RestEqs
     , <SubtractSets
-        (<GetUniqueValues <MapCall Plain GetVars t.LHS t.RHS>>)
+        (<GetUniqueValues Flat <MapCall Plain GetVars t.LHS t.RHS>>)
         (<GetNonEmptyVars t.Constraints>)
       > : (e.VarsToSubst)
     , <MapCall
@@ -493,7 +611,7 @@ Subst-Aux {
 }
 
 GenSubst {
-  t.Old t.New = (assign t.Old t.New);
+  t.Old (e.New) = (assign t.Old (e.New));
   
   e.Other = <Prout 'GenSubst: Invalid input ' e.Other>;
 }
@@ -554,10 +672,17 @@ GetConsts {
   e.Other = <Prout 'GetConsts: Invalid input ' e.Other>;
 }
 
+/*
+  <GetUniqueValues s.Mode e.Expr>
+    == e.UniqueExpr
+*/
 GetUniqueValues {
-  e.U1 t.X e.U2 t.X e.U3 = <GetUniqueValues e.U1 t.X e.U2 e.U3>;
+  /* What about the Markov's rule?.. */
+  Flat e.U1 t.X e.U2 t.X e.U3 = <GetUniqueValues Flat e.U1 t.X e.U2 e.U3>;
   
-  e.AlreadyUnique = e.AlreadyUnique;
+  Wrap (e.U1 t.X e.U2 t.X e.U3) = <GetUniqueValues Wrap (e.U1 t.X e.U2 e.U3)>;
+  
+  s.AnyMode e.AlreadyUnique = e.AlreadyUnique;
 }
 
 
@@ -591,6 +716,7 @@ SubstIndex {
     , <MapCall
         Curry
         (CheckIndexEqToCollapse (<GetUniqueValues
+          Flat
           <GetConsts (e.TrimmedLHS)> <GetConsts (e.TrimmedRHS)>
         >))
         e.SubstIndexEqs
@@ -767,13 +893,300 @@ ReplaceRepeatedIndexEqs {
     == (e.NewReplacingConst) (e.NewEqs)
 */
 PairComp {
-  /* Dummy implementation! */
-  (e.ReplacingConst) (e.Const1) (e.Const2)
+  t.ReplacingConst t.Const1 t.Const2
   ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.IndexEqs))
-    = (/* New replacing const */) (/* New equations */);
-
-  e.Other = <Prout 'PairComp: Invalid input ' e.Other>;
+    , <MapCall
+        Curry
+        (GetUniqueValues Wrap)
+        <Flat /* just removes external brackets */
+          <Overlap
+            <MapCall
+              Curry
+              (GenEssentiallyNonEmptySubsts t.Const1 t.Const2 () ())
+              (e.LHS) (e.RHS)
+            >
+          >
+        >
+      >
+    : (e.ElementarySubsts) (e.CompositeSubsts)
+    , <CartesianProductOfOptionSets
+        <GenOptionSets (e.ElementarySubsts) (e.CompositeSubsts)>
+      >
+    : (e.MultipliedOptions)
+    /* ... */
+      = (/* New replacing const */) (/* New equations */);
 }
+  
+/*
+  <GenEssentiallyNonEmptySubsts
+    t.Const1 t.Const2 (e.ElementarySubsts) (e.CompositeSubsts) (e.Expr)
+  > == ((e.ElementarySubsts) (e.CompositeSubsts))
+*/
+GenEssentiallyNonEmptySubsts {
+  t.Const1 t.Const2 (e.ElementarySubsts) (e.CompositeSubsts) (e.Expr)
+    , e.Expr : {
+      /* Essential composite substitution */
+      (Var s.X) (Var s.Y) e.RestExpr
+      /* TODO: check restriction */
+        = <GenEssentiallyNonEmptySubsts
+            t.Const1 t.Const2
+            (e.ElementarySubsts)
+            (
+              e.CompositeSubsts
+              (
+                <GenSubst (Var s.X) ((Var s.X) t.Const1)>
+                <GenSubst (Var s.Y) (t.Const2 (Var s.Y))>
+              )
+            )
+            ((Var s.Y) e.RestExpr)
+          >;
+
+      /* Essential prefix substitution is possible */
+      t.Const1 (Var s.X) e.RestExpr
+      /* TODO: check restrictions */
+        = <GenEssentiallyNonEmptySubsts
+            t.Const1 t.Const2
+            (
+              e.ElementarySubsts
+              <GenSubst (Var s.X) (t.Const2 (Var s.X))>
+            )
+            (e.CompositeSubsts)
+            ((Var s.X) e.RestExpr)
+          >;
+
+      /* Essential suffix substitution is possible */
+      (Var s.X) t.Const2 e.RestExpr
+      /* TODO: check restrictions */
+        = <GenEssentiallyNonEmptySubsts
+            t.Const1 t.Const2
+            (
+              e.ElementarySubsts
+              <GenSubst (Var s.X) ((Var s.X) t.Const1)>
+            )
+            (e.CompositeSubsts)
+            (e.RestExpr)
+          >;
+
+      /* No essential substitution */
+      t.Elem1 t.Elem2 e.RestExpr
+        = <GenEssentiallyNonEmptySubsts
+            t.Const1 t.Const2
+            (e.ElementarySubsts)
+            (e.CompositeSubsts)
+            (t.Elem2 e.RestExpr)
+          >;
+
+      t.Elem = ((e.ElementarySubsts) (e.CompositeSubsts));
+      
+      /* No elements */ = ((e.ElementarySubsts) (e.CompositeSubsts));
+    };
+}
+
+/*
+  <GenOptionSets (e.ElementarySubsts) (e.CompositeSubsts)>
+    == e.OptionSets
+*/
+GenOptionSets {
+  (e.ElementarySubsts) (e.CompositeSubsts)
+    , <GetUniqueValues
+        Flat
+        <MapCall
+          Revert
+          (GetSpecialSubsts (e.ElementarySubsts))
+          e.CompositeSubsts
+        >
+      >: e.SpecialSubsts
+    = <MapCall
+        Revert
+        (GenOptionSetFromCompositeSubst (e.SpecialSubsts))
+        e.CompositeSubsts
+      >
+      <MapCall
+        Plain
+        GenOptionSetFromElementarySubst
+        <Flat
+          /* Special substitutions have already been considered. */
+          <SubtractSets (e.ElementarySubsts) (e.SpecialSubsts)>
+        >
+      >;
+}
+
+/*
+  For the equation, we call an essential elementary substitution "special"
+  if it is present in some essential composite substitution.
+  
+  <GetSpecialSubsts t.CompositeSubst (e.ElementarySubsts)>
+    == e.SpecialSubsts
+*/
+GetSpecialSubsts {
+  (t.Subst1 t.Subst2) (e.ElementarySubsts)
+    , e.ElementarySubsts : {
+      /* The first substitution is special. */
+      e.L t.Subst1 e.R
+        , e.L e.R : {
+          /* The second substitution is essential too. */
+          e.L1 t.Subst2 e.R1 = t.Subst1 t.Subst2;
+
+          /* Only the first substitution is essential. */
+          e.Other = t.Subst1;
+        };
+
+      /* Only the second substitution is essential. */
+      e.L t.Subst2 e.R = t.Subst2;
+
+      /* None of the substitutions are essential. */
+      e.Other = /* EMPTY */;
+    };
+}
+
+
+/*
+  <GenOptionSetFromCompositeSubst t.CompositeSubst (e.SpecialSubsts)>
+    == e.OptionSet
+*/
+GenOptionSetFromCompositeSubst {
+  (t.Subst1 t.Subst2) (e.SpecialSubsts)
+    , e.SpecialSubsts : {
+      /* The first substitution is special. */
+      e.L t.Subst1 e.R
+        , e.L e.R : {
+          /* The second substitution is special too. */
+          e.L1 t.Subst2 e.R1
+            = (
+                (
+                  (t.Subst1 t.Subst2)
+                  (/* No constraints */)
+                )
+                (
+                  (t.Subst1)
+                  (
+                    (OR <GenSubstDenial t.Subst2>)
+                  )
+                )
+                (
+                  (t.Subst2)
+                  (
+                    (OR <GenSubstDenial t.Subst1>)
+                  )
+                )
+                (
+                  (/* No substitutions */)
+                  (
+                    (OR <GenSubstDenial t.Subst1>)
+                    (OR <GenSubstDenial t.Subst2>)
+                  )
+                )
+              );
+
+          /* Only the first substitution is special. */
+          e.Other
+            = (
+                (
+                  (t.Subst1 t.Subst2)
+                  (/* No constraints */)
+                )
+                (
+                  (t.Subst1)
+                  (
+                    (OR <GenSubstDenial t.Subst2>)
+                  )
+                )
+                (
+                  (/* No substitutions */)
+                  (
+                    (OR <GenSubstDenial t.Subst1>)
+                  )
+                )
+              );
+        };
+
+      /* Only the second substitution is special. */
+      e.L t.Subst2 e.R
+        = (
+            (
+              (t.Subst1 t.Subst2)
+              (/* No constraints */)
+            )
+            (
+              (t.Subst2)
+              (
+                (OR <GenSubstDenial t.Subst1>)
+              )
+            )
+            (
+              (/* No substitutions */)
+              (
+                (OR <GenSubstDenial t.Subst2>)
+              )
+            )
+          );
+
+      /* None of the substitutions are special. */     
+      e.Other
+        = (
+            (
+              (t.Subst1 t.Subst2)
+              (/* No constraints */)
+            )
+            (
+              (/* No substitutions */)
+              (
+                (OR <GenSubstDenial t.Subst1> <GenSubstDenial t.Subst2>)
+              )
+            )
+          );
+    };
+}
+
+/*
+  <GenSubstDenial t.ElementarySubstitution>
+    == t.Restriction
+*/
+GenSubstDenial {
+  (assign t.Var (e.NewValue))
+    , e.NewValue : {
+      t.Var t.Const = (not t.Const ends t.Var);
+
+      t.Const t.Var = (not t.Const starts t.Var);
+    };
+}
+
+/*
+  <GenOptionSetFromElementarySubst t.ElementarySubst>
+    == e.OptionSet
+*/
+GenOptionSetFromElementarySubst {
+  t.Subst
+    = (
+        (
+          (t.Subst)
+          (/* No constraints */)
+        )
+        (
+          (/* No substitutions */)
+          (
+            (OR <GenSubstDenial t.Subst>)
+          )
+        )
+      );
+}
+
+/*
+  <CartesianProductOfOptionSets e.OptionSets>
+    == (e.MultipliedOptions)
+*/
+CartesianProductOfOptionSets {
+  (e.Set1) (e.Set2) e.RestSets
+    = <CartesianProductOfOptionSets 
+        <CartesianProduct Overlap (e.Set1) (e.Set2)> e.RestSets
+      >;
+
+  (e.Set) = (e.Set);
+
+  /* No sets */ = (/* EMPTY */);
+}
+
+/* TODO: move to the Auxiliaries.ref all the following functions. */
 
 /*
   <QuickSort s.LessFunc e.List>
@@ -809,5 +1222,37 @@ Partition {
           False = <Partition s.LessFunc (e.Left) t.Pivot (e.Right t.X) e.Tail>;
         };
     };
+}
+
+/*
+  Cartesian product of two arbitary sets with custom pair processing function.
+  
+  <CartesianProduct s.ProcessingFunction (e.Set1) (e.Set2)>
+    == (e.MultipliedElements)
+*/
+CartesianProduct {
+  s.ProcessingFunction (e.Set1) (e.Set2)
+    = (<MapCall
+        Curry
+        (CartesianProduct-Aux s.ProcessingFunction (e.Set2))
+        e.Set1
+      >);
+}
+
+CartesianProduct-Aux {
+  s.ProcessingFunction (e.Set) t.Elem
+    = <MapCall Curry (s.ProcessingFunction t.Elem) e.Set>;
+}
+
+/*
+  Concatenation of corresponding elements of two lists of equal length.
+  
+  <Overlap ((e.X) e.Xs) ((e.Y) e.Ys)>
+    == ((e.X e.Y) e.Rest)
+*/
+Overlap {
+  ((e.X) e.Xs) ((e.Y) e.Ys) = <Overlap (e.Xs (e.X e.Y)) (e.Ys)>;
+    
+  (e.OverlappedLists) (/* EMPTY */) = (e.OverlappedLists);
 }
 
