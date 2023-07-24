@@ -913,6 +913,8 @@ PairComp {
         <GenOptionSets (e.ElementarySubsts) (e.CompositeSubsts)>
       >
     : (e.MultipliedOptions)
+    , <MapCall Plain ProcessOption e.MultipliedOptions>
+    : e.ProcessedOptions
     /* ... */
       = (/* New replacing const */) (/* New equations */);
 }
@@ -1184,6 +1186,86 @@ CartesianProductOfOptionSets {
   (e.Set) = (e.Set);
 
   /* No sets */ = (/* EMPTY */);
+}
+
+/*
+  Removes duplicates, redundant constraints and checks for consistency.
+  
+  <ProcessOption t.Option>
+    == t.ProcessedOption
+    == ε
+*/
+ProcessOption {
+  ((e.Substs) (e.Constraints))
+    , <MapCall Curry (GetUniqueValues Wrap) (e.Substs) (e.Constraints)>
+    : (e.UniqueSubsts) (e.UniqueConstraints)
+    , <RemoveRedundantConstraints e.UniqueConstraints>
+    : e.NecessaryConstraints
+    = <FixOptionConsistency ((e.UniqueSubsts) (e.NecessaryConstraints)) ()>;
+}
+
+/*
+  <RemoveRedundantConstraints e.Constraints>
+    == e.NecessaryConstraints
+*/
+RemoveRedundantConstraints {
+  /* Found a non-trivial disjunct */
+  e.L (OR t.Restr1 t.Restr2) e.R
+    , e.L e.R : {
+      /* The disjunct is performed by the first restriction */
+      e.L1 (OR t.Restr1) e.R1 = e.L <RemoveRedundantConstraints e.R>;
+
+      /* The disjunct is performed by the second restriction */
+      e.L1 (OR t.Restr2) e.R1 = e.L <RemoveRedundantConstraints e.R>;
+
+      /* The disjunct isn't performed trivially */
+      e.Other
+        = e.L (OR t.Restr1 t.Restr2) <RemoveRedundantConstraints e.R>;
+    };
+
+  /* No non-trivial disjuncts were found */
+  e.TrivialDisjuncts = e.TrivialDisjuncts;
+}
+
+/*
+  Checks an option for consistency and fixes avoidable contradictions
+  whenever necessary. If an unavoidable condradiction is found, returns ε.
+  Otherwise, returns the processed option.
+  
+  <FixOptionConsistency t.Option (e.CheckedSubsts)>
+    == t.FixedOption
+    == ε
+*/
+FixOptionConsistency {
+  ((t.Subst e.RestSubsts) (e.Constraints)) (e.CheckedSubsts)
+    , <GenSubstDenial t.Subst> : t.Restr
+    , e.Constraints : {
+      /* Found a disjunct containing the restriction */
+      e.L (OR e.L1 t.Restr e.R1) e.R
+        , e.L1 e.R1 : {
+          /* Trivial disjunct. Unavoidable contradiction */
+          /* EMPTY */ = /* EMPTY */;
+
+          /* Force another restriction to be executed and try to find other
+             non-trivial disjuncts containing the substitution */
+          t.AnotherRestr
+            = <FixOptionConsistency
+                ((t.Subst e.RestSubsts) (e.L (OR t.AnotherRestr) e.R))
+                (e.CheckedSubsts)
+              >;
+        };
+
+      /* No contradiction is found */
+      e.Other
+        = <FixOptionConsistency
+            ((e.RestSubsts) (e.Constraints))
+            (e.CheckedSubsts t.Subst)
+          >;
+    };
+
+  /* Option is successfully checked (and fixed) */
+  ((/* No unchecked substitutions */) (e.Constraints)) (e.Substs)
+    = ((e.Substs) (e.Constraints));
 }
 
 /* TODO: move to the Auxiliaries.ref all the following functions. */
