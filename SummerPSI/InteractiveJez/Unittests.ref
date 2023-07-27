@@ -1,7 +1,8 @@
 *$INLINE HigherOrder;
 
-$EXTERN FormPair, Zip, BelongsTo, Take, GetNewReplacingConst, CharAlphabet,
-        Flat;
+$EXTERN FormPair, Zip, Take, GetNextConst, IsWordInAlphabet, IsEmpty,
+        LatinCapitalLetters, SubtractSets, GetUniqueValues, QuickSort,
+        Partition, Overlap;
         
 $ENTRY Go {
   = <Prout
@@ -46,6 +47,18 @@ $ENTRY Go {
     <Prout
       <MapCall Plain RunPairComp <TestSet-PairComp>>
     >;
+}
+
+VariableAlphabet {
+  = <MapCall
+      Plain
+      GenVariable
+      <LatinCapitalLetters>
+    >;
+}
+
+GenVariable {
+  s.Name = (Var s.Name);
 }
 
 TestSet-Pick {
@@ -152,7 +165,7 @@ TestSet-SubstIndex {
 
 /*
   <TestSet-PairComp>
-    == (s.SeqNumber (e.ReplacingConst) (e.Const1) (e.Const2) (e.Eq)) e.Tests
+    == (s.SeqNumber (e.NewConst) (e.Const1) (e.Const2) (e.Eq)) e.Tests
 */
 TestSet-PairComp {
   = (
@@ -199,6 +212,20 @@ TestSet-PairComp {
         )
         (/* No constraints */)
         (/* No index equations */)
+      )
+    )
+    (
+      4
+      ('A' 1)
+      ('A' 0) ('B' 0)
+      (
+        (
+          AreEqual
+          ((Var 'Y') ('B' 0) (Var 'Z') ('A' 0) (Var 'Y') (Var 'Z') ('B' 0))
+          ((Var 'X') ('A' 0) (Var 'Y') (Var 'W') (Var 'Y') (Var 'Z'))
+        )
+        (/* No constraints */)
+        (/* No conditions */)
       )
     );
 }
@@ -286,7 +313,7 @@ RunSubstIndices {
 }
 
 /*
-  <RunPairComp (s.SeqNumber) (e.ReplacingConst) (e.Const1) (e.Const2) (e.Eq)>
+  <RunPairComp (s.SeqNumber) (e.NewConst) (e.Const1) (e.Const2) (e.Eq)>
     == True
     == False
 */
@@ -552,37 +579,54 @@ RunPairComp {
           e.R5
         = True;
         
-        e.Other = False;
+      e.Other = False;
     };
+    
+  (4 e.Input)
+    , <PairComp e.Input> : {
+      ('B' 1) (e.NewEqs)
+      /* ... */
+        = True;
 
-  e.Other = <Prout 'RunPairComp: Invalid input ' e.Other>;
+      e.Other = False;
+    };
 }
 
+/*
+  <Pick s.Number e.Equations>
+    == t.Equation
+*/
 Pick {
-  1 ((AreEqual t.LHS t.RHS) t.Constraints t.IndexEqs) e.RestEqs
+  1 ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions)) e.RestEquations
     , <SubtractSets
-        (<GetUniqueValues Flat <MapCall Plain GetVars t.LHS t.RHS>>)
-        (<GetNonEmptyVars t.Constraints>)
-      > : (e.VarsToSubst)
+        (<GetUniqueValues Flat <MapCall Plain GetVariables (e.LHS) (e.RHS)>>)
+        (<GetNonEmptyVariables e.Constraints>)
+      >
+    : (e.VariablesForSubstitution)
+    , <MapCall
+        Revert
+        (GenSubst (/* EMPTY */))
+        e.VariablesForSubstitution
+      >
+    : e.Substitutions
     , <MapCall
         Curry
-        (Subst (<MapCall Revert (GenSubst (/* to EMPTY */)) e.VarsToSubst>))
-        t.LHS t.RHS
-      > : {
-      t.EqHalf t.EqHalf = Success;
+        (Subst (e.Substitutions))
+        (e.LHS) (e.RHS)
+      >
+    : {
+      (e.Half) (e.Half) = Success;
 
-      t.NewLHS t.NewRHS
-        , <MapCall Plain GetConsts t.NewLHS t.NewRHS> : {
+      (e.NewLHS) (e.NewRHS)
+        , <MapCall Plain GetConsts (e.NewLHS) (e.NewRHS)> : {
           /* No consts were found */ = NotMinimal;
 
           e.SomeConsts
-            = ((AreEqual t.NewLHS t.NewRHS) t.Constraints t.IndexEqs); 
+            = ((AreEqual (e.NewLHS) (e.NewRHS)) (e.Constraints) (e.Conditions)); 
         };
     };
 
-  s.Number t.Eq e.RestEqs = <Pick <Sub s.Number 1> e.RestEqs>;
-
-  e.Other = <Prout 'Pick: Invalid input ' e.Other>;
+  s.Number t.Equation e.RestEquations = <Pick <Sub s.Number 1> e.RestEquations>;
 }
 
 /* Non-recursive substitution. */
@@ -616,45 +660,30 @@ GenSubst {
   e.Other = <Prout 'GenSubst: Invalid input ' e.Other>;
 }
 
-/* Accepts equation's constraints */
-GetNonEmptyVars {
-  ((OR e.Disjuncts) e.RestConjuncts) 
-    = <GetNonEmptyVars-Aux e.Disjuncts> <GetNonEmptyVars (e.RestConjuncts)>;
+/*
+  <GetNonEmptyVariables e.Constraints>
+    == e.NonEmptyVariables
+*/
+GetNonEmptyVariables {
+  e.L (OR (not empty (Var s.X))) e.R = (Var s.X) <GetNonEmptyVariables e.R>;
 
-  (/* No more conjuncts */) = /* EMPTY */;
-
-  e.Other = <Prout 'GetNonEmptyVars: Invalid input ' e.Other>;
+  /* No appropriate disjuncts left */
+  e.Other = /* EMPTY */;
 }
 
-GetNonEmptyVars-Aux {
-  t.Disjunct e.RestDisjuncts
-  , t.Disjunct : {
-    /* If a conjunct can contain only one disjunct with a constraint on
-       non-emptiness of a variable, the right half of the next sentence
-       can be simplified to `(Var s.X)`. */
-    (not empty (Var s.X)) = (Var s.X) <GetNonEmptyVars-Aux e.RestDisjuncts>;
-
-    e.Other = <GetNonEmptyVars-Aux e.RestDisjuncts>;
-  };
-
-  /* No more disjuncts */ = /* EMPTY */;
-
-  e.Other = <Prout 'GetNonEmptyVars-Aux: Invalid input ' e.Other>;
-}
-
-GetVars {
+GetVariables {
   (t.Comp e.RestComps)
     , t.Comp : {
-      (Var s.Name) = t.Comp <GetVars (e.RestComps)>;
+      (Var s.Name) = t.Comp <GetVariables (e.RestComps)>;
 
-      (s.Name s.Number) = <GetVars (e.RestComps)>; /* Ignore consts. */
+      (s.Name s.Number) = <GetVariables (e.RestComps)>; /* Ignore consts. */
 
-      e.Other = <Prout 'GetVars: Invalid component ' e.Other>;
+      e.Other = <Prout 'GetVariables: Invalid component ' e.Other>;
     };
 
   (/* No more comps */) = /* EMPTY */;
 
-  e.Other = <Prout 'GetVars: Invalid input ' e.Other>;
+  e.Other = <Prout 'GetVariables: Invalid input ' e.Other>;
 }
 
 GetConsts {
@@ -673,56 +702,39 @@ GetConsts {
 }
 
 /*
-  <GetUniqueValues s.Mode e.Expr>
-    == e.UniqueExpr
-*/
-GetUniqueValues {
-  /* What about the Markov's rule?.. */
-  Flat e.U1 t.X e.U2 t.X e.U3 = <GetUniqueValues Flat e.U1 t.X e.U2 e.U3>;
-  
-  Wrap (e.U1 t.X e.U2 t.X e.U3) = <GetUniqueValues Wrap (e.U1 t.X e.U2 e.U3)>;
-  
-  s.AnyMode e.AlreadyUnique = e.AlreadyUnique;
-}
-
-
-SubtractSets {
-  (e.U1 t.CommonElement e.U2) (e.V1 t.CommonElement e.V2)
-    = <SubtractSets (e.U1 e.U2) (e.V1 e.V2)>;
-
-  /* No more common elements. Returning reduced set. */
-  t.Reduced t.Subtracted = t.Reduced;
-
-  e.Other = <Prout 'SubtractSets: Invalid input ' e.Other>;
-}
-
-/*
-  <SubstIndex s.Index (e.Subst) (e.Eq) == (e.SubstEq)
+  <SubstIndex s.Index (e.Subst) (e.Eq)>
+    == (e.SubstEq)
 */
 SubstIndex {
-  s.Index
-  (e.Multiset)
+  s.Index (e.Multiset)
   ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.IndexEqs))
     , <MapCall
         Curry
         (SubstToIndexEq (s.Index (e.Multiset)))
         e.IndexEqs
-      > : e.SubstIndexEqs
-    , <TrimEq
-        Right
-        (e.SubstIndexEqs)
-        <TrimEq Left (e.SubstIndexEqs) (e.LHS) (e.RHS)>
-      > : (e.TrimmedLHS) (e.TrimmedRHS)
+      >
+    : e.SubstIndexEqs
+    , <MapCompose
+        ((TrimEquation Left) (TrimEquation Right))
+        ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.SubstIndexEqs))
+      >
+    : ((AreEqual (e.TrimmedLHS) (e.TrimmedRHS)) e.Rest)
     , <MapCall
         Curry
-        (CheckIndexEqToCollapse (<GetUniqueValues
-          Flat
-          <GetConsts (e.TrimmedLHS)> <GetConsts (e.TrimmedRHS)>
-        >))
+        (
+          CheckIndexEqToCollapse
+          (
+            <GetUniqueValues
+              Flat
+              <GetConsts (e.TrimmedLHS)> <GetConsts (e.TrimmedRHS)>
+            >
+          )
+        )
         e.SubstIndexEqs
-      > : e.InvolvedIndexEqs
+      >
+    : e.NecessaryIndexEqs
     , <ReplaceRepeatedIndexEqs
-        (e.InvolvedIndexEqs)
+        (e.NecessaryIndexEqs)
         (/* No substitutions at start */)
       > : (e.UniqueIndexEqs) (e.Substs)
     , <MapCall
@@ -787,33 +799,39 @@ SumUpComps {
 }
 
 /*
-  <TrimEq s.Mode (e.IndexEqs) (e.LHS) (e.RHS)> == (e.TrimmedLHS) (e.TrimmedRHS)
-  
-  s.Mode := Left | Right
+  <TrimEquation s.Mode t.Equation>
+    == t.TrimmedEquation
 */
-TrimEq {
-  s.Mode (e.IndexEqs) (e.LHS) (e.RHS)
+TrimEquation {
+  s.Mode t.Equation
+    , Left Right : e.L s.Mode e.R /* verifying the mode */
+    , t.Equation : ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.IndexEqs))
     , <MapCall Curry (Take s.Mode) (e.LHS) (e.RHS)> : {
-      /* Both equation parts are not empty: */
-      ((e.Comp1) e.RestComps1) ((e.Comp2) e.RestComps2)
-        , <AreCompsEqual (e.Comp1) (e.Comp2) (e.IndexEqs)> : {
-          True = <TrimEq s.Mode (e.IndexEqs) (e.RestComps1) (e.RestComps2)>;
+      /* Both equation parts are not empty */
+      (t.Elem1 e.LHS1) (t.Elem2 e.RHS1)
+        , <AreElementsEqual t.Elem1 t.Elem2 (e.IndexEqs)> : {
+          True
+            = <TrimEquation
+                s.Mode
+                ((AreEqual (e.LHS1) (e.RHS1)) (e.Constraints) (e.IndexEqs))
+              >;
 
-          False = (e.LHS) (e.RHS);
+          False = t.Equation;
         };
 
-      e.Other = (e.LHS) (e.RHS);
+      /* At least one part of the equation is empty */
+      e.Other = t.Equation;
     };
   
-  e.Other = <Prout 'TrimEq: Invalid input ' e.Other>;
+  e.Other = <Prout 'TrimEquation: Invalid input ' e.Other>;
 }
 
 /*
-  <AreCompsEqual (e.Comp1) (e.Comp2) (e.IndexEqs)>
+  <AreElementsEqual (e.Comp1) (e.Comp2) (e.IndexEqs)>
     == True
     == False
 */
-AreCompsEqual {
+AreElementsEqual {
   (e.Comp1) (e.Comp2) (e.IndexEqs)
     , (e.Comp1) (e.Comp2) : {
       (s.Type s.Value) (s.Type s.Value) = True;
@@ -829,10 +847,10 @@ AreCompsEqual {
         
       (s.Type1 s.Value1) (s.Type2 s.Value2) = False;
 
-      e.Other = <Prout 'AreCompsEqual: Invalid components ' e.Other>;
+      e.Other = <Prout 'AreElementsEqual: Invalid components ' e.Other>;
     };
 
-  e.Other = <Prout 'AreCompsEqual: Invalid input ' e.Other>;
+  e.Other = <Prout 'AreElementsEqual: Invalid input ' e.Other>;
 }
 
 /*
@@ -889,48 +907,216 @@ ReplaceRepeatedIndexEqs {
 }
 
 /*
-  <PairComp (e.ReplacingConst) (e.Const1) (e.Const2) (e.Eq)>
-    == (e.NewReplacingConst) (e.NewEqs)
+  <PairComp t.ReplacingConst t.FirstConst t.SecondConst t.Equation>
+    == t.NewReplacingConst (e.Equations)
 */
 PairComp {
-  t.ReplacingConst t.Const1 t.Const2
-  ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.IndexEqs))
+  t.ReplacingConst t.FirstConst t.SecondConst t.Equation
+    = <GetNextConst t.ReplacingConst>
+      (
+        <HandleEssentiallyEmptySubstitutions
+          t.ReplacingConst t.FirstConst t.SecondConst t.Equation
+        >
+      );
+}
+
+/*
+  If an essentially empty substitution is possible, recursively calls itself
+  with an applied and not applied substitution equations. Otherwise, transfers
+  control to the `HandleEssentiallyNonEmptySubstitutions` function.
+  
+  <HandleEssentiallyEmptySubstitution
+    t.ReplacingConst t.FirstConst t.SecondConst t.Equation
+  >
+    == e.Equations 
+*/
+HandleEssentiallyEmptySubstitutions {
+  t.ReplacingConst t.FirstConst t.SecondConst t.Equation
+    , t.Equation : ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions))
+    /* Calling `GetEssentiallyEmptySubstitution` is quite expensive, so here's
+       used `CallTill` not to make redundant calculations with `MapCall` */
+    , <CallTill
+        (/* EMPTY */)
+        Curry
+        (
+          GetEssentiallyEmptySubstitution
+          t.FirstConst t.SecondConst (e.Constraints)
+        )
+        (e.LHS) (e.RHS)
+      >
+    : {
+      /* Found an essentially empty substitution */
+      t.Substitution
+        = /* Calling with performed substitution */
+          <HandleEssentiallyEmptySubstitutions 
+            t.ReplacingConst t.FirstConst t.SecondConst
+            (
+              (
+                AreEqual
+                <MapCall Curry (Subst (t.Substitution)) (e.LHS) (e.RHS)>
+              )
+              (e.Constraints)
+              (e.Conditions)
+            )
+          >
+          /* Calling with not performed substitution */
+          <HandleEssentiallyEmptySubstitutions
+            t.ReplacingConst t.FirstConst t.SecondConst
+            (
+              (AreEqual (e.LHS) (e.RHS))
+              (e.Constraints (OR <DenySubstitution t.Substitution>))
+              (e.Conditions)
+            )
+          >;
+      
+      /* No essentially empty substitution is found. */
+      /* EMPTY */
+        = <HandleEssentiallyNonEmptySubstitutions
+            t.ReplacingConst t.FirstConst t.SecondConst t.Equation
+          >;
+    };
+}
+
+/*
+  Returns any essentially empty substitution possible in the given equation
+  half. If no such substitution is found, returns ε.
+  
+  <GetEssentiallyEmptySubstitution
+    t.FirstConst t.SecondConst (e.Constraints) (e.EquationHalf)
+  >
+    == t.Substitution
+    == ε
+*/
+GetEssentiallyEmptySubstitution {
+  t.FirstConst t.SecondConst (e.Constraints) (e.EquationHalf)
+    /* Saving the result of frequently called functions */
+    , <VariableAlphabet> : e.Variables
+    , <GetNonEmptyVariables e.Constraints> : e.NonEmptyVariables
+    , e.EquationHalf : {
+      e.L t.FirstConst e.M t.SecondConst e.R
+        , <IsEmpty e.M> : False
+        , <IsWordInAlphabet
+            (e.M)
+            (e.Variables)
+          >
+        : True
+        , <SubtractSets
+            (<GetUniqueValues Flat e.M>)
+            (e.NonEmptyVariables)
+          >
+        : (t.SubstitutionVariable e.RestVariables)
+        = <GenSubst t.SubstitutionVariable (/* EMPTY */)>;
+        
+      e.L t.FirstConst e.M (Var s.X) e.R
+        , <IsEmpty e.M> : False
+        , <IsWordInAlphabet
+            (e.M)
+            <SubtractSets (e.Variables) ((Var s.X))>
+          >
+        : True
+        , <SubtractSets
+            (<GetUniqueValues Flat e.M>)
+            (e.NonEmptyVariables)
+          >
+        : (t.SubstitutionVariable e.RestVariables)
+        = <GenSubst t.SubstitutionVariable (/* EMPTY */)>;
+
+      e.L (Var s.X) e.M t.SecondConst e.R
+        , <IsEmpty e.M> : False
+        , <IsWordInAlphabet
+            (e.M)
+            <SubtractSets (e.Variables) ((Var s.X))>
+          >
+        : True
+        , <SubtractSets
+            (<GetUniqueValues Flat e.M>)
+            (e.NonEmptyVariables)
+          >
+        : (t.SubstitutionVariable e.RestVariables)
+        = <GenSubst t.SubstitutionVariable (/* EMPTY */)>;
+
+      e.L (Var s.X) e.M  (Var s.Y) e.R
+        , <IsEmpty e.M> : False
+        , <IsWordInAlphabet
+            (e.M)
+            <SubtractSets (e.Variables) ((Var s.X) (Var s.Y))>
+          >
+        : True
+        , <SubtractSets
+            (<GetUniqueValues Flat e.M>)
+            (e.NonEmptyVariables)
+          >
+        : (t.SubstitutionVariable e.RestVariables)
+        = <GenSubst t.SubstitutionVariable (/* EMPTY */)>;
+        
+      /* No essentially empty substitutions for this half of the equation */
+      e.Other = /* EMPTY */;
+    };
+}
+
+/*
+  Finds and applies essentially non-empty substitutions to the equation. 
+  
+  <HandleEssentiallyNonEmptySubstitutions
+    t.ReplacingConst t.FirstConst t.SecondConst t.Equation
+  >
+    == e.Equations 
+*/
+HandleEssentiallyNonEmptySubstitutions {
+  t.ReplacingConst t.FirstConst t.SecondConst t.Equation
+    , t.Equation : ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions))
+    , <Overlap
+        <MapCall
+          Curry
+          (
+            GetEssentiallyNonEmptySubsts
+            t.FirstConst t.SecondConst
+            (/* No discovered elementary substitutions at start */)
+            (/* No discovered composite substitutions at start */)
+          )
+          (e.LHS) (e.RHS)
+        >
+      >
+    : ((e.RawElementarySubsts) (e.RawCompositeSubsts))
     , <MapCall
         Curry
         (GetUniqueValues Wrap)
-        <Flat /* just removes external brackets */
-          <Overlap
-            <MapCall
-              Curry
-              (GenEssentiallyNonEmptySubsts t.Const1 t.Const2 () ())
-              (e.LHS) (e.RHS)
-            >
-          >
-        >
+        (e.RawElementarySubsts) (e.RawCompositeSubsts)
       >
     : (e.ElementarySubsts) (e.CompositeSubsts)
     , <CartesianProductOfOptionSets
         <GenOptionSets (e.ElementarySubsts) (e.CompositeSubsts)>
       >
-    : (e.MultipliedOptions)
-    , <MapCall Plain ProcessOption e.MultipliedOptions>
-    : e.ProcessedOptions
+    : (e.MultipliedOptions) /* what if no options initially? */
+    , <MapCall
+        Plain
+        ProcessOption
+        e.MultipliedOptions
+      >
+    : e.ProcessedOptions /* remove duplicates? */
+    , <MapCall
+        Revert
+        (ApplyOption t.Equation)
+        e.ProcessedOptions
+      >
+    : e.Equations
     /* ... */
-      = (/* New replacing const */) (/* New equations */);
+      = /* New equations */;
 }
-  
+
 /*
-  <GenEssentiallyNonEmptySubsts
+  <GetEssentiallyNonEmptySubsts
     t.Const1 t.Const2 (e.ElementarySubsts) (e.CompositeSubsts) (e.Expr)
-  > == ((e.ElementarySubsts) (e.CompositeSubsts))
+  >
+    == ((e.ElementarySubsts) (e.CompositeSubsts))
 */
-GenEssentiallyNonEmptySubsts {
+GetEssentiallyNonEmptySubsts {
   t.Const1 t.Const2 (e.ElementarySubsts) (e.CompositeSubsts) (e.Expr)
     , e.Expr : {
       /* Essential composite substitution */
       (Var s.X) (Var s.Y) e.RestExpr
       /* TODO: check restriction */
-        = <GenEssentiallyNonEmptySubsts
+        = <GetEssentiallyNonEmptySubsts
             t.Const1 t.Const2
             (e.ElementarySubsts)
             (
@@ -946,7 +1132,7 @@ GenEssentiallyNonEmptySubsts {
       /* Essential prefix substitution is possible */
       t.Const1 (Var s.X) e.RestExpr
       /* TODO: check restrictions */
-        = <GenEssentiallyNonEmptySubsts
+        = <GetEssentiallyNonEmptySubsts
             t.Const1 t.Const2
             (
               e.ElementarySubsts
@@ -959,7 +1145,7 @@ GenEssentiallyNonEmptySubsts {
       /* Essential suffix substitution is possible */
       (Var s.X) t.Const2 e.RestExpr
       /* TODO: check restrictions */
-        = <GenEssentiallyNonEmptySubsts
+        = <GetEssentiallyNonEmptySubsts
             t.Const1 t.Const2
             (
               e.ElementarySubsts
@@ -971,7 +1157,7 @@ GenEssentiallyNonEmptySubsts {
 
       /* No essential substitution */
       t.Elem1 t.Elem2 e.RestExpr
-        = <GenEssentiallyNonEmptySubsts
+        = <GetEssentiallyNonEmptySubsts
             t.Const1 t.Const2
             (e.ElementarySubsts)
             (e.CompositeSubsts)
@@ -997,7 +1183,10 @@ GenOptionSets {
           (GetSpecialSubsts (e.ElementarySubsts))
           e.CompositeSubsts
         >
-      >: e.SpecialSubsts
+      >
+    : e.SpecialSubsts
+    , <SubtractSets (e.ElementarySubsts) (e.SpecialSubsts)>
+    : (e.UnprocessedElementarySubsts)
     = <MapCall
         Revert
         (GenOptionSetFromCompositeSubst (e.SpecialSubsts))
@@ -1006,10 +1195,7 @@ GenOptionSets {
       <MapCall
         Plain
         GenOptionSetFromElementarySubst
-        <Flat
-          /* Special substitutions have already been considered. */
-          <SubtractSets (e.ElementarySubsts) (e.SpecialSubsts)>
-        >
+        e.UnprocessedElementarySubsts
       >;
 }
 
@@ -1041,7 +1227,6 @@ GetSpecialSubsts {
     };
 }
 
-
 /*
   <GenOptionSetFromCompositeSubst t.CompositeSubst (e.SpecialSubsts)>
     == e.OptionSet
@@ -1062,20 +1247,20 @@ GenOptionSetFromCompositeSubst {
                 (
                   (t.Subst1)
                   (
-                    (OR <GenSubstDenial t.Subst2>)
+                    (OR <DenySubstitution t.Subst2>)
                   )
                 )
                 (
                   (t.Subst2)
                   (
-                    (OR <GenSubstDenial t.Subst1>)
+                    (OR <DenySubstitution t.Subst1>)
                   )
                 )
                 (
                   (/* No substitutions */)
                   (
-                    (OR <GenSubstDenial t.Subst1>)
-                    (OR <GenSubstDenial t.Subst2>)
+                    (OR <DenySubstitution t.Subst1>)
+                    (OR <DenySubstitution t.Subst2>)
                   )
                 )
               );
@@ -1090,13 +1275,13 @@ GenOptionSetFromCompositeSubst {
                 (
                   (t.Subst1)
                   (
-                    (OR <GenSubstDenial t.Subst2>)
+                    (OR <DenySubstitution t.Subst2>)
                   )
                 )
                 (
                   (/* No substitutions */)
                   (
-                    (OR <GenSubstDenial t.Subst1>)
+                    (OR <DenySubstitution t.Subst1>)
                   )
                 )
               );
@@ -1112,13 +1297,13 @@ GenOptionSetFromCompositeSubst {
             (
               (t.Subst2)
               (
-                (OR <GenSubstDenial t.Subst1>)
+                (OR <DenySubstitution t.Subst1>)
               )
             )
             (
               (/* No substitutions */)
               (
-                (OR <GenSubstDenial t.Subst2>)
+                (OR <DenySubstitution t.Subst2>)
               )
             )
           );
@@ -1133,7 +1318,11 @@ GenOptionSetFromCompositeSubst {
             (
               (/* No substitutions */)
               (
-                (OR <GenSubstDenial t.Subst1> <GenSubstDenial t.Subst2>)
+                (
+                  OR
+                  <DenySubstitution t.Subst1>
+                  <DenySubstitution t.Subst2>
+                )
               )
             )
           );
@@ -1141,15 +1330,17 @@ GenOptionSetFromCompositeSubst {
 }
 
 /*
-  <GenSubstDenial t.ElementarySubstitution>
+  <DenySubstitution t.ElementarySubstitution>
     == t.Restriction
 */
-GenSubstDenial {
+DenySubstitution {
   (assign t.Var (e.NewValue))
     , e.NewValue : {
       t.Var t.Const = (not t.Const ends t.Var);
 
       t.Const t.Var = (not t.Const starts t.Var);
+
+      /* EMPTY */ = (not empty t.Var);
     };
 }
 
@@ -1167,7 +1358,7 @@ GenOptionSetFromElementarySubst {
         (
           (/* No substitutions */)
           (
-            (OR <GenSubstDenial t.Subst>)
+            (OR <DenySubstitution t.Subst>)
           )
         )
       );
@@ -1197,11 +1388,18 @@ CartesianProductOfOptionSets {
 */
 ProcessOption {
   ((e.Substs) (e.Constraints))
-    , <MapCall Curry (GetUniqueValues Wrap) (e.Substs) (e.Constraints)>
+    , <MapCall
+        Curry
+        (GetUniqueValues Wrap)
+        (e.Substs) (e.Constraints)
+      >
     : (e.UniqueSubsts) (e.UniqueConstraints)
     , <RemoveRedundantConstraints e.UniqueConstraints>
     : e.NecessaryConstraints
-    = <FixOptionConsistency ((e.UniqueSubsts) (e.NecessaryConstraints)) ()>;
+    = <FixOptionConsistency
+        ((e.UniqueSubsts) (e.NecessaryConstraints))
+        (/* No checked substitutions at start */)
+      >;
 }
 
 /*
@@ -1238,7 +1436,7 @@ RemoveRedundantConstraints {
 */
 FixOptionConsistency {
   ((t.Subst e.RestSubsts) (e.Constraints)) (e.CheckedSubsts)
-    , <GenSubstDenial t.Subst> : t.Restr
+    , <DenySubstitution t.Subst> : t.Restr
     , e.Constraints : {
       /* Found a disjunct containing the restriction */
       e.L (OR e.L1 t.Restr e.R1) e.R
@@ -1268,43 +1466,36 @@ FixOptionConsistency {
     = ((e.Substs) (e.Constraints));
 }
 
+/*
+  Applies substitutions of the option to the equation, adds constraints of the
+  option to the equation's ones, cleans all up and returns the result.
+  
+  <ApplyOption t.Option t.Equation>
+    == t.NewEquation
+*/
+ApplyOption {
+  ((e.Substs) (e.NewConstraints))
+  ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.IndexEquations))
+    , <MapCall
+        Curry
+        (Subst (e.Substs))
+        (e.LHS) (e.RHS)
+      >
+    : (e.SubstitutedLHS) (e.SubstitutedRHS)
+    , <MapCompose
+        ((TrimEquation Left) (TrimEquation Right))
+        (
+          (AreEqual (e.SubstitutedLHS) (e.SubstitutedRHS))
+          (e.Constraints) (e.IndexEquations)
+        )
+      >
+    : ((AreEqual (e.TrimmedLHS) (e.TrimmedRHS)) e.Rest)
+    /* ... */
+      /* Dummy output */
+      = ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.IndexEquations));
+}
+  
 /* TODO: move to the Auxiliaries.ref all the following functions. */
-
-/*
-  <QuickSort s.LessFunc e.List>
-    == e.SortedList
-*/
-QuickSort {
-  s.LessFunc e.List
-    , e.List : {
-      /* Empty list */ = /* EMPTY */;
-      
-      t.Pivot e.Tail
-        , <Partition s.LessFunc () t.Pivot () e.Tail>
-        : (e.Left) t.Pivot (e.Right)
-        = <QuickSort s.LessFunc e.Left>
-          t.Pivot
-          <QuickSort s.LessFunc e.Right>;
-    };
-}
- 
-/*
-  <Partition s.LessFunc (e.Left) t.Pivot (e.Right) e.List>
-    == (e.NewLeft) t.Pivot (e.NewRight)
-*/
-Partition {
-  s.LessFunc (e.Left) t.Pivot (e.Right) e.List
-    , e.List : {
-      /* Empty list */ = (e.Left) t.Pivot (e.Right);
-      
-      t.X e.Tail 
-        , <Mu s.LessFunc t.X t.Pivot> : {
-          True = <Partition s.LessFunc (e.Left t.X) t.Pivot (e.Right) e.Tail>;
-
-          False = <Partition s.LessFunc (e.Left) t.Pivot (e.Right t.X) e.Tail>;
-        };
-    };
-}
 
 /*
   Cartesian product of two arbitary sets with custom pair processing function.
@@ -1324,17 +1515,5 @@ CartesianProduct {
 CartesianProduct-Aux {
   s.ProcessingFunction (e.Set) t.Elem
     = <MapCall Curry (s.ProcessingFunction t.Elem) e.Set>;
-}
-
-/*
-  Concatenation of corresponding elements of two lists of equal length.
-  
-  <Overlap ((e.X) e.Xs) ((e.Y) e.Ys)>
-    == ((e.X e.Y) e.Rest)
-*/
-Overlap {
-  ((e.X) e.Xs) ((e.Y) e.Ys) = <Overlap (e.Xs (e.X e.Y)) (e.Ys)>;
-    
-  (e.OverlappedLists) (/* EMPTY */) = (e.OverlappedLists);
 }
 

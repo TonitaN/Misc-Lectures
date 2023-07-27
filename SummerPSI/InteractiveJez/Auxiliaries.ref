@@ -1,75 +1,181 @@
+/*
+  <GetNewIndex t.Index>
+    == t.NewIndex
+*/
 $ENTRY GetNewIndex {
- s.OldIndex
- , <Explode s.OldIndex> : s.Letter s.FirstDigit e.Digits
- , <Symb <Add <Numb s.FirstDigit e.Digits> 1>> : e.NewNumber
-  = <Implode s.Letter e.NewNumber>;
+  s.OldIndex
+    , <Explode s.OldIndex> : s.Letter s.FirstDigit e.Digits
+    , <Symb <Add <Numb s.FirstDigit e.Digits> 1>> : e.NewNumber
+    = <Implode s.Letter e.NewNumber>;
 }
 
 /*
-  <GetNewReplacingConst (e.Const)> == (e.NewConst)
+  <GetNextConst t.Const>
+    == t.NextConst
 */
-$ENTRY GetNewReplacingConst {
+$ENTRY GetNextConst {
   (s.Letter s.Number)
-    , <CharAlphabet> : {
+    , <LatinCapitalLetters> : {
       e.U1 s.Letter s.NextLetter e.U2 = (s.NextLetter s.Number);
 
       s.FirstLetter e.U s.Letter = (s.FirstLetter <Add s.Number 1>);
     };
-
-  e.Other = <Prout 'GetNewReplacingConst: Invalid input ' e.Other>;
 }
 
-CharAlphabet {
-  = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+/*
+  <SubtractSets (e.FirstSet) (e.SecondSet)
+    == (e.FirstSetWithoutSecond)
+*/
+$ENTRY SubtractSets {
+  (e.U1 t.CommonElement e.U2) (e.V1 t.CommonElement e.V2)
+    = <SubtractSets (e.U1 e.U2) (e.V1 e.V2)>;
+
+  /* No common elements */
+  t.Reduced t.Subtracted = t.Reduced;
 }
 
-/*Throws `Recognition Impossible` if the lists have not equal lengths. */
-$ENTRY Zip {
- (t.X e.X) (t.Y e.Y)
-  = (t.X t.Y) <Zip (e.X)(e.Y)>;
- (/* EMPTY */)(/* EMPTY */) = /* EMPTY */;
+/*
+  <GetUniqueValues s.Mode e.Expr>
+    == e.UniqueExpr
+*/
+$ENTRY GetUniqueValues {
+  Flat e.U1 t.X e.U2 t.X e.U3 = <GetUniqueValues Flat e.U1 t.X e.U2 e.U3>;
+  
+  Wrap (e.U1 t.X e.U2 t.X e.U3) = <GetUniqueValues Wrap (e.U1 t.X e.U2 e.U3)>;
+  
+  s.AnyMode e.AlreadyUnique = e.AlreadyUnique;
 }
 
-$ENTRY FormPair {
-   t.First t.Second = (t.First t.Second);
-}
+/*
+  <IsEmpty e.Any>
+    == True
+    == False
+*/
+$ENTRY IsEmpty {
+  /* EMPTY */ = True;
 
-$ENTRY Flat {
-  (e.X) = e.X;
-}
-
-$ENTRY BelongsTo {
-  t.X (e.U1 t.X e.U2) = True;
   e.Other = False;
 }
 
+/*
+  <QuickSort s.LessFunc e.List>
+    == e.SortedList
+*/
+$ENTRY QuickSort {
+  s.LessFunc e.List
+    , e.List : {
+      /* Empty list */ = /* EMPTY */;
+      
+      t.Pivot e.Tail
+        , <Partition s.LessFunc () t.Pivot () e.Tail>
+        : (e.Left) t.Pivot (e.Right)
+        = <QuickSort s.LessFunc e.Left>
+          t.Pivot
+          <QuickSort s.LessFunc e.Right>;
+    };
+}
+ 
+/*
+  <Partition s.LessFunc (e.Left) t.Pivot (e.Right) e.List>
+    == (e.NewLeft) t.Pivot (e.NewRight)
+*/
+$ENTRY Partition {
+  s.LessFunc (e.Left) t.Pivot (e.Right) e.List
+    , e.List : {
+      /* Empty list */ = (e.Left) t.Pivot (e.Right);
+      
+      t.X e.Tail 
+        , <Mu s.LessFunc t.X t.Pivot> : {
+          True = <Partition s.LessFunc (e.Left t.X) t.Pivot (e.Right) e.Tail>;
+
+          False = <Partition s.LessFunc (e.Left) t.Pivot (e.Right t.X) e.Tail>;
+        };
+    };
+}
+
+/* Throws `Recognition Impossible` if the lists have not equal lengths. */
+$ENTRY Zip {
+  (t.X e.X) (t.Y e.Y) = (t.X t.Y) <Zip (e.X) (e.Y)>;
+    
+  (/* EMPTY */) (/* EMPTY */) = /* EMPTY */;
+}
+
+/*
+  Concatenation of corresponding elements of two lists of equal length.
+  
+  <Overlap ((e.X) e.Xs) ((e.Y) e.Ys)>
+    == ((e.X e.Y) e.Rest)
+*/
+$ENTRY Overlap {
+  ((e.X) e.Xs) ((e.Y) e.Ys) = <Overlap (e.Xs (e.X e.Y)) (e.Ys)>;
+    
+  (e.OverlappedLists) (/* EMPTY */) = (e.OverlappedLists);
+}
+
+$ENTRY FormPair {
+  t.First t.Second = (t.First t.Second);
+}
+
 $ENTRY Trim {
-  e.X' 'e.Y = e.X<Trim e.Y>;
+  e.X ' ' e.Y = e.X <Trim e.Y>;
+  
   e.Z = e.Z;
 }
 
 $ENTRY Arrange {
- Normal (e.1) (e.2) = e.1 e.2;
- Inverse (e.1) (e.2) = e.2 e.1;
+  Normal (e.1) (e.2) = e.1 e.2;
+  
+  Inverse (e.1) (e.2) = e.2 e.1;
 }
 
 $ENTRY Take {
   Left (t.Term e.Expr) = (t.Term e.Expr);
+  
   Right (e.Expr t.Term) = (t.Term e.Expr);
+  
   s.AnyMode (/* No term */) = (/* EMPTY */);
 }
 
 $ENTRY Unwrap {
-  (e.Preamble)(e.Preamble e.Val) = e.Val;
-  (e.Preamble)e.Preamble e.Val = e.Val;
+  (e.Preamble) (e.Preamble e.Val) = e.Val;
+  
+  (e.Preamble) e.Preamble e.Val = e.Val;
+  
   (e.Preamble) e.Val = e.Val;
 }
 
 $ENTRY Wrap {
-  Plain s.Order (e.Preamble)e.Val = <Arrange s.Order (e.Preamble) (e.Val)>;
-  Inner s.Order (e.Preamble)e.Val = (<Arrange s.Order (e.Preamble) (e.Val)>);
-  Combined s.Order (e.Preamble)e.Val = <Arrange s.Order (e.Preamble) ((e.Val))>;
+  Plain s.Order (e.Preamble) e.Val
+    = <Arrange s.Order (e.Preamble) (e.Val)>;
+    
+  Inner s.Order (e.Preamble) e.Val
+    = (<Arrange s.Order (e.Preamble) (e.Val)>);
+    
+  Combined s.Order (e.Preamble) e.Val
+    = <Arrange s.Order (e.Preamble) ((e.Val))>;
 }
 
-*$ENTRY Go { = <Prout <GetNewIndex i19>>;}
+/*
+  <IsWordInAlphabet (e.Word) (e.Alphabet)>
+    == True
+    == False
+*/
+$ENTRY IsWordInAlphabet {
+  (e.Word) (e.Alphabet)
+    , e.Word : {
+      t.Letter e.RestWord
+        , e.Alphabet : {
+          e.L t.Letter e.R = <IsWordInAlphabet (e.RestWord) (e.Alphabet)>;
+
+          e.Other = False;
+        };
+
+      /* Let's assume an empty word belongs to any alphabet */
+      /* EMPTY */ = True;
+    };
+}
+
+$ENTRY LatinCapitalLetters {
+  = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+}
 
