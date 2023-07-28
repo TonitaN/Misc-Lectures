@@ -1,0 +1,24 @@
+\input{preamble.tex}
+\begin{tikzpicture}[
+level 0/.style = {sibling distance = 12em,level distance = 4em},
+level 0/.style = {sibling distance = 12em,level distance = 3em},
+level 1/.style = {sibling distance = 6em,level distance = 5em},
+level 2/.style = {sibling distance = 16em,level distance = 7em},
+]
+
+\input{styles.tex}
+\node (0B1) [chosenequation]{\nodepart{one}$A_{0}B_{0}\mathbf{w}\mathbf{u}\mathbf{u} = \mathbf{w}\mathbf{u}\mathbf{u}B_{0}A_{0}$\nodepart{two}$\begin{array}{l}\mathrm{No\;constraints}\\\mathrm{No\;conditions}\\\end{array}$}
+child {node [action]{$\begin{array}{c}\mathtt{PairComp}\\A_{0}\;B_{0}\end{array}$} edge from parent [draw opacity = 0]
+child {node (2B1) [fullequation]{\nodepart{one}$A_{1}\mathbf{w}A_{1}\mathbf{u}A_{1}\mathbf{u}A_{0} = \mathbf{w}A_{1}\mathbf{u}A_{1}\mathbf{u}A_{1}A_{0}$\nodepart{two}$\begin{array}{l}\mathrm{No\;constraints}\\A_{1}:=A_{0}B_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B2) [fullequation]{\nodepart{one}$A_{1}\mathbf{w}B_{0}\mathbf{u}A_{1}\mathbf{u}A_{0} = \mathbf{w}B_{0}\mathbf{u}A_{1}\mathbf{u}A_{1}A_{0}$\nodepart{two}$\begin{array}{l}\mathbf{w}\neq{}\mathbf{w_{P}}A_{0}\\A_{1}:=A_{0}B_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B3) [fullequation]{\nodepart{one}$A_{1}\mathbf{w}A_{1}\mathbf{u}B_{0}\mathbf{u} = \mathbf{w}A_{1}\mathbf{u}B_{0}\mathbf{u}B_{0}A_{0}$\nodepart{two}$\begin{array}{l}\mathbf{u}\neq{}\mathbf{u_{P}}A_{0}\\A_{1}:=A_{0}B_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B4) [fullequation]{\nodepart{one}$A_{1}\mathbf{w}\mathbf{u}A_{0}\mathbf{u}A_{0} = \mathbf{w}\mathbf{u}A_{0}\mathbf{u}A_{1}A_{0}$\nodepart{two}$\begin{array}{l}\mathbf{u}\neq{}B_{0}\mathbf{u_{S}}\\A_{1}:=A_{0}B_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B5) [fullequation]{\nodepart{one}$A_{1}\mathbf{w}\mathbf{u}\mathbf{u} = \mathbf{w}\mathbf{u}\mathbf{u}B_{0}A_{0}$\nodepart{two}$\begin{array}{l}\mathbf{u}\neq{}\mathbf{u_{P}}A_{0}\\\mathbf{u}\neq{}B_{0}\mathbf{u_{S}}\\A_{1}:=A_{0}B_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node [eqset,inner sep=-3em,cloud puffs=70,aspect=6,fit=(2B1)(2B2)(2B3)(2B4)(2B5)] {}
+};};
+\input{postfix.tex}

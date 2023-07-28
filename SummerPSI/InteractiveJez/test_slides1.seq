@@ -1,0 +1,22 @@
+((AreEqual ((A 0)(B 0)(Var w)(Var u)(Var u))((Var w)(Var u)(Var u)(B 0)(A 0)))()())
+
+(PairComp (A 0) (B 0))
+
+(Set 
+((AreEqual ((A 1)(Var w)(A 1)(Var u)(A 1)(Var u)(A 0))((Var w)(A 1)(Var u)(A 1)(Var u)(A 1)(A 0)))
+  ()
+   (((A 1) is ((A 0)((const)1))((B 0)((const)1)))))
+((AreEqual ((A 1)(Var w)(B 0)(Var u)(A 1)(Var u)(A 0))((Var w)(B 0)(Var u)(A 1)(Var u)(A 1)(A 0)))
+   ((OR (not (A 0) ends (Var w))))
+   (((A 1) is ((A 0)((const)1))((B 0)((const)1)))))
+((AreEqual ((A 1)(Var w)(A 1)(Var u)(B 0)(Var u))((Var w)(A 1)(Var u)(B 0)(Var u)(B 0)(A 0)))
+   ((OR (not (A 0) ends (Var u))))
+   (((A 1) is ((A 0)((const)1))((B 0)((const)1)))))
+((AreEqual ((A 1)(Var w)(Var u)(A 0)(Var u)(A 0))((Var w)(Var u)(A 0)(Var u)(A 1)(A 0)))
+   ((OR (not (B 0) starts (Var u))))
+   (((A 1) is ((A 0)((const)1))((B 0)((const)1)))))
+((AreEqual ((A 1)(Var w)(Var u)(Var u))((Var w)(Var u)(Var u)(B 0)(A 0)))
+   ((OR (not (A 0) ends (Var u)))(OR (not (B 0) starts (Var u))))
+   (((A 1) is ((A 0)((const)1))((B 0)((const)1)))))
+)
+
