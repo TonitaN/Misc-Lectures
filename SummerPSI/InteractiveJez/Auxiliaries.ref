@@ -179,3 +179,17 @@ $ENTRY LatinCapitalLetters {
   = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 }
 
+/*
+  <IsElemInSet t.Elem (e.Set)>
+    == True
+    == False
+*/
+$ENTRY IsElemInSet {
+  t.Elem (e.Set)
+    , e.Set : {
+      e.L t.Elem e.R = True;
+
+      e.Set = False;
+    };
+}
+

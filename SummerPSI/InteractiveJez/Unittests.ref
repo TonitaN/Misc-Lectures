@@ -1,8 +1,16 @@
 *$INLINE HigherOrder;
 
+/*
+  Abbreviations:
+  - subst: substitution;
+  - elem: element;
+  - var: variable;
+  - restr: restriction;
+*/
+
 $EXTERN FormPair, Zip, Take, GetNextConst, IsWordInAlphabet, IsEmpty,
         LatinCapitalLetters, SubtractSets, GetUniqueValues, QuickSort,
-        Partition, Overlap;
+        Partition, Overlap, IsElemInSet;
         
 $ENTRY Go {
   = <Prout
@@ -212,20 +220,6 @@ TestSet-PairComp {
         )
         (/* No constraints */)
         (/* No index equations */)
-      )
-    )
-    (
-      4
-      ('A' 1)
-      ('A' 0) ('B' 0)
-      (
-        (
-          AreEqual
-          ((Var 'Y') ('B' 0) (Var 'Z') ('A' 0) (Var 'Y') (Var 'Z') ('B' 0))
-          ((Var 'X') ('A' 0) (Var 'Y') (Var 'W') (Var 'Y') (Var 'Z'))
-        )
-        (/* No constraints */)
-        (/* No conditions */)
       )
     );
 }
@@ -581,15 +575,6 @@ RunPairComp {
         
       e.Other = False;
     };
-    
-  (4 e.Input)
-    , <PairComp e.Input> : {
-      ('B' 1) (e.NewEqs)
-      /* ... */
-        = True;
-
-      e.Other = False;
-    };
 }
 
 /*
@@ -599,19 +584,19 @@ RunPairComp {
 Pick {
   1 ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions)) e.RestEquations
     , <SubtractSets
-        (<GetUniqueValues Flat <MapCall Plain GetVariables (e.LHS) (e.RHS)>>)
-        (<GetNonEmptyVariables e.Constraints>)
+        (<GetUniqueValues Flat <MapCall Plain GetVars (e.LHS) (e.RHS)>>)
+        (<GetNonEmptyVars e.Constraints>)
       >
-    : (e.VariablesForSubstitution)
+    : (e.VarsForSubst)
     , <MapCall
         Revert
         (GenSubst (/* EMPTY */))
-        e.VariablesForSubstitution
+        e.VarsForSubst
       >
-    : e.Substitutions
+    : e.Substs
     , <MapCall
         Curry
-        (Subst (e.Substitutions))
+        (Subst (e.Substs))
         (e.LHS) (e.RHS)
       >
     : {
@@ -661,29 +646,29 @@ GenSubst {
 }
 
 /*
-  <GetNonEmptyVariables e.Constraints>
-    == e.NonEmptyVariables
+  <GetNonEmptyVars e.Constraints>
+    == e.NonEmptyVars
 */
-GetNonEmptyVariables {
-  e.L (OR (not empty (Var s.X))) e.R = (Var s.X) <GetNonEmptyVariables e.R>;
+GetNonEmptyVars {
+  e.L (OR (not empty (Var s.X))) e.R = (Var s.X) <GetNonEmptyVars e.R>;
 
   /* No appropriate disjuncts left */
   e.Other = /* EMPTY */;
 }
 
-GetVariables {
+GetVars {
   (t.Comp e.RestComps)
     , t.Comp : {
-      (Var s.Name) = t.Comp <GetVariables (e.RestComps)>;
+      (Var s.Name) = t.Comp <GetVars (e.RestComps)>;
 
-      (s.Name s.Number) = <GetVariables (e.RestComps)>; /* Ignore consts. */
+      (s.Name s.Number) = <GetVars (e.RestComps)>; /* Ignore consts. */
 
-      e.Other = <Prout 'GetVariables: Invalid component ' e.Other>;
+      e.Other = <Prout 'GetVars: Invalid component ' e.Other>;
     };
 
   (/* No more comps */) = /* EMPTY */;
 
-  e.Other = <Prout 'GetVariables: Invalid input ' e.Other>;
+  e.Other = <Prout 'GetVars: Invalid input ' e.Other>;
 }
 
 GetConsts {
@@ -907,15 +892,15 @@ ReplaceRepeatedIndexEqs {
 }
 
 /*
-  <PairComp t.ReplacingConst t.FirstConst t.SecondConst t.Equation>
+  <PairComp t.ReplacingConst t.Const1 t.Const2 t.Equation>
     == t.NewReplacingConst (e.Equations)
 */
 PairComp {
-  t.ReplacingConst t.FirstConst t.SecondConst t.Equation
+  t.ReplacingConst t.Const1 t.Const2 t.Equation
     = <GetNextConst t.ReplacingConst>
       (
-        <HandleEssentiallyEmptySubstitutions
-          t.ReplacingConst t.FirstConst t.SecondConst t.Equation
+        <HandleEmptySubsts
+          t.ReplacingConst t.Const1 t.Const2 t.Equation
         >
       );
 }
@@ -923,56 +908,56 @@ PairComp {
 /*
   If an essentially empty substitution is possible, recursively calls itself
   with an applied and not applied substitution equations. Otherwise, transfers
-  control to the `HandleEssentiallyNonEmptySubstitutions` function.
+  control to the `HandleNonEmptySubsts` function.
   
-  <HandleEssentiallyEmptySubstitution
-    t.ReplacingConst t.FirstConst t.SecondConst t.Equation
+  <HandleEmptySubst
+    t.ReplacingConst t.Const1 t.Const2 t.Equation
   >
     == e.Equations 
 */
-HandleEssentiallyEmptySubstitutions {
-  t.ReplacingConst t.FirstConst t.SecondConst t.Equation
+HandleEmptySubsts {
+  t.ReplacingConst t.Const1 t.Const2 t.Equation
     , t.Equation : ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions))
-    /* Calling `GetEssentiallyEmptySubstitution` is quite expensive, so here's
+    /* Calling `GetEmptySubst` is quite expensive, so here's
        used `CallTill` not to make redundant calculations with `MapCall` */
     , <CallTill
         (/* EMPTY */)
         Curry
         (
-          GetEssentiallyEmptySubstitution
-          t.FirstConst t.SecondConst (e.Constraints)
+          GetEmptySubst
+          t.Const1 t.Const2 (e.Constraints)
         )
         (e.LHS) (e.RHS)
       >
     : {
       /* Found an essentially empty substitution */
-      t.Substitution
+      t.Subst
         = /* Calling with performed substitution */
-          <HandleEssentiallyEmptySubstitutions 
-            t.ReplacingConst t.FirstConst t.SecondConst
+          <HandleEmptySubsts 
+            t.ReplacingConst t.Const1 t.Const2
             (
               (
                 AreEqual
-                <MapCall Curry (Subst (t.Substitution)) (e.LHS) (e.RHS)>
+                <MapCall Curry (Subst (t.Subst)) (e.LHS) (e.RHS)>
               )
               (e.Constraints)
               (e.Conditions)
             )
           >
           /* Calling with not performed substitution */
-          <HandleEssentiallyEmptySubstitutions
-            t.ReplacingConst t.FirstConst t.SecondConst
+          <HandleEmptySubsts
+            t.ReplacingConst t.Const1 t.Const2
             (
               (AreEqual (e.LHS) (e.RHS))
-              (e.Constraints (OR <DenySubstitution t.Substitution>))
+              (e.Constraints (OR <DenySubst t.Subst>))
               (e.Conditions)
             )
           >;
       
       /* No essentially empty substitution is found. */
       /* EMPTY */
-        = <HandleEssentiallyNonEmptySubstitutions
-            t.ReplacingConst t.FirstConst t.SecondConst t.Equation
+        = <HandleNonEmptySubsts
+            t.ReplacingConst t.Const1 t.Const2 t.Equation
           >;
     };
 }
@@ -981,73 +966,73 @@ HandleEssentiallyEmptySubstitutions {
   Returns any essentially empty substitution possible in the given equation
   half. If no such substitution is found, returns ε.
   
-  <GetEssentiallyEmptySubstitution
-    t.FirstConst t.SecondConst (e.Constraints) (e.EquationHalf)
+  <GetEmptySubst
+    t.Const1 t.Const2 (e.Constraints) (e.EquationHalf)
   >
-    == t.Substitution
+    == t.Subst
     == ε
 */
-GetEssentiallyEmptySubstitution {
-  t.FirstConst t.SecondConst (e.Constraints) (e.EquationHalf)
+GetEmptySubst {
+  t.Const1 t.Const2 (e.Constraints) (e.EquationHalf)
     /* Saving the result of frequently called functions */
-    , <VariableAlphabet> : e.Variables
-    , <GetNonEmptyVariables e.Constraints> : e.NonEmptyVariables
+    , <VariableAlphabet> : e.Vars
+    , <GetNonEmptyVars e.Constraints> : e.NonEmptyVars
     , e.EquationHalf : {
-      e.L t.FirstConst e.M t.SecondConst e.R
+      e.L t.Const1 e.M t.Const2 e.R
         , <IsEmpty e.M> : False
         , <IsWordInAlphabet
             (e.M)
-            (e.Variables)
+            (e.Vars)
           >
         : True
         , <SubtractSets
             (<GetUniqueValues Flat e.M>)
-            (e.NonEmptyVariables)
+            (e.NonEmptyVars)
           >
-        : (t.SubstitutionVariable e.RestVariables)
-        = <GenSubst t.SubstitutionVariable (/* EMPTY */)>;
+        : (t.SubstVariable e.RestVars)
+        = <GenSubst t.SubstVariable (/* EMPTY */)>;
         
-      e.L t.FirstConst e.M (Var s.X) e.R
+      e.L t.Const1 e.M (Var s.X) e.R
         , <IsEmpty e.M> : False
         , <IsWordInAlphabet
             (e.M)
-            <SubtractSets (e.Variables) ((Var s.X))>
+            <SubtractSets (e.Vars) ((Var s.X))>
           >
         : True
         , <SubtractSets
             (<GetUniqueValues Flat e.M>)
-            (e.NonEmptyVariables)
+            (e.NonEmptyVars)
           >
-        : (t.SubstitutionVariable e.RestVariables)
-        = <GenSubst t.SubstitutionVariable (/* EMPTY */)>;
+        : (t.SubstVariable e.RestVars)
+        = <GenSubst t.SubstVariable (/* EMPTY */)>;
 
-      e.L (Var s.X) e.M t.SecondConst e.R
+      e.L (Var s.X) e.M t.Const2 e.R
         , <IsEmpty e.M> : False
         , <IsWordInAlphabet
             (e.M)
-            <SubtractSets (e.Variables) ((Var s.X))>
+            <SubtractSets (e.Vars) ((Var s.X))>
           >
         : True
         , <SubtractSets
             (<GetUniqueValues Flat e.M>)
-            (e.NonEmptyVariables)
+            (e.NonEmptyVars)
           >
-        : (t.SubstitutionVariable e.RestVariables)
-        = <GenSubst t.SubstitutionVariable (/* EMPTY */)>;
+        : (t.SubstVariable e.RestVars)
+        = <GenSubst t.SubstVariable (/* EMPTY */)>;
 
       e.L (Var s.X) e.M  (Var s.Y) e.R
         , <IsEmpty e.M> : False
         , <IsWordInAlphabet
             (e.M)
-            <SubtractSets (e.Variables) ((Var s.X) (Var s.Y))>
+            <SubtractSets (e.Vars) ((Var s.X) (Var s.Y))>
           >
         : True
         , <SubtractSets
             (<GetUniqueValues Flat e.M>)
-            (e.NonEmptyVariables)
+            (e.NonEmptyVars)
           >
-        : (t.SubstitutionVariable e.RestVariables)
-        = <GenSubst t.SubstitutionVariable (/* EMPTY */)>;
+        : (t.SubstVariable e.RestVars)
+        = <GenSubst t.SubstVariable (/* EMPTY */)>;
         
       /* No essentially empty substitutions for this half of the equation */
       e.Other = /* EMPTY */;
@@ -1057,31 +1042,24 @@ GetEssentiallyEmptySubstitution {
 /*
   Finds and applies essentially non-empty substitutions to the equation. 
   
-  <HandleEssentiallyNonEmptySubstitutions
-    t.ReplacingConst t.FirstConst t.SecondConst t.Equation
+  <HandleNonEmptySubsts
+    t.ReplacingConst t.Const1 t.Const2 t.Equation
   >
     == e.Equations 
 */
-HandleEssentiallyNonEmptySubstitutions {
-  t.ReplacingConst t.FirstConst t.SecondConst t.Equation
-    , t.Equation : ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions))
-    , <Overlap
-        <MapCall
-          Curry
-          (
-            GetEssentiallyNonEmptySubsts
-            t.FirstConst t.SecondConst
-            (/* No discovered elementary substitutions at start */)
-            (/* No discovered composite substitutions at start */)
-          )
-          (e.LHS) (e.RHS)
+HandleNonEmptySubsts {
+  t.ReplacingConst t.Const1 t.Const2 t.Equation
+    , t.Equation
+    : ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions))
+    , <GetNonEmptySubsts 
+        t.Const1 t.Const2 (e.Constraints) (e.Conditions)
+        <GetNonEmptySubsts
+          t.Const1 t.Const2 (e.Constraints) (e.Conditions)
+          (/* No discovered elementary substitutions at start */)
+          (/* No discovered composite substitutions at start */)
+          (e.LHS)
         >
-      >
-    : ((e.RawElementarySubsts) (e.RawCompositeSubsts))
-    , <MapCall
-        Curry
-        (GetUniqueValues Wrap)
-        (e.RawElementarySubsts) (e.RawCompositeSubsts)
+        (e.RHS)
       >
     : (e.ElementarySubsts) (e.CompositeSubsts)
     , <CartesianProductOfOptionSets
@@ -1099,74 +1077,200 @@ HandleEssentiallyNonEmptySubstitutions {
         (ApplyOption t.Equation)
         e.ProcessedOptions
       >
-    : e.Equations
+    : e.Equations /* duplicated equations? */
     /* ... */
       = /* New equations */;
 }
 
 /*
-  <GetEssentiallyNonEmptySubsts
-    t.Const1 t.Const2 (e.ElementarySubsts) (e.CompositeSubsts) (e.Expr)
+  Returns essentially non-empty substitutions for the given equation half.
+  
+  <GetNonEmptySubst
+    t.Const1 t.Const2 (e.Constraints) (e.Conditions)
+    (e.DiscoveredElementarySubsts) (e.DiscoveredCompositeSubsts) (e.Elems)
   >
-    == ((e.ElementarySubsts) (e.CompositeSubsts))
+    == e.Substs
 */
-GetEssentiallyNonEmptySubsts {
-  t.Const1 t.Const2 (e.ElementarySubsts) (e.CompositeSubsts) (e.Expr)
-    , e.Expr : {
-      /* Essential composite substitution */
-      (Var s.X) (Var s.Y) e.RestExpr
-      /* TODO: check restriction */
-        = <GetEssentiallyNonEmptySubsts
-            t.Const1 t.Const2
-            (e.ElementarySubsts)
-            (
-              e.CompositeSubsts
-              (
-                <GenSubst (Var s.X) ((Var s.X) t.Const1)>
-                <GenSubst (Var s.Y) (t.Const2 (Var s.Y))>
-              )
-            )
-            ((Var s.Y) e.RestExpr)
-          >;
+GetNonEmptySubsts {
+  t.Const1 t.Const2 (e.Constraints) (e.Conditions)
+  (e.ElementarySubsts) (e.CompositeSubsts) (e.Elems)
+    , e.Elems : {
+      (Var s.X) (Var s.Y) e.RestElems
+        , <GenSubst (Var s.X) ((Var s.X) t.Const1)> : t.Subst1
+        , <GenSubst (Var s.Y) (t.Const2 (Var s.Y))> : t.Subst2
+        , (GetNonEmptySubsts
+            t.Const1 t.Const2 (e.Constraints) (e.Conditions)
+            (e.ElementarySubsts) (e.CompositeSubsts)
+            ((Var s.Y) e.RestElems)
+          ) : t.SkipSubst
+        , (GetNonEmptySubsts
+            t.Const1 t.Const2 (e.Constraints) (e.Conditions)
+            (e.ElementarySubsts) (e.CompositeSubsts (t.Subst1 t.Subst2))
+            ((Var s.Y) e.RestElems)
+          ) : t.AddSubst
+        , <IsElemInSet (t.Subst1 t.Subst2) (e.CompositeSubsts)> : {
+            /* The substitution is already processed. */
+            True = <UnwrapCalls t.SkipSubst>;
+                
+            False
+              , e.Constraints : {
+                e.L (OR (not t.ConstX ends (Var s.X))) e.R
+                  , <IsElemInSet
+                      t.ConstX
+                      (t.Const1 <GetLast t.Const1 (e.Conditions)>)
+                    > : {
+                      /* The substitution is impossible. */
+                      True = <UnwrapCalls t.SkipSubst>;
+                    
+                      False
+                        ,  e.L e.R : {
+                          e.L1 (OR (not t.ConstY starts (Var s.Y))) e.R1
+                            , <IsElemInSet
+                                t.ConstY
+                                (t.Const2 <GetFirst t.Const2 (e.Conditions)>)
+                              > : {
+                                /* The substitution is impossible. */
+                                True = <UnwrapCalls t.SkipSubst>;
 
-      /* Essential prefix substitution is possible */
-      t.Const1 (Var s.X) e.RestExpr
-      /* TODO: check restrictions */
-        = <GetEssentiallyNonEmptySubsts
-            t.Const1 t.Const2
-            (
-              e.ElementarySubsts
-              <GenSubst (Var s.X) (t.Const2 (Var s.X))>
-            )
-            (e.CompositeSubsts)
-            ((Var s.X) e.RestExpr)
-          >;
+                                False = <UnwrapCalls t.AddSubst>;
+                              };
+                          
+                          /* No constraint on the substitution. */
+                          e.L e.R = <UnwrapCalls t.AddSubst>;
+                        };
+                    };
 
-      /* Essential suffix substitution is possible */
-      (Var s.X) t.Const2 e.RestExpr
-      /* TODO: check restrictions */
-        = <GetEssentiallyNonEmptySubsts
-            t.Const1 t.Const2
-            (
-              e.ElementarySubsts
-              <GenSubst (Var s.X) ((Var s.X) t.Const1)>
-            )
-            (e.CompositeSubsts)
-            (e.RestExpr)
-          >;
+                /* No constraint on the first substitution. */
+                e.L (OR (not t.ConstY starts (Var s.Y))) e.R
+                  , <IsElemInSet
+                      t.ConstY
+                      (t.Const2 <GetFirst t.Const2 (e.Conditions)>)
+                    > : {
+                      /* The substitution is impossible. */
+                      True = <UnwrapCalls t.SkipSubst>;
 
-      /* No essential substitution */
-      t.Elem1 t.Elem2 e.RestExpr
-        = <GetEssentiallyNonEmptySubsts
-            t.Const1 t.Const2
-            (e.ElementarySubsts)
-            (e.CompositeSubsts)
-            (t.Elem2 e.RestExpr)
-          >;
+                      False = <UnwrapCalls t.AddSubst>;
+                    };
 
-      t.Elem = ((e.ElementarySubsts) (e.CompositeSubsts));
+                /* No constraints on the substitutions. */
+                e.Constraints = <UnwrapCalls t.AddSubst>;
+              };
+        };
+
+      t.Const1 (Var s.X) e.RestElems
+        , <GenSubst (Var s.X) (t.Const2 (Var s.X))> : t.Subst
+        , (GetNonEmptySubsts
+            t.Const1 t.Const2 (e.Constraints) (e.Conditions)
+            (e.ElementarySubsts) (e.CompositeSubsts)
+            ((Var s.X) e.RestElems)
+          ) : t.SkipSubst
+        , (GetNonEmptySubsts
+            t.Const1 t.Const2 (e.Constraints) (e.Conditions)
+            (e.ElementarySubsts t.Subst) (e.CompositeSubsts)
+            ((Var s.X) e.RestElems)
+          ) : t.AddSubst
+        , <IsElemInSet t.Subst (e.ElementarySubsts)> : {
+            True = <UnwrapCalls t.SkipSubst>;
+                
+            False
+              , e.Constraints : {
+                e.L (OR (not t.Const starts (Var s.X))) e.R
+                  , <IsElemInSet
+                      t.Const
+                      (t.Const2 <GetFirst t.Const2 (e.Conditions)>)
+                    > : {
+                      True = <UnwrapCalls t.SkipSubst>;
+                    
+                      False = <UnwrapCalls t.AddSubst>;
+                    };
+
+                e.Constraints = <UnwrapCalls t.AddSubst>;
+              };
+        };
+        
+      (Var s.X) t.Const2 e.RestElems
+        , <GenSubst (Var s.X) ((Var s.X) t.Const1)> : t.Subst
+        , (GetNonEmptySubsts
+            t.Const1 t.Const2 (e.Constraints) (e.Conditions)
+            (e.ElementarySubsts) (e.CompositeSubsts)
+            (e.RestElems) /* can skip t.Const2 */
+          ) : t.SkipSubst
+        , (GetNonEmptySubsts
+            t.Const1 t.Const2 (e.Constraints) (e.Conditions)
+            (e.ElementarySubsts t.Subst) (e.CompositeSubsts)
+            (e.RestElems)
+          ) : t.AddSubst
+        , <IsElemInSet t.Subst (e.ElementarySubsts)> : {
+            True = <UnwrapCalls t.SkipSubst>;
+                
+            False
+              , e.Constraints : {
+                e.L (OR (not t.Const ends (Var s.X))) e.R
+                  , <IsElemInSet
+                      t.Const
+                      (t.Const1 <GetLast t.Const1 (e.Conditions)>)
+                    > : {
+                      True = <UnwrapCalls t.SkipSubst>;
+                    
+                      False = <UnwrapCalls t.AddSubst>;
+                    };
+
+                e.Constraints = <UnwrapCalls t.AddSubst>;
+              };
+        };
+
+      t.Elem1 t.Elem2 e.RestElems
+        , t.Elem2 : {
+          t.Const1
+            = <GetNonEmptySubsts
+                t.Const1 t.Const2 (e.Constraints) (e.Conditions)
+                (e.ElementarySubsts) (e.CompositeSubsts)
+                (t.Const1 e.RestElems)
+              >;
+
+          t.Elem2
+            = <GetNonEmptySubsts
+                t.Const1 t.Const2 (e.Constraints) (e.Conditions)
+                (e.ElementarySubsts) (e.CompositeSubsts)
+                (e.RestElems) /* can skip t.Elem2 */
+              >;
+        };
+
+      e.OneOrNoTerm = (e.ElementarySubsts) (e.CompositeSubsts);
+    };
+}
+
+/*
+  Returns the First-elements of the constant.
+
+  <GetFirst t.Const (e.Conditions)>
+    == e.FirstElems
+*/
+GetFirst {
+  t.Const (e.Conditions)
+    , e.Conditions : {
+      e.L (t.Const is (t.FirstElem e.Details) e.Elems) e.R
+        = t.FirstElem <GetFirst t.FirstElem (e.L e.R)>;
+
+      /* No condition for the constant. */
+      e.Conditions = /* EMTPY */;
+    };
+}
+
+/*
+  Returns the Last-elements of the constant.
+
+  <GetLast t.Const (e.Conditions)>
+    == e.LastElems
+*/
+GetLast {
+  t.Const (e.Conditions)
+    , e.Conditions : {
+      e.L (t.Const is e.Elems (t.LastElem e.Details)) e.R
+        = t.LastElem <GetLast t.LastElem (e.L e.R)>;
       
-      /* No elements */ = ((e.ElementarySubsts) (e.CompositeSubsts));
+      /* No condition for the constant. */
+      e.Conditions = /* EMPTY */;
     };
 }
 
@@ -1247,20 +1351,20 @@ GenOptionSetFromCompositeSubst {
                 (
                   (t.Subst1)
                   (
-                    (OR <DenySubstitution t.Subst2>)
+                    (OR <DenySubst t.Subst2>)
                   )
                 )
                 (
                   (t.Subst2)
                   (
-                    (OR <DenySubstitution t.Subst1>)
+                    (OR <DenySubst t.Subst1>)
                   )
                 )
                 (
                   (/* No substitutions */)
                   (
-                    (OR <DenySubstitution t.Subst1>)
-                    (OR <DenySubstitution t.Subst2>)
+                    (OR <DenySubst t.Subst1>)
+                    (OR <DenySubst t.Subst2>)
                   )
                 )
               );
@@ -1275,13 +1379,13 @@ GenOptionSetFromCompositeSubst {
                 (
                   (t.Subst1)
                   (
-                    (OR <DenySubstitution t.Subst2>)
+                    (OR <DenySubst t.Subst2>)
                   )
                 )
                 (
                   (/* No substitutions */)
                   (
-                    (OR <DenySubstitution t.Subst1>)
+                    (OR <DenySubst t.Subst1>)
                   )
                 )
               );
@@ -1297,13 +1401,13 @@ GenOptionSetFromCompositeSubst {
             (
               (t.Subst2)
               (
-                (OR <DenySubstitution t.Subst1>)
+                (OR <DenySubst t.Subst1>)
               )
             )
             (
               (/* No substitutions */)
               (
-                (OR <DenySubstitution t.Subst2>)
+                (OR <DenySubst t.Subst2>)
               )
             )
           );
@@ -1320,8 +1424,8 @@ GenOptionSetFromCompositeSubst {
               (
                 (
                   OR
-                  <DenySubstitution t.Subst1>
-                  <DenySubstitution t.Subst2>
+                  <DenySubst t.Subst1>
+                  <DenySubst t.Subst2>
                 )
               )
             )
@@ -1330,10 +1434,10 @@ GenOptionSetFromCompositeSubst {
 }
 
 /*
-  <DenySubstitution t.ElementarySubstitution>
+  <DenySubst t.ElementarySubst>
     == t.Restriction
 */
-DenySubstitution {
+DenySubst {
   (assign t.Var (e.NewValue))
     , e.NewValue : {
       t.Var t.Const = (not t.Const ends t.Var);
@@ -1358,7 +1462,7 @@ GenOptionSetFromElementarySubst {
         (
           (/* No substitutions */)
           (
-            (OR <DenySubstitution t.Subst>)
+            (OR <DenySubst t.Subst>)
           )
         )
       );
@@ -1436,7 +1540,7 @@ RemoveRedundantConstraints {
 */
 FixOptionConsistency {
   ((t.Subst e.RestSubsts) (e.Constraints)) (e.CheckedSubsts)
-    , <DenySubstitution t.Subst> : t.Restr
+    , <DenySubst t.Subst> : t.Restr
     , e.Constraints : {
       /* Found a disjunct containing the restriction */
       e.L (OR e.L1 t.Restr e.R1) e.R
@@ -1475,7 +1579,7 @@ FixOptionConsistency {
 */
 ApplyOption {
   ((e.Substs) (e.NewConstraints))
-  ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.IndexEquations))
+  ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions))
     , <MapCall
         Curry
         (Subst (e.Substs))
@@ -1486,13 +1590,13 @@ ApplyOption {
         ((TrimEquation Left) (TrimEquation Right))
         (
           (AreEqual (e.SubstitutedLHS) (e.SubstitutedRHS))
-          (e.Constraints) (e.IndexEquations)
+          (e.Constraints) (e.Conditions)
         )
       >
     : ((AreEqual (e.TrimmedLHS) (e.TrimmedRHS)) e.Rest)
     /* ... */
       /* Dummy output */
-      = ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.IndexEquations));
+      = ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions));
 }
   
 /* TODO: move to the Auxiliaries.ref all the following functions. */
