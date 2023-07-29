@@ -69,6 +69,41 @@ GenVariable {
   s.Name = (Var s.Name);
 }
 
+/*
+  Returns the First-elements of the constant.
+
+  <GetFirst t.Const (e.Conditions)>
+    == e.FirstElems
+*/
+GetFirst {
+  t.Const (e.Conditions)
+    , e.Conditions : {
+      e.L (t.Const is (t.FirstElem e.Details) e.Elems) e.R
+        = t.FirstElem <GetFirst t.FirstElem (e.L e.R)>;
+
+      /* No condition for the constant. */
+      e.Conditions = /* EMTPY */;
+    };
+}
+
+/*
+  Returns the Last-elements of the constant.
+
+  <GetLast t.Const (e.Conditions)>
+    == e.LastElems
+*/
+GetLast {
+  t.Const (e.Conditions)
+    , e.Conditions : {
+      e.L (t.Const is e.Elems (t.LastElem e.Details)) e.R
+        = t.LastElem <GetLast t.LastElem (e.L e.R)>;
+      
+      /* No condition for the constant. */
+      e.Conditions = /* EMPTY */;
+    };
+}
+
+
 TestSet-Pick {
   = (
       (
@@ -949,7 +984,7 @@ HandleEmptySubsts {
             t.ReplacingConst t.Const1 t.Const2
             (
               (AreEqual (e.LHS) (e.RHS))
-              (e.Constraints (OR <DenySubst t.Subst>))
+              (e.Constraints (OR <GenSubstDenial t.Subst>))
               (e.Conditions)
             )
           >;
@@ -1051,6 +1086,7 @@ HandleNonEmptySubsts {
   t.ReplacingConst t.Const1 t.Const2 t.Equation
     , t.Equation
     : ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions))
+    /* , <Prout 'Equation: ' t.Equation> : */
     , <GetNonEmptySubsts 
         t.Const1 t.Const2 (e.Constraints) (e.Conditions)
         <GetNonEmptySubsts
@@ -1067,11 +1103,12 @@ HandleNonEmptySubsts {
       >
     : (e.MultipliedOptions) /* what if no options initially? */
     , <MapCall
-        Plain
-        ProcessOption
+        Curry
+        (ProcessOption (e.Conditions))
         e.MultipliedOptions
       >
     : e.ProcessedOptions /* remove duplicates? */
+    /* , <Prout 'Processed options: ' e.ProcessedOptions> : */
     , <MapCall
         Revert
         (ApplyOption t.Equation)
@@ -1220,57 +1257,13 @@ GetNonEmptySubsts {
         };
 
       t.Elem1 t.Elem2 e.RestElems
-        , t.Elem2 : {
-          t.Const1
-            = <GetNonEmptySubsts
-                t.Const1 t.Const2 (e.Constraints) (e.Conditions)
-                (e.ElementarySubsts) (e.CompositeSubsts)
-                (t.Const1 e.RestElems)
-              >;
-
-          t.Elem2
-            = <GetNonEmptySubsts
-                t.Const1 t.Const2 (e.Constraints) (e.Conditions)
-                (e.ElementarySubsts) (e.CompositeSubsts)
-                (e.RestElems) /* can skip t.Elem2 */
-              >;
-        };
+        = <GetNonEmptySubsts
+            t.Const1 t.Const2 (e.Constraints) (e.Conditions)
+            (e.ElementarySubsts) (e.CompositeSubsts)
+            (t.Elem2 e.RestElems)
+          >;
 
       e.OneOrNoTerm = (e.ElementarySubsts) (e.CompositeSubsts);
-    };
-}
-
-/*
-  Returns the First-elements of the constant.
-
-  <GetFirst t.Const (e.Conditions)>
-    == e.FirstElems
-*/
-GetFirst {
-  t.Const (e.Conditions)
-    , e.Conditions : {
-      e.L (t.Const is (t.FirstElem e.Details) e.Elems) e.R
-        = t.FirstElem <GetFirst t.FirstElem (e.L e.R)>;
-
-      /* No condition for the constant. */
-      e.Conditions = /* EMTPY */;
-    };
-}
-
-/*
-  Returns the Last-elements of the constant.
-
-  <GetLast t.Const (e.Conditions)>
-    == e.LastElems
-*/
-GetLast {
-  t.Const (e.Conditions)
-    , e.Conditions : {
-      e.L (t.Const is e.Elems (t.LastElem e.Details)) e.R
-        = t.LastElem <GetLast t.LastElem (e.L e.R)>;
-      
-      /* No condition for the constant. */
-      e.Conditions = /* EMPTY */;
     };
 }
 
@@ -1293,12 +1286,12 @@ GenOptionSets {
     : (e.UnprocessedElementarySubsts)
     = <MapCall
         Revert
-        (GenOptionSetFromCompositeSubst (e.SpecialSubsts))
+        (GenCompositeOptionSet (e.SpecialSubsts))
         e.CompositeSubsts
       >
       <MapCall
         Plain
-        GenOptionSetFromElementarySubst
+        GenElementaryOptionSet
         e.UnprocessedElementarySubsts
       >;
 }
@@ -1306,6 +1299,8 @@ GenOptionSets {
 /*
   For the equation, we call an essential elementary substitution "special"
   if it is present in some essential composite substitution.
+
+  Returns special substitutions of the given composite substitution.
   
   <GetSpecialSubsts t.CompositeSubst (e.ElementarySubsts)>
     == e.SpecialSubsts
@@ -1316,26 +1311,29 @@ GetSpecialSubsts {
       /* The first substitution is special. */
       e.L t.Subst1 e.R
         , e.L e.R : {
-          /* The second substitution is essential too. */
+          /* The second substitution is special too. */
           e.L1 t.Subst2 e.R1 = t.Subst1 t.Subst2;
 
-          /* Only the first substitution is essential. */
+          /* Only the first substitution is special. */
           e.Other = t.Subst1;
         };
 
-      /* Only the second substitution is essential. */
+      /* Only the second substitution is special. */
       e.L t.Subst2 e.R = t.Subst2;
 
-      /* None of the substitutions are essential. */
+      /* None of the substitutions are special. */
       e.Other = /* EMPTY */;
     };
 }
 
 /*
-  <GenOptionSetFromCompositeSubst t.CompositeSubst (e.SpecialSubsts)>
+  We will call an option set composite if it is obtained from a composite
+  substitution. 
+  
+  <GenCompositeOptionSet t.CompositeSubst (e.SpecialSubsts)>
     == e.OptionSet
 */
-GenOptionSetFromCompositeSubst {
+GenCompositeOptionSet {
   (t.Subst1 t.Subst2) (e.SpecialSubsts)
     , e.SpecialSubsts : {
       /* The first substitution is special. */
@@ -1351,20 +1349,20 @@ GenOptionSetFromCompositeSubst {
                 (
                   (t.Subst1)
                   (
-                    (OR <DenySubst t.Subst2>)
+                    (OR <GenSubstDenial t.Subst2>)
                   )
                 )
                 (
                   (t.Subst2)
                   (
-                    (OR <DenySubst t.Subst1>)
+                    (OR <GenSubstDenial t.Subst1>)
                   )
                 )
                 (
                   (/* No substitutions */)
                   (
-                    (OR <DenySubst t.Subst1>)
-                    (OR <DenySubst t.Subst2>)
+                    (OR <GenSubstDenial t.Subst1>)
+                    (OR <GenSubstDenial t.Subst2>)
                   )
                 )
               );
@@ -1379,13 +1377,13 @@ GenOptionSetFromCompositeSubst {
                 (
                   (t.Subst1)
                   (
-                    (OR <DenySubst t.Subst2>)
+                    (OR <GenSubstDenial t.Subst2>)
                   )
                 )
                 (
                   (/* No substitutions */)
                   (
-                    (OR <DenySubst t.Subst1>)
+                    (OR <GenSubstDenial t.Subst1>)
                   )
                 )
               );
@@ -1401,13 +1399,13 @@ GenOptionSetFromCompositeSubst {
             (
               (t.Subst2)
               (
-                (OR <DenySubst t.Subst1>)
+                (OR <GenSubstDenial t.Subst1>)
               )
             )
             (
               (/* No substitutions */)
               (
-                (OR <DenySubst t.Subst2>)
+                (OR <GenSubstDenial t.Subst2>)
               )
             )
           );
@@ -1424,8 +1422,8 @@ GenOptionSetFromCompositeSubst {
               (
                 (
                   OR
-                  <DenySubst t.Subst1>
-                  <DenySubst t.Subst2>
+                  <GenSubstDenial t.Subst1>
+                  <GenSubstDenial t.Subst2>
                 )
               )
             )
@@ -1434,10 +1432,10 @@ GenOptionSetFromCompositeSubst {
 }
 
 /*
-  <DenySubst t.ElementarySubst>
+  <GenSubstDenial t.ElementarySubst>
     == t.Restriction
 */
-DenySubst {
+GenSubstDenial {
   (assign t.Var (e.NewValue))
     , e.NewValue : {
       t.Var t.Const = (not t.Const ends t.Var);
@@ -1449,10 +1447,13 @@ DenySubst {
 }
 
 /*
-  <GenOptionSetFromElementarySubst t.ElementarySubst>
+  We will call an option set elementary if it is obtained from an elementary
+  substitution. 
+  
+  <GenElementaryOptionSet t.ElementarySubst>
     == e.OptionSet
 */
-GenOptionSetFromElementarySubst {
+GenElementaryOptionSet {
   t.Subst
     = (
         (
@@ -1462,7 +1463,7 @@ GenOptionSetFromElementarySubst {
         (
           (/* No substitutions */)
           (
-            (OR <DenySubst t.Subst>)
+            (OR <GenSubstDenial t.Subst>)
           )
         )
       );
@@ -1484,90 +1485,148 @@ CartesianProductOfOptionSets {
 }
 
 /*
-  Removes duplicates, redundant constraints and checks for consistency.
+  Cartesian product of two arbitary sets with custom pair processing function.
   
-  <ProcessOption t.Option>
+  <CartesianProduct s.ProcessingFunction (e.Set1) (e.Set2)>
+    == (e.MultipliedElements)
+*/
+CartesianProduct {
+  s.ProcessingFunction (e.Set1) (e.Set2)
+    = (<MapCall
+        Curry
+        (CartesianProduct-Aux s.ProcessingFunction (e.Set2))
+        e.Set1
+      >);
+}
+
+CartesianProduct-Aux {
+  s.ProcessingFunction (e.Set) t.Elem
+    = <MapCall Curry (s.ProcessingFunction t.Elem) e.Set>;
+}
+
+/*
+  Removes duplicates, redundant constraints and checks the option for
+  consistency.
+  
+  <ProcessOption (e.Conditions) t.Option>
     == t.ProcessedOption
     == ε
 */
 ProcessOption {
-  ((e.Substs) (e.Constraints))
+  (e.Conditions) ((e.Substs) (e.Constraints))
     , <MapCall
         Curry
         (GetUniqueValues Wrap)
         (e.Substs) (e.Constraints)
-      >
-    : (e.UniqueSubsts) (e.UniqueConstraints)
-    , <RemoveRedundantConstraints e.UniqueConstraints>
-    : e.NecessaryConstraints
+      > : (e.UniqueSubsts) (e.UniqueConstraints)
+    , <RemoveRedundantConstraints
+        (e.UniqueConstraints)
+        (e.Conditions)
+      > : e.NecessaryConstraints
     = <FixOptionConsistency
         ((e.UniqueSubsts) (e.NecessaryConstraints))
         (/* No checked substitutions at start */)
+        (e.Conditions)
       >;
 }
 
 /*
-  <RemoveRedundantConstraints e.Constraints>
+  <RemoveRedundantConstraints (e.Constraints) (e.Conditions)>
     == e.NecessaryConstraints
 */
 RemoveRedundantConstraints {
-  /* Found a non-trivial disjunct */
-  e.L (OR t.Restr1 t.Restr2) e.R
-    , e.L e.R : {
-      /* The disjunct is performed by the first restriction */
-      e.L1 (OR t.Restr1) e.R1 = e.L <RemoveRedundantConstraints e.R>;
+  (e.Constraints) (e.Conditions)
+    , e.Constraints : {
+      e.L (OR (not t.Const1 ends t.VarX) (not t.Const2 starts t.VarY)) e.R
+        , e.L e.R : {
+          e.L1 (OR (not t.ConstX ends t.VarX)) e.R2
+            , <IsElemInSet t.ConstX
+                (t.Const1 <GetLast t.Const1 (e.Conditions)>)
+              > : True /* found stronger restriction */
+            = e.L <RemoveRedundantConstraints (e.R) (e.Conditions)>;
+                
+          e.L1 (OR (not t.ConstY starts t.VarY)) e.R2
+            , <IsElemInSet
+                t.ConstY
+                (t.Const2 <GetFirst t.Const2 (e.Conditions)>)
+              > : True
+            = e.L <RemoveRedundantConstraints (e.R) (e.Conditions)>;
 
-      /* The disjunct is performed by the second restriction */
-      e.L1 (OR t.Restr2) e.R1 = e.L <RemoveRedundantConstraints e.R>;
-
-      /* The disjunct isn't performed trivially */
-      e.Other
-        = e.L (OR t.Restr1 t.Restr2) <RemoveRedundantConstraints e.R>;
+          e.L e.R /* cannot say whether the disjunct is redundant or not */
+            = e.L (OR (not t.Const1 ends t.VarX) (not t.Const2 starts t.VarY))
+              <RemoveRedundantConstraints (e.R) (e.Conditions)>;
+        };
+        
+      e.TrivialDisjuncts = e.TrivialDisjuncts;
     };
-
-  /* No non-trivial disjuncts were found */
-  e.TrivialDisjuncts = e.TrivialDisjuncts;
 }
 
 /*
   Checks an option for consistency and fixes avoidable contradictions
-  whenever necessary. If an unavoidable condradiction is found, returns ε.
+  whenever necessary. If an unavoidable contradiction is found, returns ε.
   Otherwise, returns the processed option.
   
-  <FixOptionConsistency t.Option (e.CheckedSubsts)>
+  <FixOptionConsistency t.Option (e.CheckedSubsts) (e.Conditions)>
     == t.FixedOption
     == ε
 */
 FixOptionConsistency {
-  ((t.Subst e.RestSubsts) (e.Constraints)) (e.CheckedSubsts)
-    , <DenySubst t.Subst> : t.Restr
-    , e.Constraints : {
-      /* Found a disjunct containing the restriction */
-      e.L (OR e.L1 t.Restr e.R1) e.R
-        , e.L1 e.R1 : {
-          /* Trivial disjunct. Unavoidable contradiction */
-          /* EMPTY */ = /* EMPTY */;
+  ((e.UncheckedSubsts) (e.Constraints)) (e.CheckedSubsts) (e.Conditions)
+    , e.UncheckedSubsts : {
+      (assign t.Var (t.Var t.Const)) e.RestSubsts /* suffix substitution */
+      , e.Constraints : {
+        e.L (OR (not t.RestrConst ends t.Var) e.AnotherRestr) e.R
+          , <IsElemInSet
+              t.RestrConst
+              (t.Const <GetLast t.Const (e.Conditions)>)
+            > : True
+          , e.AnotherRestr : {
+            /* EMPTY */ = /* EMPTY */; /* unavoidable contradiction */
 
-          /* Force another restriction to be executed and try to find other
-             non-trivial disjuncts containing the substitution */
-          t.AnotherRestr
+            t.Restr /* force another restriction to be executed */
+              = <FixOptionConsistency
+                  ((e.UncheckedSubsts) (e.L (OR t.Restr) e.R))
+                  (e.CheckedSubsts) (e.Conditions)
+                >;
+          };
+        
+        /* No constraints on the substitution. */
+        e.CheckedConstraints
+          = <FixOptionConsistency
+              ((e.RestSubsts) (e.CheckedConstraints))
+              (e.CheckedSubsts (assign t.Var (t.Var t.Const)))
+              (e.Conditions)
+            >;
+      };
+
+      (assign t.Var (t.Const t.Var)) e.RestSubsts /* prefix substitution */
+        , e.Constraints : {
+          e.L (OR e.AnotherRestr (not t.RestrConst starts t.Var)) e.R
+            , <IsElemInSet
+                t.RestrConst
+                (t.Const <GetFirst t.Const (e.Conditions)>)
+              > : True
+            , e.AnotherRestr : {
+              /* EMPTY */ = /* EMPTY */;
+
+              t.Restr
+                = <FixOptionConsistency
+                    ((e.UncheckedSubsts) (e.L (OR t.Restr) e.R))
+                    (e.CheckedSubsts) (e.Conditions)
+                  >;
+            };
+
+          e.CheckedConstraints
             = <FixOptionConsistency
-                ((t.Subst e.RestSubsts) (e.L (OR t.AnotherRestr) e.R))
-                (e.CheckedSubsts)
+                ((e.RestSubsts) (e.CheckedConstraints))
+                (e.CheckedSubsts (assign t.Var (t.Const t.Var)))
+                (e.Conditions)
               >;
         };
-
-      /* No contradiction is found */
-      e.Other
-        = <FixOptionConsistency
-            ((e.RestSubsts) (e.Constraints))
-            (e.CheckedSubsts t.Subst)
-          >;
+        
+      /* All the substitutions are checked. */
+      /* EMPTY */ = ((e.CheckedSubsts) (e.Constraints));
     };
-
-  /* Option is successfully checked (and fixed) */
-  ((/* No unchecked substitutions */) (e.Constraints)) (e.Substs)
-    = ((e.Substs) (e.Constraints));
 }
 
 /*
@@ -1597,27 +1656,5 @@ ApplyOption {
     /* ... */
       /* Dummy output */
       = ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions));
-}
-  
-/* TODO: move to the Auxiliaries.ref all the following functions. */
-
-/*
-  Cartesian product of two arbitary sets with custom pair processing function.
-  
-  <CartesianProduct s.ProcessingFunction (e.Set1) (e.Set2)>
-    == (e.MultipliedElements)
-*/
-CartesianProduct {
-  s.ProcessingFunction (e.Set1) (e.Set2)
-    = (<MapCall
-        Curry
-        (CartesianProduct-Aux s.ProcessingFunction (e.Set2))
-        e.Set1
-      >);
-}
-
-CartesianProduct-Aux {
-  s.ProcessingFunction (e.Set) t.Elem
-    = <MapCall Curry (s.ProcessingFunction t.Elem) e.Set>;
 }
 
