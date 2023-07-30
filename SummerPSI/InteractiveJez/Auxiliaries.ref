@@ -193,3 +193,7 @@ $ENTRY IsElemInSet {
     };
 }
 
+$ENTRY FormTerm {
+  e.Any = (e.Any);
+}
+

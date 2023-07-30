@@ -10,7 +10,7 @@
 
 $EXTERN FormPair, Zip, Take, GetNextConst, IsWordInAlphabet, IsEmpty,
         LatinCapitalLetters, SubtractSets, GetUniqueValues, QuickSort,
-        Partition, Overlap, IsElemInSet;
+        Partition, Overlap, IsElemInSet, FormTerm;
         
 $ENTRY Go {
   = <Prout
@@ -626,7 +626,7 @@ Pick {
     , <MapCall
         Revert
         (GenSubst (/* EMPTY */))
-        e.VarsForSubst
+        <MapCall Plain FormTerm e.VarsForSubst>
       >
     : e.Substs
     , <MapCall
@@ -649,35 +649,37 @@ Pick {
   s.Number t.Equation e.RestEquations = <Pick <Sub s.Number 1> e.RestEquations>;
 }
 
-/* Non-recursive substitution. */
+/*
+  <Subst (e.Substs) (e.Expr)>
+    == (e.SubstExpr)
+*/
 Subst {
-  (e.Substs) (e.ApplyTo)
+  (e.Substs) (e.Expr)
     , e.Substs : {
       t.Subst e.RestSubsts
-        = <Subst (e.RestSubsts) (<Subst-Aux t.Subst e.ApplyTo>)>;
+        = <Subst (e.RestSubsts) (<Subst-Aux t.Subst e.Expr>)>;
 
-      /* No more substs */ = (e.ApplyTo);
+      /* No substs */ = (e.Expr);
     };
-
-  e.Other = <Prout 'Subst: Invalid input ' e.Other>;
 }
 
 Subst-Aux {
-  t.Subst e.ApplyTo
-    , t.Subst : (assign t.Old (e.New))
-    , e.ApplyTo : {
-      e.U1 t.Old e.U2 = e.U1 e.New <Subst-Aux t.Subst e.U2>;
+  t.Subst e.Expr
+    , t.Subst : (assign (e.Old) (e.New))
+    , e.Expr : {
+      e.L e.Old e.R = e.L e.New <Subst-Aux t.Subst e.R>;
 
+      /* Nothing to substitute. */
       e.Other = e.Other;
     };
-
-  e.Other = <Prout 'Subst-Aux: Invalid input ' e.Other>;
 }
 
+/*
+  <GenSubst (e.Old) (e.New)>
+    == t.Subst
+*/
 GenSubst {
-  t.Old (e.New) = (assign t.Old (e.New));
-  
-  e.Other = <Prout 'GenSubst: Invalid input ' e.Other>;
+  (e.Old) (e.New) = (assign (e.Old) (e.New));
 }
 
 /*
@@ -918,7 +920,7 @@ ReplaceRepeatedIndexEqs {
   (e.Substs) 
     = <ReplaceRepeatedIndexEqs
         (e.U1 ((e.Comp1) is (e.RHS)) e.U2 e.U3)
-        (<GenSubst (e.Comp2) ((e.Comp1))> e.Substs)
+        (<GenSubst ((e.Comp2)) ((e.Comp1))> e.Substs)
       >;
       
   (e.UniqueIndexEqs) (e.Substs) = (e.UniqueIndexEqs) (e.Substs);
@@ -1025,7 +1027,7 @@ GetEmptySubst {
             (e.NonEmptyVars)
           >
         : (t.SubstVariable e.RestVars)
-        = <GenSubst t.SubstVariable (/* EMPTY */)>;
+        = <GenSubst (t.SubstVariable) (/* EMPTY */)>;
         
       e.L t.Const1 e.M (Var s.X) e.R
         , <IsEmpty e.M> : False
@@ -1039,7 +1041,7 @@ GetEmptySubst {
             (e.NonEmptyVars)
           >
         : (t.SubstVariable e.RestVars)
-        = <GenSubst t.SubstVariable (/* EMPTY */)>;
+        = <GenSubst (t.SubstVariable) (/* EMPTY */)>;
 
       e.L (Var s.X) e.M t.Const2 e.R
         , <IsEmpty e.M> : False
@@ -1053,7 +1055,7 @@ GetEmptySubst {
             (e.NonEmptyVars)
           >
         : (t.SubstVariable e.RestVars)
-        = <GenSubst t.SubstVariable (/* EMPTY */)>;
+        = <GenSubst (t.SubstVariable) (/* EMPTY */)>;
 
       e.L (Var s.X) e.M  (Var s.Y) e.R
         , <IsEmpty e.M> : False
@@ -1067,7 +1069,7 @@ GetEmptySubst {
             (e.NonEmptyVars)
           >
         : (t.SubstVariable e.RestVars)
-        = <GenSubst t.SubstVariable (/* EMPTY */)>;
+        = <GenSubst (t.SubstVariable) (/* EMPTY */)>;
         
       /* No essentially empty substitutions for this half of the equation */
       e.Other = /* EMPTY */;
@@ -1111,8 +1113,8 @@ HandleNonEmptySubsts {
     , <Prout 'Processed options: ' e.ProcessedOptions> : /* EMPTY */
     /* Assume there are no duplicated equations. */
     = <MapCall
-        Revert
-        (ApplyOption t.Equation)
+        Curry
+        (ApplyOption t.ReplacingConst t.Const1 t.Const2 t.Equation)
         e.ProcessedOptions
       >
 }
@@ -1131,8 +1133,8 @@ GetNonEmptySubsts {
   (e.ElementarySubsts) (e.CompositeSubsts) (e.Elems)
     , e.Elems : {
       (Var s.X) (Var s.Y) e.RestElems
-        , <GenSubst (Var s.X) ((Var s.X) t.Const1)> : t.Subst1
-        , <GenSubst (Var s.Y) (t.Const2 (Var s.Y))> : t.Subst2
+        , <GenSubst ((Var s.X)) ((Var s.X) t.Const1)> : t.Subst1
+        , <GenSubst ((Var s.Y)) (t.Const2 (Var s.Y))> : t.Subst2
         , (GetNonEmptySubsts
             t.Const1 t.Const2 (e.Constraints) (e.Conditions)
             (e.ElementarySubsts) (e.CompositeSubsts)
@@ -1193,7 +1195,7 @@ GetNonEmptySubsts {
         };
 
       t.Const1 (Var s.X) e.RestElems
-        , <GenSubst (Var s.X) (t.Const2 (Var s.X))> : t.Subst
+        , <GenSubst ((Var s.X)) (t.Const2 (Var s.X))> : t.Subst
         , (GetNonEmptySubsts
             t.Const1 t.Const2 (e.Constraints) (e.Conditions)
             (e.ElementarySubsts) (e.CompositeSubsts)
@@ -1224,7 +1226,7 @@ GetNonEmptySubsts {
         };
         
       (Var s.X) t.Const2 e.RestElems
-        , <GenSubst (Var s.X) ((Var s.X) t.Const1)> : t.Subst
+        , <GenSubst ((Var s.X)) ((Var s.X) t.Const1)> : t.Subst
         , (GetNonEmptySubsts
             t.Const1 t.Const2 (e.Constraints) (e.Conditions)
             (e.ElementarySubsts) (e.CompositeSubsts)
@@ -1434,7 +1436,7 @@ GenCompositeOptionSet {
     == t.Restriction
 */
 GenSubstDenial {
-  (assign t.Var (e.NewValue))
+  (assign (t.Var) (e.NewValue))
     , e.NewValue : {
       t.Var t.Const = (not t.Const ends t.Var);
 
@@ -1573,7 +1575,7 @@ RemoveTrivialConstraints {
 FixOptionConsistency {
   ((e.UncheckedSubsts) (e.Constraints)) (e.CheckedSubsts) (e.Conditions)
     , e.UncheckedSubsts : {
-      (assign t.Var (t.Var t.Const)) e.RestSubsts /* suffix substitution */
+      (assign (t.Var) (t.Var t.Const)) e.RestSubsts /* suffix substitution */
       , e.Constraints : {
         e.L (OR (not t.RestrConst ends t.Var) e.AnotherRestr) e.R
           , <IsElemInSet
@@ -1594,12 +1596,12 @@ FixOptionConsistency {
         e.CheckedConstraints
           = <FixOptionConsistency
               ((e.RestSubsts) (e.CheckedConstraints))
-              (e.CheckedSubsts (assign t.Var (t.Var t.Const)))
+              (e.CheckedSubsts (assign (t.Var) (t.Var t.Const)))
               (e.Conditions)
             >;
       };
 
-      (assign t.Var (t.Const t.Var)) e.RestSubsts /* prefix substitution */
+      (assign (t.Var) (t.Const t.Var)) e.RestSubsts /* prefix substitution */
         , e.Constraints : {
           e.L (OR e.AnotherRestr (not t.RestrConst starts t.Var)) e.R
             , <IsElemInSet
@@ -1619,7 +1621,7 @@ FixOptionConsistency {
           e.CheckedConstraints
             = <FixOptionConsistency
                 ((e.RestSubsts) (e.CheckedConstraints))
-                (e.CheckedSubsts (assign t.Var (t.Const t.Var)))
+                (e.CheckedSubsts (assign (t.Var) (t.Const t.Var)))
                 (e.Conditions)
               >;
         };
@@ -1633,16 +1635,21 @@ FixOptionConsistency {
   Applies option substitutions to the given equation, adds option constraints
   to the equation ones, cleans all up and returns the result.
   
-  <ApplyOption t.Option t.Equation>
+  <ApplyOption t.ReplacingConst t.Const1 t.Const2 t.Equation t.Option>
     == t.NewEquation
 */
 ApplyOption {
-  ((e.Substs) (e.NewConstraints))
+  t.ReplacingConst t.Const1 t.Const2
   ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions))
-    , <MapCall
+  ((e.Substs) (e.NewConstraints))
+    , <MapCall /* replacing the pairs with the new const */
         Curry
-        (Subst (e.Substs))
-        (e.LHS) (e.RHS)
+        (Subst (<GenSubst (t.Const1 t.Const2) (t.ReplacingConst)>))
+        <MapCall /* applying option substitutions */
+          Curry
+          (Subst (e.Substs))
+          (e.LHS) (e.RHS)
+        >
       > : (e.SubstLHS) (e.SubstRHS)
     , <MapCompose
         ((TrimEquation Left) (TrimEquation Right))
