@@ -1086,7 +1086,7 @@ HandleNonEmptySubsts {
   t.ReplacingConst t.Const1 t.Const2 t.Equation
     , t.Equation
     : ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions))
-    /* , <Prout 'Equation: ' t.Equation> : */
+    , <Prout 'Equation: ' t.Equation> : /* EMPTY */
     , <GetNonEmptySubsts 
         t.Const1 t.Const2 (e.Constraints) (e.Conditions)
         <GetNonEmptySubsts
@@ -1108,15 +1108,13 @@ HandleNonEmptySubsts {
         e.MultipliedOptions
       >
     : e.ProcessedOptions /* remove duplicates? */
-    /* , <Prout 'Processed options: ' e.ProcessedOptions> : */
-    , <MapCall
+    , <Prout 'Processed options: ' e.ProcessedOptions> : /* EMPTY */
+    /* Assume there are no duplicated equations. */
+    = <MapCall
         Revert
         (ApplyOption t.Equation)
         e.ProcessedOptions
       >
-    : e.Equations /* duplicated equations? */
-    /* ... */
-      = /* New equations */;
 }
 
 /*
@@ -1519,7 +1517,7 @@ ProcessOption {
         (GetUniqueValues Wrap)
         (e.Substs) (e.Constraints)
       > : (e.UniqueSubsts) (e.UniqueConstraints)
-    , <RemoveRedundantConstraints
+    , <RemoveTrivialConstraints
         (e.UniqueConstraints)
         (e.Conditions)
       > : e.NecessaryConstraints
@@ -1531,10 +1529,12 @@ ProcessOption {
 }
 
 /*
-  <RemoveRedundantConstraints (e.Constraints) (e.Conditions)>
+  Removes trivially performed non-trivial disjuncts.
+  
+  <RemoveTrivialConstraints (e.Constraints) (e.Conditions)>
     == e.NecessaryConstraints
 */
-RemoveRedundantConstraints {
+RemoveTrivialConstraints {
   (e.Constraints) (e.Conditions)
     , e.Constraints : {
       e.L (OR (not t.Const1 ends t.VarX) (not t.Const2 starts t.VarY)) e.R
@@ -1543,18 +1543,18 @@ RemoveRedundantConstraints {
             , <IsElemInSet t.ConstX
                 (t.Const1 <GetLast t.Const1 (e.Conditions)>)
               > : True /* found stronger restriction */
-            = e.L <RemoveRedundantConstraints (e.R) (e.Conditions)>;
+            = e.L <RemoveTrivialConstraints (e.R) (e.Conditions)>;
                 
           e.L1 (OR (not t.ConstY starts t.VarY)) e.R2
             , <IsElemInSet
                 t.ConstY
                 (t.Const2 <GetFirst t.Const2 (e.Conditions)>)
               > : True
-            = e.L <RemoveRedundantConstraints (e.R) (e.Conditions)>;
+            = e.L <RemoveTrivialConstraints (e.R) (e.Conditions)>;
 
           e.L e.R /* cannot say whether the disjunct is redundant or not */
             = e.L (OR (not t.Const1 ends t.VarX) (not t.Const2 starts t.VarY))
-              <RemoveRedundantConstraints (e.R) (e.Conditions)>;
+              <RemoveTrivialConstraints (e.R) (e.Conditions)>;
         };
         
       e.TrivialDisjuncts = e.TrivialDisjuncts;
@@ -1630,8 +1630,8 @@ FixOptionConsistency {
 }
 
 /*
-  Applies substitutions of the option to the equation, adds constraints of the
-  option to the equation's ones, cleans all up and returns the result.
+  Applies option substitutions to the given equation, adds option constraints
+  to the equation ones, cleans all up and returns the result.
   
   <ApplyOption t.Option t.Equation>
     == t.NewEquation
@@ -1643,18 +1643,153 @@ ApplyOption {
         Curry
         (Subst (e.Substs))
         (e.LHS) (e.RHS)
-      >
-    : (e.SubstitutedLHS) (e.SubstitutedRHS)
+      > : (e.SubstLHS) (e.SubstRHS)
     , <MapCompose
         ((TrimEquation Left) (TrimEquation Right))
         (
-          (AreEqual (e.SubstitutedLHS) (e.SubstitutedRHS))
+          (AreEqual (e.SubstLHS) (e.SubstRHS))
           (e.Constraints) (e.Conditions)
         )
-      >
-    : ((AreEqual (e.TrimmedLHS) (e.TrimmedRHS)) e.Rest)
+      > : t.TrimmedEquation
+    , <RemoveRedundantRestrictions
+        t.TrimmedEquation (/* EMPTY */)
+      > : t.NewEquation
+    , <Prout 'Return ' t.NewEquation> :
     /* ... */
-      /* Dummy output */
-      = ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions));
+      = /* New equation */;
+}
+
+/*
+  <RemoveRedundantRestrictions t.Equation>
+    == t.NewEquation
+*/
+RemoveRedundantRestrictions {
+  ((AreEqual (e.LHS) (e.RHS)) (e.UncheckedConstraints) (e.Conditions))
+  (e.CheckedConstraints)
+    , e.UncheckedConstraints : {
+      /* Skipping constraints on emptiness. */
+      (OR (not empty t.Var)) e.RestConstraints
+        = <RemoveRedundantRestrictions
+            ((AreEqual (e.LHS) (e.RHS)) (e.RestConstraints) (e.Conditions))
+            (e.CheckedConstraints (OR (not empty t.Var)))
+          >;
+
+      /* Handling prefix (suffix) restrictions */ 
+      (OR t.Restr1 e.AnotherRestr) e.RestConstraints
+        /* TODO: rewrite the `GetConsts` it to return already unique values. */
+        , <GetUniqueValues
+            Flat
+            <MapCall
+              Plain
+              GetConsts
+              (e.LHS) (e.RHS)
+            >
+          > : e.Consts
+        , <IsRestrictionRedundant
+            t.Restr1 (e.Consts) (e.Conditions)
+          > : {
+          True
+            , e.AnotherRestr : {
+              /* EMPTY */ /* removing the disjunct */
+                = <RemoveRedundantRestrictions
+                    (
+                      (AreEqual (e.LHS) (e.RHS))
+                      (e.RestConstraints) (e.Conditions)
+                    )
+                    (e.CheckedConstraints)
+                  >;
+
+              t.Restr2
+                , <IsRestrictionRedundant
+                    t.Restr2 (e.Consts) (e.Conditions)
+                  > : {
+                  True /* removing the disjunct */
+                    = <RemoveRedundantRestrictions
+                        (
+                          (AreEqual (e.LHS) (e.RHS))
+                          (e.RestConstraints) (e.Conditions)
+                        )
+                        (e.CheckedConstraints)
+                      >;
+                  
+                  False /* removing the first restriction */
+                    = <RemoveRedundantRestrictions
+                        (
+                          (AreEqual (e.LHS) (e.RHS))
+                          (e.RestConstraints) (e.Conditions)
+                        )
+                        (e.CheckedConstraints (OR t.Restr2))
+                      >;
+                };
+            };
+
+          False
+            , e.AnotherRestr : {
+              /* EMPTY */
+                /* Saving the disjunct. */
+                = <RemoveRedundantRestrictions
+                    (
+                      (AreEqual (e.LHS) (e.RHS))
+                      (e.RestConstraints) (e.Conditions)
+                    )
+                    (e.CheckedConstraints (OR t.Restr1))
+                  >;
+
+              t.Restr2
+                , <IsRestrictionRedundant
+                    t.Restr2 (e.Consts) (e.Conditions)
+                  > : {
+                  True
+                    /* Removing the second restriction. */
+                    = <RemoveRedundantRestrictions
+                        (
+                          (AreEqual (e.LHS) (e.RHS))
+                          (e.RestConstraints) (e.Conditions)
+                        )
+                        (e.CheckedConstraints (OR t.Restr1))
+                      >;
+
+                  False
+                    /* Saving the disjunct. */
+                    = <RemoveRedundantRestrictions
+                        (
+                          (AreEqual (e.LHS) (e.RHS))
+                          (e.RestConstraints) (e.Conditions)
+                        )
+                        (e.CheckedConstraints (OR t.Restr1 t.Restr2))
+                      >;
+                };
+            };
+        };
+        
+      /* No unchecked constraints. */
+      /* EMPTY */
+        = ((AreEqual (e.LHS) (e.RHS)) (e.CheckedConstraints) (e.Conditions));
+    };
+}
+
+/*
+  Accepts only the prefix and suffix restrictions!
+
+  <IsRestrictionRedundant t.Restr (e.Consts) (e.Conditions)>
+    == True
+    == False
+*/
+IsRestrictionRedundant {
+  (not t.Const s.Action t.Var) (e.Consts) (e.Conditions)
+    , <IsElemInSet t.Const (e.Consts)> : {
+      /* The const is used in the equation. */
+      True = False;
+      
+      False
+        , e.Conditions : {
+          /* At least one condition has the const in the right half. */
+          e.L (t.SomeConst is e.L1 (t.Const e.Details) e.R1) e.R
+            = False;
+            
+          /* The restriction is redundant. */
+          e.Other = True; 
+        };
+    };
 }
 
