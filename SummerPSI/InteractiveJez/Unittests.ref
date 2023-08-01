@@ -6,6 +6,8 @@
   - elem: element;
   - var: variable;
   - restr: restriction;
+  - cond: condition;
+  - def: definition;
 */
 
 $EXTERN FormPair, Zip, Take, GetNextConst, IsWordInAlphabet, IsEmpty,
@@ -1086,20 +1088,18 @@ GetEmptySubst {
 */
 HandleNonEmptySubsts {
   t.ReplacingConst t.Const1 t.Const2 t.Equation
-    , t.Equation
-    : ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions))
+    , t.Equation : ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions))
     , <Prout 'Equation: ' t.Equation> : /* EMPTY */
-    , <GetNonEmptySubsts 
+    , <GetNonEmptySubsts /* substitutions for the right half */
         t.Const1 t.Const2 (e.Constraints) (e.Conditions)
-        <GetNonEmptySubsts
+        <GetNonEmptySubsts /* substitutions for the left half */
           t.Const1 t.Const2 (e.Constraints) (e.Conditions)
           (/* No discovered elementary substitutions at start */)
           (/* No discovered composite substitutions at start */)
           (e.LHS)
         >
         (e.RHS)
-      >
-    : (e.ElementarySubsts) (e.CompositeSubsts)
+      > : (e.ElementarySubsts) (e.CompositeSubsts)
     , <CartesianProductOfOptionSets
         <GenOptionSets (e.ElementarySubsts) (e.CompositeSubsts)>
       >
@@ -1120,7 +1120,30 @@ HandleNonEmptySubsts {
 }
 
 /*
+  bXYa = XbZY; сжатие ab.
+  GetNonEmptySubsts добавляет только возможные подстановки.
+    (X = Xa & Y = bY) (X = Xa) (Z = Za & Y = bY)
+  GenOptionSets:
+    (X = Xa && Y = bY, X = Xa && Y != bY, X != Xa)
+    (Z = Za && Y = bY, Z != Za || Y != bY)
+  CartesianProduct:
+    (X = Xa && Y = bY && Z = Za && Y = bY)
+    (X = Xa && Y = bY && (Z != Za || Y != bY))
+    (X = Xa && Y != bY && Z = Za && Y = bY)
+    (X = Xa && Y != bY && (Z != Za || Y != bY))
+    (X != Xa && Z = Za && Y = bY)
+    (X != Xa && (Z != Za || Y != bY))
+  ProcessOption:
+    (X = Xa && Y = bY && Z = Za)
+    (X = Xa && Y = bY && Z != Za)
+    (X = Xa && Y != bY)
+    (X != Xa && Z = Za && Y = bY)
+    (X != Xa && (Z != Za || Y != bY))
+*/
+
+/*
   Returns essentially non-empty substitutions for the given equation half.
+  There are no impossible substitutions among returned.
   
   <GetNonEmptySubst
     t.Const1 t.Const2 (e.Constraints) (e.Conditions)
@@ -1632,8 +1655,8 @@ FixOptionConsistency {
 }
 
 /*
-  Applies option substitutions to the given equation, adds option constraints
-  to the equation ones, cleans all up and returns the result.
+  Applies option substitutions to the equation (also adds corresponding index
+  equation) and appends the option constraints to the equation constraints.
   
   <ApplyOption t.ReplacingConst t.Const1 t.Const2 t.Equation t.Option>
     == t.NewEquation
@@ -1645,7 +1668,7 @@ ApplyOption {
     , <MapCall /* replacing the pairs with the new const */
         Curry
         (Subst (<GenSubst (t.Const1 t.Const2) (t.ReplacingConst)>))
-        <MapCall /* applying option substitutions */
+        <MapCall /* applying the option substitutions */
           Curry
           (Subst (e.Substs))
           (e.LHS) (e.RHS)
@@ -1653,150 +1676,272 @@ ApplyOption {
       > : (e.SubstLHS) (e.SubstRHS)
     , <MapCompose
         ((TrimEquation Left) (TrimEquation Right))
+        ((AreEqual (e.SubstLHS) (e.SubstRHS)) (e.Constraints) (e.Conditions))
+      > : ((AreEqual (e.TrimmedLHS) (e.TrimmedRHS)) e.Rest)
+    , <GetUniqueValues
+        Flat
+        <MapCall Plain GetConsts (e.TrimmedLHS) (e.TrimmedRHS)>
+      >: e.EqConsts
+    , <RemoveRedundantConditions
+        (e.EqConsts)
         (
-          (AreEqual (e.SubstLHS) (e.SubstRHS))
-          (e.Constraints) (e.Conditions)
+          e.Conditions
+          (t.ReplacingConst is (t.Const1 (const 1)) (t.Const2 (const 1)))
         )
-      > : t.TrimmedEquation
+        (/* EMPTY */)
+      > : e.NecessaryConditions 
     , <RemoveRedundantRestrictions
-        t.TrimmedEquation (/* EMPTY */)
-      > : t.NewEquation
-    , <Prout 'Return ' t.NewEquation> :
+        (e.EqConsts) (e.NecessaryConditions) (e.Constraints) (/* EMPTY */)
+      > : e.NecessaryConstraints
+    , <Prout
+        'New equation: '
+        (
+          (AreEqual (e.TrimmedLHS) (e.TrimmedRHS))
+          (e.NecessaryConstraints)
+          (e.NecessaryConditions)
+        )
+      > : /* EMPTY */
     /* ... */
       = /* New equation */;
 }
 
 /*
-  <RemoveRedundantRestrictions t.Equation>
-    == t.NewEquation
+  Позже все комментарии удалю.
+
+  - раскрытие подстановок; OK
+  - замена пар на константу; OK
+  - тримминг o_O; OK
+  - удаление избыточных индексных уравнений; OK
+  - удаление избыточных рестрикций; OK
+  - X = aX при X != bX - удаление X != bX.
+  - X = aX при X != empty - удаление X != empty.
+  - X = aX при Y != Yc || X != bX - замена дизъюнкта на Y != Xc.
+    (b not in First(a))
+
+  Возникнет ли дублирование при добавлении рестрикций опции к уравнениям?
+  Пусть рестрикции опции X != aX, (Y != Ya || Z != bZ). Они получились в
+  результате отрицания подстановок. Т.е. у нас были существенные непустые
+  непротиворечивые подстановки X = aX и Y = Ya && Z = bZ. Т.е. в уравнении
+  не было рестрикций X != cX, где c in First(a), Y != Yd, где d in Last(b),
+  Z != eZ, где e in First(a). Дублирования не возникнет.
+*/
+
+/*
+  <RemoveRedundantRestrictions
+    (e.EqConsts) (e.Conditions) (e.UncheckedConstraints) (e.CheckedConstraints)
+  >
+    == e.CheckedConstraints
 */
 RemoveRedundantRestrictions {
-  ((AreEqual (e.LHS) (e.RHS)) (e.UncheckedConstraints) (e.Conditions))
-  (e.CheckedConstraints)
+  (e.EqConsts) (e.Conditions) (e.UncheckedConstraints) (e.CheckedConstraints)
     , e.UncheckedConstraints : {
-      /* Skipping constraints on emptiness. */
-      (OR (not empty t.Var)) e.RestConstraints
-        = <RemoveRedundantRestrictions
-            ((AreEqual (e.LHS) (e.RHS)) (e.RestConstraints) (e.Conditions))
-            (e.CheckedConstraints (OR (not empty t.Var)))
-          >;
-
-      /* Handling prefix (suffix) restrictions */ 
-      (OR t.Restr1 e.AnotherRestr) e.RestConstraints
-        /* TODO: rewrite the `GetConsts` it to return already unique values. */
-        , <GetUniqueValues
-            Flat
-            <MapCall
-              Plain
-              GetConsts
-              (e.LHS) (e.RHS)
-            >
-          > : e.Consts
-        , <IsRestrictionRedundant
-            t.Restr1 (e.Consts) (e.Conditions)
-          > : {
-          True
-            , e.AnotherRestr : {
-              /* EMPTY */ /* removing the disjunct */
-                = <RemoveRedundantRestrictions
-                    (
-                      (AreEqual (e.LHS) (e.RHS))
-                      (e.RestConstraints) (e.Conditions)
-                    )
-                    (e.CheckedConstraints)
-                  >;
-
-              t.Restr2
-                , <IsRestrictionRedundant
-                    t.Restr2 (e.Consts) (e.Conditions)
-                  > : {
-                  True /* removing the disjunct */
+      t.Constraint e.RestConstraints
+        , t.Constraint : {
+          /* Skipping constraints on emptiness. */
+          (OR (not empty t.Var))
+            = <RemoveRedundantRestrictions
+                (e.EqConsts) (e.Conditions) (e.RestConstraints)
+                (e.CheckedConstraints t.Constraint)
+              >;
+              
+          /* Handling prefix (suffix) restrictions */ 
+          (OR t.Restr1 e.AnotherRestr)
+            , <IsRestrictionRedundant
+                t.Restr1 (e.EqConsts) (e.Conditions)
+              > : {
+              True
+                , e.AnotherRestr : {
+                  /* EMPTY */ /* removing the disjunct */
                     = <RemoveRedundantRestrictions
-                        (
-                          (AreEqual (e.LHS) (e.RHS))
-                          (e.RestConstraints) (e.Conditions)
-                        )
+                        (e.EqConsts) (e.Conditions) (e.RestConstraints)
                         (e.CheckedConstraints)
                       >;
-                  
-                  False /* removing the first restriction */
+
+                  t.Restr2
+                    , <IsRestrictionRedundant
+                        t.Restr2 (e.EqConsts) (e.Conditions)
+                      > : {
+                      True /* removing the disjunct */
+                        = <RemoveRedundantRestrictions
+                            (e.EqConsts) (e.Conditions) (e.RestConstraints)
+                            (e.CheckedConstraints)
+                          >;
+                      
+                      False /* removing the first restriction */
+                        = <RemoveRedundantRestrictions
+                            (e.EqConsts) (e.Conditions) (e.RestConstraints)
+                            (e.CheckedConstraints (OR t.Restr2))
+                          >;
+                    };
+                };
+
+              False
+                , e.AnotherRestr : {
+                  /* EMPTY */
+                    /* Saving the constraint */
                     = <RemoveRedundantRestrictions
-                        (
-                          (AreEqual (e.LHS) (e.RHS))
-                          (e.RestConstraints) (e.Conditions)
-                        )
-                        (e.CheckedConstraints (OR t.Restr2))
+                        (e.EqConsts) (e.Conditions) (e.RestConstraints)
+                        (e.CheckedConstraints t.Constraint)
                       >;
+
+                  t.Restr2
+                    , <IsRestrictionRedundant
+                        t.Restr2 (e.EqConsts) (e.Conditions)
+                      > : {
+                      True
+                        /* Removing the second restriction. */
+                        = <RemoveRedundantRestrictions
+                            (e.EqConsts) (e.Conditions) (e.RestConstraints)
+                            (e.CheckedConstraints (OR t.Restr1))
+                          >;
+
+                      False
+                        /* Saving the constraint */
+                        = <RemoveRedundantRestrictions
+                            (e.EqConsts) (e.Conditions) (e.RestConstraints)
+                            (e.CheckedConstraints t.Constraint)
+                          >;
+                    };
                 };
             };
-
-          False
-            , e.AnotherRestr : {
-              /* EMPTY */
-                /* Saving the disjunct. */
-                = <RemoveRedundantRestrictions
-                    (
-                      (AreEqual (e.LHS) (e.RHS))
-                      (e.RestConstraints) (e.Conditions)
-                    )
-                    (e.CheckedConstraints (OR t.Restr1))
-                  >;
-
-              t.Restr2
-                , <IsRestrictionRedundant
-                    t.Restr2 (e.Consts) (e.Conditions)
-                  > : {
-                  True
-                    /* Removing the second restriction. */
-                    = <RemoveRedundantRestrictions
-                        (
-                          (AreEqual (e.LHS) (e.RHS))
-                          (e.RestConstraints) (e.Conditions)
-                        )
-                        (e.CheckedConstraints (OR t.Restr1))
-                      >;
-
-                  False
-                    /* Saving the disjunct. */
-                    = <RemoveRedundantRestrictions
-                        (
-                          (AreEqual (e.LHS) (e.RHS))
-                          (e.RestConstraints) (e.Conditions)
-                        )
-                        (e.CheckedConstraints (OR t.Restr1 t.Restr2))
-                      >;
-                };
-            };
+        
         };
         
-      /* No unchecked constraints. */
-      /* EMPTY */
-        = ((AreEqual (e.LHS) (e.RHS)) (e.CheckedConstraints) (e.Conditions));
+      /* EMPTY */ = e.CheckedConstraints;
     };
 }
 
 /*
   Accepts only the prefix and suffix restrictions!
 
-  <IsRestrictionRedundant t.Restr (e.Consts) (e.Conditions)>
+  <IsRestrictionRedundant t.Restr (e.EqConsts) (e.Conditions)>
     == True
     == False
 */
 IsRestrictionRedundant {
-  (not t.Const s.Action t.Var) (e.Consts) (e.Conditions)
-    , <IsElemInSet t.Const (e.Consts)> : {
-      /* The const is used in the equation. */
+  /* s.Action ::= starts | ends */
+  (not t.Const s.Action t.Var) (e.EqConsts) (e.Conditions)
+    , <IsElemInSet t.Const (e.EqConsts)> : {
+      /* The constant is used in the equation. */
       True = False;
       
       False
         , e.Conditions : {
-          /* At least one condition has the const in the right half. */
-          e.L (t.SomeConst is e.L1 (t.Const e.Details) e.R1) e.R
-            = False;
+          /* At least one condition has the constant in the right half. */
+          e.L (t.DefConst is e.L1 (t.Const e.Details) e.R1) e.R = False;
             
           /* The restriction is redundant. */
           e.Other = True; 
         };
     };
+}
+
+/*
+  Индексное уравнение избыточное, если все константы, составляющие его правую
+  часть, не входят в уравнение и не являются левыми частями каких-либо
+  индексных уравнений.
+
+  A1 X = X A1
+    , A1 = A0 B0 - избыточное
+  
+  A1 X A0 = Y A1 Z
+    , A1 = A0 B0 - не избыточное.
+
+  Y A2 X = A0 Z A2
+    , A1 = A0 B0
+    , B1 = C0 D0 - избыточное
+    , A2 = A1 B1 - не избыточное.
+*/
+
+/*
+  <RemoveRedundantConditions
+    (e.EqConsts) (e.UncheckedConditions) (e.CheckedConditions)
+  >
+    == e.CheckedConditions
+*/
+RemoveRedundantConditions {
+  (e.EqConsts) (e.UncheckedConditions) (e.CheckedConditions)
+    , e.UncheckedConditions : {
+      t.Condition e.RestConditions
+        , <GetConditionConsts t.Condition> : e.ConditionConsts
+        , <IntersectSets (e.EqConsts) (e.ConditionConsts)> : {
+            /* None of the condition constants are in the equation. */
+            /* EMPTY */
+              , <CallTill
+                  (/* EMPTY */)
+                  Revert
+                  (GetCondition (e.UncheckedConditions e.CheckedConditions))
+                  e.ConditionConsts
+                > : {
+                  /* No conditions were found. The condition is redundant. */
+                  /* EMPTY */
+                    = <RemoveRedundantConditions
+                        (e.EqConsts) (e.RestConditions)
+                        (e.CheckedConditions)
+                      >;
+
+                  e.SomeConditions
+                    = <RemoveRedundantConditions
+                        (e.EqConsts) (e.RestConditions)
+                        (e.CheckedConditions t.Condition)
+                      >;
+              };
+
+            e.SomeConsts
+              = <RemoveRedundantConditions
+                  (e.EqConsts) (e.RestConditions)
+                  (e.CheckedConditions t.Condition)
+                >;
+        };
+        
+      /* EMPTY */ = e.CheckedConditions;
+    };
+}
+
+/*
+  TODO: replace GetIndexEq with GetCondition.
+
+  Returns a condition for t.Const or ε, if the condition isn't found.
+  
+  <GetCondition t.Const (e.Conditions)>
+    == t.Condition
+    == ε
+*/
+GetCondition {
+  t.Const (e.Conditions)
+    , e.Conditions : {
+      e.L (t.Const is e.Elems) e.R = (t.Const is e.Elems);
+
+      e.Other = /* EMPTY */;
+    };
+}
+
+/*
+  Returns constants in the right half of the condition.
+
+  <GetConditionConsts t.Condition>
+    == e.ConditionConsts
+*/
+GetConditionConsts {
+  (t.DefConst is e.Elems)
+    , e.Elems : {
+      (t.Const e.Details) e.RestElems
+        = t.Const <GetConditionConsts (t.DefConst is e.RestElems)>;
+      
+      /* No elements (abnormal on the first call) */
+      /* EMPTY */ = /* EMPTY */;
+    };
+}
+
+/*
+  <IntersectSets (e.Set1) (e.Set2)>
+    == e.Intersection
+*/
+IntersectSets {
+  (e.L1 t.Elem e.R1) (e.L2 t.Elem e.R2)
+    = t.Elem <IntersectSets (e.L1 e.R1) (e.L2 e.R2)>;
+
+  /* No common elements */
+  (e.Set1) (e.Set2) = /* EMPTY */;
 }
 
