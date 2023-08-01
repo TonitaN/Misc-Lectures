@@ -1,0 +1,38 @@
+
+\tikzstyle{equation}=[rectangle, draw opacity=0.8,rounded corners,thick,draw=black!75,top color=blue!10, bottom color=white,minimum size=5mm, font =\footnotesize]
+\tikzstyle{eqset}=[draw,cloud,dotted,opacity=0.9]
+\tikzstyle{fullequation}=[rectangle split,rectangle split parts=2,
+    rounded corners,
+    thick,
+    draw=black!50,
+    draw opacity=0.8,
+    minimum size=5mm, font =\footnotesize
+    ,append after command={\pgfextra
+        \fill[left color=blue!35, right color=blue!25]
+    (\tikzlastnode.one west) 
+    [rounded corners] |- (\tikzlastnode.north) -| (\tikzlastnode.one east) 
+    [sharp corners]   |- (\tikzlastnode.one split) -| cycle;
+        \fill[top color=blue!10, bottom color=white]
+    (\tikzlastnode.two west) 
+    [rounded corners] |- (\tikzlastnode.south) -| (\tikzlastnode.two east)  
+    [sharp corners]   |- (\tikzlastnode.one split) -| cycle;
+                                    \endpgfextra}]
+\tikzstyle{chosenequation}=[rectangle split,rectangle split parts=2,
+    rounded corners,
+    thick,
+    double, double distance=1.5pt,
+    draw=black!50,
+    draw opacity=0.8,
+    minimum size=5mm, font =\footnotesize
+    ,append after command={\pgfextra
+        \fill[left color=yellow!50, right color=yellow!35]
+    (\tikzlastnode.one west) 
+    [rounded corners] |- (\tikzlastnode.north) -| (\tikzlastnode.one east) 
+    [sharp corners]   |- (\tikzlastnode.one split) -| cycle;
+        \fill[top color=yellow!20, bottom color=white]
+    (\tikzlastnode.two west) 
+    [rounded corners] |- (\tikzlastnode.south) -| (\tikzlastnode.two east)  
+    [sharp corners]   |- (\tikzlastnode.one split) -| cycle;
+                                    \endpgfextra}]
+\tikzstyle{action}=[single arrow,shape border rotate=270,inner sep=0.1ex,thick,draw=black!75,top color=red!10, bottom color=white,minimum height=4em,single arrow head extend=1em,single arrow head indent=0.5ex, font =\footnotesize,,opacity=1]
+\tikzstyle{subst}=[shape aspect=4,diamond, thick,draw=black!75, top color=green!5, bottom color=white,minimum size=5mm] 

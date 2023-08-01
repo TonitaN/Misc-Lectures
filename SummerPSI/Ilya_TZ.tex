@@ -1,6 +1,5 @@
 \documentclass[12pt]{article}
 \usepackage{color}
-\usepackage[newfloat]{minted}
 \usepackage{amsfonts,latexsym,amsthm}
 %\usepackage{times}
 \usepackage[scaled=.92]{helvet}
@@ -9,6 +8,12 @@
 \usepackage[T1,T2A]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage[english,russian]{babel}
+\usepackage{tikz,adjustbox,fancybox}  %fancybox обязательно должна предшествовать minted!
+\usepackage[newfloat]{minted}
+\usepackage{nicematrix}
+%\usepackage{xparse}
+\usetikzlibrary{automata, graphs,positioning, arrows,patterns,shapes.geometric,shapes.multipart,shapes.symbols,shapes.arrows}
+\usetikzlibrary{arrows.meta,fit}
 %\usepackage[cp1251]{inputenc}
 %\usepackage{pscyr}
 \def\logand{\mathrel{\&}}
@@ -37,6 +42,8 @@
 \begin{document}
 
 \section{Внутренние структуры данных}
+
+Далее обозначаем алфавит констант греческой буквой $\Sigma$, алфавит переменных --- $\Xi$.
 
 Базовые структуры данных алгоритма Ежа: переменная, константа и отрицательное условие.
 
@@ -127,7 +134,7 @@ GetNewIndexUpdated {
  
 \section{Нулевые значения переменных}
  
-В дальнейшем подразумевается следующее допущение. Все извлечённые блоки по умолчанию полагаются непустыми --- пустыми их может сделать только явная подстановка \mintinline{refal}{(SubstIndex ik ((Const 0)))} (или композиция таких подстановок), за которую отвечает пользователь. Более того, все извлечённые блоки по умолчанию предполагаются неравными --- в противном случае от пользователя ожидается подстановка, которая явно утверждает обратное.
+В дальнейшем подразумевается следующее допущение. Все извлечённые блоки по умолчанию полагаются непустыми --- пустыми их может сделать только явная подстановка \mintinline{refal}{(SubstIndex ik ((const 0)))} (или композиция таких подстановок), за которую отвечает пользователь. Более того, все извлечённые блоки по умолчанию предполагаются неравными --- в противном случае от пользователя ожидается подстановка, которая явно утверждает обратное.
 
 Однако в случае вызова \mintinline{refal}{<PairComp /* args */>} может получиться, что потребуется автоматически разобрать и случай пустой подстановки в переменную, чтобы выявить все возможности сжатия перекрёстных или явных вхождений. Например, как в следующем уравнении (назовём его Уравнением 1): 
 
@@ -155,7 +162,7 @@ GetNewIndexUpdated {
 (
    (OR (not empty (Var 'X')))
 )
-(/* Блок уравнений на компоненты пуст */)
+((('A' 1) is (('A' 0) (const 1))(('B' 0) (const 1))))
 \end{minted}
  
 \item Случай, когда \verb|Y| кончается на \mintinline{refal}{('B' 0)}, но не начинается на \mintinline{refal}{('A' 0)}:
@@ -169,7 +176,7 @@ GetNewIndexUpdated {
    (OR (not empty (Var 'X')))
    (OR (not ('A' 0) starts (Var 'Y')))
 )
-(/* Блок уравнений на компоненты пуст */)
+((('A' 1) is (('A' 0) (const 1))(('B' 0) (const 1))))
 \end{minted}
 
 \item Случай, когда \verb|Y| не кончается на \mintinline{refal}{('B' 0)}, но начинается на \mintinline{refal}{('A' 0)}:
@@ -183,7 +190,7 @@ GetNewIndexUpdated {
    (OR (not empty (Var 'X')))
    (OR (not ('B' 0) ends (Var 'Y')))
 )
-(/* Блок уравнений на компоненты пуст */)
+((('A' 1) is (('A' 0) (const 1))(('B' 0) (const 1))))
 \end{minted}
 
 \item Случай, когда \verb|Y| не кончается на \mintinline{refal}{('B' 0)} и не начинается на \mintinline{refal}{('A' 0)}:
@@ -198,7 +205,7 @@ GetNewIndexUpdated {
    (OR (not ('A' 0) starts (Var 'Y')))
    (OR (not ('B' 0) ends (Var 'Y')))
 )
-(/* Блок уравнений на компоненты пуст */)
+((('A' 1) is (('A' 0) (const 1))(('B' 0) (const 1))))
 \end{minted}
 
 \item Случай, когда \verb|Y| пуст:
@@ -215,11 +222,197 @@ GetNewIndexUpdated {
 \end{minted}
 \end{enumerate}
 
+\begin{figure}[!htb]\hspace*{-4em}
+\adjustbox{max width=0.8\paperwidth}{
+\begin{tikzpicture}[
+level 0/.style = {sibling distance = 11em,level distance = 5em},
+level 0/.style = {sibling distance = 11em,level distance = 4em},
+level 1/.style = {sibling distance = 6em,level distance = 5em},
+level 2/.style = {sibling distance = 13em,level distance = 8em},
+]
+
+\input{styles.tex}
+\node (0B1) [chosenequation]{\nodepart{one}$\mathbf{X}B_{0}\mathbf{Y}A_{0} = \mathbf{Y}\mathbf{Y}B_{0}A_{0}\mathbf{X}$\nodepart{two}$\begin{array}{l}\mathbf{X}\neq\varepsilon\\\mathrm{No\;conditions}\\\end{array}$}
+child {node [action]{$\begin{array}{c}\mathtt{PairComp}\\B_{0}\;A_{0}\end{array}$} edge from parent [draw opacity = 0]
+child {node (2B1) [fullequation]{\nodepart{one}$\mathbf{X}A_{1}\mathbf{Y}A_{1} = A_{0}\mathbf{Y}A_{1}\mathbf{Y}B_{0}A_{1}\mathbf{X}$\nodepart{two}$\begin{array}{l}\mathbf{X}\neq\varepsilon\\A_{1}:=B_{0}A_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B2) [fullequation]{\nodepart{one}$\mathbf{X}B_{0}\mathbf{Y}A_{1} = \mathbf{Y}B_{0}\mathbf{Y}B_{0}A_{1}\mathbf{X}$\nodepart{two}$\begin{array}{l}\mathbf{X}\neq\varepsilon\\\mathbf{Y}\neq{}A_{0}\mathbf{Y_{S}}\\A_{1}:=B_{0}A_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B3) [fullequation]{\nodepart{one}$\mathbf{X}A_{1}\mathbf{Y}A_{0} = A_{0}\mathbf{Y}A_{0}\mathbf{Y}A_{1}\mathbf{X}$\nodepart{two}$\begin{array}{l}\mathbf{X}\neq\varepsilon\\\mathbf{Y}\neq{}\mathbf{Y_{P}}B_{0}\\A_{1}:=B_{0}A_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B4) [fullequation]{\nodepart{one}$\mathbf{X}B_{0}\mathbf{Y}A_{0} = \mathbf{Y}\mathbf{Y}A_{1}\mathbf{X}$\nodepart{two}$\begin{array}{l}\mathbf{X}\neq\varepsilon\\\textcolor{red}{\mathbf{Y}\neq\varepsilon}\\\mathbf{Y}\neq{}A_{0}\mathbf{Y_{S}}\\\mathbf{Y}\neq{}\mathbf{Y_{P}}B_{0}\\A_{1}:=B_{0}A_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B5) [fullequation]{\nodepart{one}$\mathbf{X}A_{1} = A_{1}\mathbf{X}$\nodepart{two}$\begin{array}{l}\mathbf{X}\neq\varepsilon\\\mathrm{No\;conditions}\\\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node [eqset,inner sep=-3em,cloud puffs=70,aspect=6,fit=(2B1)(2B2)(2B3)(2B4)(2B5)] {}
+};};
+\end{tikzpicture}
+}
+\caption{Пустая подстановка при сжатии пар}
+\label{fig::test1}
+\end{figure}
+
+Все подстановки показаны на Рисунке~\ref{fig::test1}.
+
 Последний случай принципиально отличается от всех предыдущих и не может быть сведён к ним. Кажется, что он похож на случай 4, но в случае 4 есть очевидное противоречие, если рассмотреть его образ в линейной целочисленной арифметике по модулю $A_1$, поскольку предполагается, что буквы $B_0$ и $A_0$, явно входящие в уравнение, уже точно не принадлежат никакому вхождению $B_0 A_0$. В случае же 5 противоречий нет, и он является единственным, приводящим к решению (после подстановки сжатия блоков $A_1$). 
+
+\section{Извлечение пар в PairComp}
+
+Перекрёстные и явные пары в \verb|PairComp|($\gamma_1$,$\gamma_2$) могут появляться вследствие следующих подстановок.
+\begin{itemize}
+\item элементарная подстановка $X\mapsto X\gamma_1$, $X\mapsto \gamma_2 X$;
+\item композиция двух элементарных подстановок (например, при извлечении $\gamma_1\gamma_2$) из границы между $X$ и $Y$;
+\item пустая подстановка $X\mapsto \varepsilon$ (см. выше).
+\end{itemize}
+ 
+Скажем, что элементарная подстановка существенная, если в результате её применения (без иных действий) появляется новая явная пара $\gamma_1\gamma_2$. 
+ 
+Скажем, что композиция $\tau_i$ существенная, если в результате её применения появляется явная пара, которая не появляется при применении элементов $\tau_i$ по отдельности.
+
+Пусть $\tau = \sigma_2 \circ \sigma_1$ существенна (все подстановки независимые, порядок может быть любым, существенны лишь сами $\sigma_i$). Возможны следующие случаи:
+
+\begin{itemize}
+\item $\sigma_1$ и $\sigma_2$ тоже существенны. Тогда относительно $\sigma_i$ придётся перебрать все четыре варианта комбинаций.
+\item $\sigma_1$ существенна, $\sigma_2$ нет. Тогда вариант применения только $\sigma_2$ и вариант применения ни одной из подстановок эквиваленты (и описываются отрицательной рестрикцией на $\sigma_1$), и нет смысла выделять оба. Остаются только три варианта из четырёх.
+\item ни одна из компонент не существенна. Тогда случаи их применения по отдельности оба эквивалентны отсутствию подстановок (и соответствуют отрицательной рестрикции, представляющей собой дизъюнкцию), и остаётся только два варианта.  
+\end{itemize}
+
+После построения базовых вариантов по каждой из композиций, а также базовых вариантов по существенным элементарным подстановкам, не вошедшим ни в одну композицию, строятся прямые произведения. При этом некоторые из произведений будут отброшены как повторные, а некоторые --- как противоречивые; кроме того, могут происходить нетривиальные преобразования навешиваемых отрицательных условий (упрощение 2КНФ). Всю логику 2-КНФ здесь реализовывать нет необходимости, потому что все элементы дизъюнкций, состояющих больше, чем из одного дизъюнкта, отрицательные. Поэтому достаточно <<протолкнуть>> (т.е. подставить) все положительные значения подстановок в дизъюнкты (для упрощения и нахождения противоречий); и выбросить 2-дизъюнкты, которые поглощаются 1-дизъюнктами.
+
+Рассмотрим, например, уравнение \verb|bXYa = XbZY|, к которому применяется \verb|PairComp(ab)|. Выделяется существенная подстановка $\sigma_1$, \verb|X|$\sigma_1=$\verb|Xa|, а также элементы композиций $\sigma_2$ и $\sigma_3$: \verb|Y|$\sigma_2=$\verb|bY|, \verb|Z|$\sigma_3=$\verb|Za|. По композиции $\sigma_2\circ\sigma_1$ получается три случая.
+
+\begin{itemize}
+\item (1-1) \verb|X|$=$\verb|Xa|$\logand$\verb|Y|$=$\verb|bY|;
+\item (1-2) \verb|X|$=$\verb|Xa|$\logand$\verb|Y|$\neq$\verb|bY|;
+\item (1-3) \verb|X|$\neq$\verb|Xa|
+\end{itemize}  
+ 
+По композиции $\sigma_2\circ\sigma_3$ случая всего два.
+
+\begin{itemize}
+\item (2-1) \verb|Z|$=$\verb|Za|$\logand$\verb|Y|$=$\verb|bY|;
+\item (2-2) \verb|Z|$\neq$\verb|Xa|$\logor$\verb|Y|$\neq$\verb|bY|.
+\end{itemize}  
+ 
+Рассмотрим все их произведения. 
+
+\begin{itemize}
+\item (1-1)$\times$(2-1) \verb|X|$=$\verb|Xa|$\logand$\verb|Y|$=$\verb|bY|$\logand$\verb|Z|$=$\verb|Za|;
+\item (1-1)$\times$(2-2) \verb|X|$=$\verb|Xa|$\logand$\verb|Y|$=$\verb|bY|$\logand$\verb|Z|$\neq$\verb|Xa| (здесь дизъюнкция вынуждает выполниться первый дизъюнкт, т.к. второй вступает в противоречие с положительным условием);
+\item (1-2)$\times$(2-1) противоречие;
+\item (1-2)$\times$(2-2) \verb|X|$=$\verb|Xa|$\logand$\verb|Y|$\neq$\verb|bY|. А здесь дизъюнкция тривиально выполнена, поэтому добавлять её не нужно.
+\item (1-3)$\times$(2-1) \verb|X|$\neq$\verb|Xa|$\logand$\verb|Z|$=$\verb|Za|$\logand$\verb|Y|$=$\verb|bY|;
+\item (1-3)$\times$(2-2) \verb|X|$\neq$\verb|Xa|$\logand$(\verb|Z|$\neq$\verb|Xa|$\logor$\verb|Y|$\neq$\verb|bY|).
+\end{itemize}  
+
+Осталось пять вариантов (Рисунок~\ref{fig::test2}). 
+
+\begin{figure}[!htb]
+\hspace*{-4em}\adjustbox{max width=0.8\paperwidth}{
+\begin{tikzpicture}[
+level 0/.style = {sibling distance = 10em,level distance = 4em},
+level 0/.style = {sibling distance = 10em,level distance = 3em},
+level 1/.style = {sibling distance = 6em,level distance = 5em},
+level 2/.style = {sibling distance = 12em,level distance = 7em},
+]
+
+\input{styles.tex}
+\node (0B1) [chosenequation]{\nodepart{one}$b_{0}\mathbf{X}\mathbf{Y}a_{0} = \mathbf{X}b_{0}\mathbf{Z}\mathbf{Y}$\nodepart{two}$\begin{array}{l}\mathrm{No\;constraints}\\\mathrm{No\;conditions}\\\end{array}$}
+child {node [action]{$\begin{array}{c}\mathtt{PairComp}\\a_{0}\;b_{0}\end{array}$} edge from parent [draw opacity = 0]
+child {node (2B1) [fullequation]{\nodepart{one}$b_{0}\mathbf{X}c_{0}\mathbf{Y}a_{0} = \mathbf{X}c_{0}\mathbf{Z}c_{0}\mathbf{Y}$\nodepart{two}$\begin{array}{l}\mathrm{No\;constraints}\\c_{0}:=a_{0}b_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B2) [fullequation]{\nodepart{one}$b_{0}\mathbf{X}c_{0}\mathbf{Y}a_{0} = \mathbf{X}c_{0}\mathbf{Z}b_{0}\mathbf{Y}$\nodepart{two}$\begin{array}{l}\mathbf{Z}\neq{}\mathbf{Z_{P}}a_{0}\\c_{0}:=a_{0}b_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B3) [fullequation]{\nodepart{one}$b_{0}\mathbf{X}a_{0}\mathbf{Y}a_{0} = \mathbf{X}c_{0}\mathbf{Z}\mathbf{Y}$\nodepart{two}$\begin{array}{l}\mathbf{Y}\neq{}b_{0}\mathbf{Y_{S}}\\c_{0}:=a_{0}b_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B4) [fullequation]{\nodepart{one}$b_{0}\mathbf{X}b_{0}\mathbf{Y}a_{0} = \mathbf{X}b_{0}\mathbf{Z}c_{0}\mathbf{Y}$\nodepart{two}$\begin{array}{l}\mathbf{X}\neq{}\mathbf{X_{P}}a_{0}\\c_{0}:=a_{0}b_{0}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B5) [fullequation]{\nodepart{one}$b_{0}\mathbf{X}\mathbf{Y}a_{0} = \mathbf{X}b_{0}\mathbf{Z}\mathbf{Y}$\nodepart{two}$\begin{array}{l}\mathbf{X}\neq{}\mathbf{X_{P}}a_{0}\\\mathbf{Y}\neq{}b_{0}\mathbf{Y_{S}}\vee\mathbf{Z}\neq{}\mathbf{Z_{P}}a_{0}\\\mathrm{No\;conditions}\\\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node [eqset,inner sep=-3em,cloud puffs=70,aspect=6,fit=(2B1)(2B2)(2B3)(2B4)(2B5)] {}
+};};
+\end{tikzpicture}
+}
+\caption{Порождение случаев при сжатии пар}
+\label{fig::test2}
+\end{figure}
+ 
+ \medskip
+\subsection{Существенные пустые подстановки}
+
+Скажем, что подстановка $\eta:$\verb|Y|$\mapsto\varepsilon$ существенная, если в результате её применения становится возможно построить новую явную или перекрёстную пару.
+
+Скажем, что композиция пустых подстановок $\theta$ существенная, если в результате её применения становится возможно построить новую явную или перекрёстную пару, которая не строится при применении любого подмножества подстановок, участвующих в композиции.
+
+Определим критерии существенности пустых подстановок и композиции пустых подстановок при сжатии пары $\gamma_1 \gamma_2$.
+\begin{itemize}
+\item Пусть часть уравнения имеет вид $\Phi_1\gamma_1\Psi\gamma_2\Phi_2$, где $\Psi$ непуста и принадлежит алфавиту переменных $\Xi$. Тогда композиция подстановок в $\Psi$, обращающая $\Psi$ в $\varepsilon$, считается существенной. Пример: в уравнении $\mathtt{YbZ\textcolor{red}{a}YZ\textcolor{red}{b} = XaYWYZ}$ при сжатии \verb|ab| композиция $\theta_1 = \eta_1\circ\eta_2$, где $\eta_1: \mathtt{Y}\mapsto\varepsilon$, $\eta_2: \mathtt{Z}\mapsto\varepsilon$, существенна, поскольку порождает новую явную пару, выделенную красным.
+\item Пусть часть уравнения имеет вид $\Phi_1\gamma_1\Psi X\Phi_2$, где $X$ --- переменная, а $\Psi$ непуста и принадлежит алфавиту $\Xi\setminus\{X\}$. Тогда композиция подстановок в $\Psi$, обращающая $\Psi$ в $\varepsilon$, считается существенной. Пример: в уравнении $\mathtt{YbZ{a}YZ{b} = X\textcolor{red}{a}YWY\textcolor{red}{Z}}$ при сжатии \verb|ab| композиция $\theta_2 = \eta_1\circ\eta_3$, где $\eta_1: \mathtt{Y}\mapsto\varepsilon$, $\eta_3: \mathtt{W}\mapsto\varepsilon$, существенна, поскольку порождает новую перекрёстную пару, если положить $\mathtt{Z}\mapsto\mathtt{bZ}$. Аналогичным свойством обладает и подстановка $\eta_1$ сама по себе: она порождает уравнение \verb|bZaZb = XaWZ|, где появляется новое соседство буквы \verb|a| с переменными \verb|Z| и \verb|Y| справа от неё.
+\item Критерий, симметричный предыдущему. Пусть часть уравнения имеет вид $\Phi_1 X\Psi \gamma_2\Phi_2$, где $X$ --- переменная, а $\Psi$ непуста и принадлежит алфавиту $\Xi\setminus\{X\}$. Тогда композиция подстановок в $\Psi$, обращающая $\Psi$ в $\varepsilon$, считается существенной. В том же уравнении $\mathtt{YbZ{a}\textcolor{red}{Y}Z\textcolor{red}{b} = X{a}YWY{Z}}$ при сжатии \verb|ab| подстановка $\eta_2$ существенна в этом смысле.
+\item Последний случай: новое соседство между переменными. Пусть часть уравнения имеет вид $\Phi_1 X_1\Psi X_2\Phi_2$, где $X_i$ --- переменные (возможно, равные), а $\Psi$ непуста и принадлежит алфавиту $\Xi\setminus\{X_1,X_2\}$. Тогда композиция подстановок в $\Psi$, обращающая $\Psi$ в $\varepsilon$, считается существенной. В уравнении $\mathtt{YbZ{a}{Y}Z{b} = X{a}\textcolor{blue}{Y}\textcolor{red}{W}\textcolor{blue}{Y}\textcolor{red}{Z}}$ при сжатии \verb|ab| существенными по этому критерию будут подстановки $\eta_1$ (порождает смежную пару, выделенную красным) и $\eta_3$ (порождает смежную пару, выделенную синим).
+
+\end{itemize}
+
+Кажется, что вышеперечисленные случаи порождают огромное число композиций, в которых, в том числе, будут отрицательные условия дизъюнктами не в 2-КНФ. Однако можно заметить\footnote{И потом доказать --- это TODO остаётся за мной, но если вы хотите, то можете попробовать.}, что, в отличие от случая непустых подстановок, если композиция $\theta$ является существенной, то все подстановки в ней являются существенными. Поэтому имеет смысл максимизировать фрагменты $\Psi$, обладающие требуемыми свойствами, чтобы выделить из них все необходимые для разбора случаев пустые подстановки, и дальше --- комбинировать их между собой всеми способами и применять к результатам соответствующих подстановок уже только перебор по непустым подстановкам. Это приведёт к определённого рода избыточности: например, комбинация $\eta_1\circ\eta_2\circ\eta_3$ порождает уравнение \verb|bab = Xa|, которое является частным случаем уравнения \verb|bab = XaW|  при условии, что \verb|W| не начинается с \verb|b|. Кажется, такая избыточность излечима, если пользоваться леммой и запускать перебор существенно пустых подстановок по одной, рекурсивно\footnote{При этом на все переменные, которые не обращаются в пустое слово на данном рекурсивном шаге, нужно объявлять непустыми в дополнительной рестрикции. Такая рестрикция выделена красным на Рисунке~\ref{fig::test1}.}.
+ 
+\section{Модификации в блоке рестрикций} 
+
+Скажем, что рестрикция избыточная, если в ней участвует константа, которой нет в уравнении, а также в блоке уравнений на индексы в правых частях. После модификации уравнения, нужно удалить избыточные рестрикции. С остальными предлагается действовать следующим образом.
+
+\begin{itemize}
+\item Если в блоке была рестрикция $X\neq \alpha_1 X$, то в случае, если $\alpha_1\in\mathrm{First}(\gamma_2)$ (см. следующий раздел), подстановка $X\mapsto \gamma_2 X$ считается невозможной --- больше того, добавлять дополнительное условие $X\neq \gamma_2 X$ на данную ветку уже нет необходимости. В противном случае подстановка $X\mapsto \gamma_2 X$ уничтожает рестрикцию $X\neq \alpha_1 X$.
+\item Аналогичное условие выполняется для суффиксных рестрикций.
+\item Рестрикция $X\neq\varepsilon$ уничтожается при любой подстановке в $X$ ($X\mapsto \gamma_2 X$, $X\mapsto X \gamma_1$, а также их комбинации).
+\item Если $\beta = \gamma_2^{s}\Psi$, и добавляется рестрикция $X\neq \gamma_2 X$, тогда имеет смысл также добавить рестрикцию $X\neq \beta X$. Симметричное условие выполнено для суффиксов. (oudated, храним только самые сильные отрицательные рестрикции, в данном случае это $X\neq \gamma_2 X$)
+\end{itemize}
+ 
+\section{Извлечение блоков}
+
+В этом варианте по каждой переменной без учёта рестрикций ровно два случая при операции $\mathtt{BlockComp}\;\alpha$:
+\begin{itemize}
+\item сжатие в единственный блок $X \mapsto \alpha^i$;
+\item извлечение двух блоков слева и справа, $X \mapsto \alpha^{i_1} X \alpha^{i_2}$, с дополнительными условиями $X\neq\varepsilon$, $X\neq \alpha X$, $X\neq X \alpha$.
+\end{itemize} 
+
+Напомним, что в дальнейшем все различные блоки (собранные из идущих подряд блоков $\alpha$) переводятся в различные новые буквы. Например, при сжатии блоков $a_0$ выражение $a_0a_0^{i_1}X a_0^{i_1}a_0^{i_2}X a_0^{i_2}a_0a_0$ индуцирует замены $a_1 := a_0^{i_1 +1}$, $b_1 := a_0^{i_1 +i_2}$, $c_1 := a_0^{i_2 +2}$. В итоге после сжатия выражение будет представлено как $a_1 X b_1 X c_1$, а указанные выше подстановки попадут в блок уравнений на индексы.
+
+Хотя новые буквы различны по умолчанию (если только уравнения на индексы не совпадут буквально), операция подстановки в переменные-индексы в дальнейшем может сделать их равными.
+
+В отрицательных условиях допускаем использование исходной константы (в нашем примере $a_0$). В принципе, можно было бы заменить эти условия множествами условий на $a_1$, $b_1$, $c_1$, но во-первых, это породит в перспективе (похоже что) экспоненциальный рост числа рестрикций, а во-вторых, возникает тонкость с возможностью вырождения индекса в нулевой, что влечёт появление абсурдной рестрикции <<не начинается с $\varepsilon$>>. 
+ 
+Можно было бы возразить, что такая рестрикция может всё равно неявно появиться, если сжатие уже не первое (сжали блок букв $a_0$, получили $a_1$; затем сжали блок букв $b_0$, получили $b_1$; сжали пару $a_1 b_1$, получили $c_1$, но если $a_1$ и $b_1$ оба были нулевыми степенями букв, то извлечение блоков букв $c_1$ заведомо абсурдно). Второй похожий вопрос состоит в том, что если $a_1$ и $b_1$ оба являются блоками $a_0$, то допускать ли возможность, что пары $a_1 b_0$ и $b_1 b_0$ должны сжиматься в одну и ту же константу.
+
+Решается этот вопрос следующим соглашением.
+
+\begin{itemize}
+\item Если в блок сжимается составная константа $\alpha$, то все её компоненты заведомо предполагаются непустыми. Если хотелось проверить пустую подстановку, то пользователь должен был объявить об этом до сжатия, анонсировав соответствующую подстановку индексов.
+\item Если составная константа $\alpha$ является элементом сжатой пары, то она не совпадает ни с одной из других составных констант.
+\end{itemize}
+ 
+На практике эти соглашения просто означают, что никакие дополнительные проверки на равенство и пустоту сжатых блоков при дальнейших операциях сжатия не нужны. 
+ 
+\subsection{Обработка рестрикций в BlockComp}
+
+Скажем, что $\alpha_0\in \mathrm{First}(\alpha)$, если существует цепочка условий на индексы вида $\alpha = \gamma_1^{i_1}\Phi_1$, $\gamma_1 = \gamma_2^{i_2}\Phi_2$, \dots, $\gamma_n = \alpha_0^{i_{n+1}}\Phi_{n+1}$.
+
+Симметрично определим понятие $\mathrm{Last}(\alpha)$. В дальнейшем будем оперировать понятием $\mathrm{First}$, по умолчанию считая, что для двойственного ему все действия и утверждения будут симметричны.
+
+Заметим, что если $\alpha_1\in\mathrm{First}(\alpha)$ и $\alpha_2\in\mathrm{First}(\alpha)$, тогда верна дизъюнкция $\alpha_1\in\mathrm{First}(\alpha_2)\logor\alpha_2\in\mathrm{First}(\alpha_1)$, поскольку отношение <<быть первой буквой>> строго иерархично.
+
+Это условие не рекомендуется понимать в смысле <<$\alpha_0$ является префиксом $\alpha$>>, поскольку, например, если $a_1 := a_0^2$, $a_2 := a_0^3$ (что возможно при сжатии выражения $XbaabXbaaa$), то строго говоря, $a_1$ формирует слово-префикс $a_2$, однако неверно, что $a_1\in \mathrm{First}(a_2)$. Разница здесь в том, что при выделении максимальных блоков подразумевается, что блоки точно имеют границы, не позволяющие их смешивать, поэтому там, где встретилась $a_1$, за ней не может следовать никакая буква, содержащая $a_0$ в $\mathrm{First}$-множестве, и поэтому наборы отделённых 2-блоков $a_0$ и отделённых 3-блоков $a_0$ могут рассматриваться как принципиально различные буквы. Это одна из ключевых черт алгоритма Ежа, в том числе, гарантирующая то, что он может порождать только линейные диофантовы уравнения на длины блоков.  
+
+Рестрикции учитываются следующим образом. 
+\begin{itemize}
+\item Если сжимаются блоки $\alpha$, и существует рестрикция вида $X\neq \alpha_0 X$, где $\alpha_0\in\mathrm{First}(\alpha)$, тогда отображение <<сжатие в блок>> $X\mapsto \alpha^i$ заменяется на пустое: $X\mapsto \varepsilon$; отображение <<извлечение блоков слева и справа>> $X\mapsto \alpha^{i_1} X \alpha^{i_2}$ заменяется на отображение <<извлечение только правого блока>> $X\mapsto X \alpha^{i_2}$ (и рестрикция $X\neq \alpha_0 X$ остаётся, поскольку она сильнее, чем налагаемая сжатием новая рестрикция $X\neq \alpha X$).
+\item Если рестрикция $X\neq \beta X$ независима от $\alpha$ (то есть $\beta\not\in\mathrm{First}(\alpha)$), тогда при сжатии в единый блок она полностью пропадает, а при извлечении блоков необходимо расщепить его на два случая: $X\mapsto X \alpha^{i_2}$ с сохранением рестрикции $X\neq \beta X$ (а также добавлением $X\neq \alpha X$, как обычно), и $X\mapsto \alpha^{i_1} X \alpha^{i_2}$ с удалением рестрикции $X\neq \beta X$. Это необходимо, потому что в противном случае потеряется условие, что если префиксный блок пуст, то за ним следует точно не буква $\beta$ или производные от неё.
+\item Рестрикции на последние буквы обрабатываются симметричным образом.
+\item Рестрикция $X\neq\varepsilon$ влияет только на сжатие в единый блок $\alpha^i$: в этом случае она уничтожается с порождением подстановки $i:= i'+1$ ($i'$ --- свежий индекс), которая немедленно применяется. Если сжимаются блоки-префиксы и блоки-суффиксы, то $X\neq\varepsilon$ <<формально уничтожается>> с появлением точно такой же рестрикции, являющейся результатом уже конкретно этого сжатия. 
+\item В заключение, рестрикции на избыточные константы (в смысле предыдущего раздела) следует удалить из условий.   
+\end{itemize}  
  
 \section{Пример}
 
-Покажем пример работы цепочки операций на следующем примере.
+Покажем пример работы цепочки операций на следующем примере. Обработка уравнений на индексы и рестрикций оптимизирована согласно последнему разделу об операции \verb|BlockComp|.
 
 Исходное уравнение: 
 
@@ -256,13 +449,11 @@ GetNewIndexUpdated {
 )
 (
   (OR (not empty (Var 'Y')))
-  (OR (not ('A' 1) ends (Var 'Y'))
-  (OR (not ('A' 2) ends (Var 'Y'))
-  (OR (not ('A' 3) ends (Var 'Y'))
-  (OR (not ('A' 1) starts (Var 'Y'))
-  (OR (not ('A' 2) starts (Var 'Y'))
-  (OR (not ('A' 3) starts (Var 'Y'))
+  (OR (not ('A' 0) ends (Var 'Y'))
+  (OR (not ('A' 0) starts (Var 'Y'))
 )
+/* Здесь использованы те же свежие индексы и имена констант, что и в предыдущем случае. 
+Это допустимо, поскольку ветки независимы - и поэтому им можно передавать один и тот же последний неиспользованный индекс. */
 ( 
  (('A' 1) is (('A' 0) (i1 1) (const 2))) 
  (('A' 2) is (('A' 0) (i2 1) (const 0))) 
@@ -277,12 +468,8 @@ GetNewIndexUpdated {
 )
 (
   (OR (not empty (Var 'X')))
-  (OR (not ('A' 1) ends (Var 'X'))
-  (OR (not ('A' 2) ends (Var 'X'))
-  (OR (not ('A' 3) ends (Var 'X'))
-  (OR (not ('A' 1) starts (Var 'X'))
-  (OR (not ('A' 2) starts (Var 'X'))
-  (OR (not ('A' 3) starts (Var 'X'))
+  (OR (not ('A' 0) ends (Var 'X'))
+  (OR (not ('A' 0) starts (Var 'X'))
 )
 ( 
  (('A' 1) is (('A' 0) (i1 1) (const 0))) 
@@ -299,22 +486,10 @@ GetNewIndexUpdated {
 (
   (OR (not empty (Var 'X')))
   (OR (not empty (Var 'Y')))
-  (OR (not ('A' 1) ends (Var 'X'))
-  (OR (not ('A' 2) ends (Var 'X'))
-  (OR (not ('A' 3) ends (Var 'X'))
-  (OR (not ('A' 4) ends (Var 'X'))
-  (OR (not ('A' 1) starts (Var 'X'))
-  (OR (not ('A' 2) starts (Var 'X'))
-  (OR (not ('A' 3) starts (Var 'X'))
-  (OR (not ('A' 4) starts (Var 'X'))
-  (OR (not ('A' 1) ends (Var 'Y'))
-  (OR (not ('A' 2) ends (Var 'Y'))
-  (OR (not ('A' 3) ends (Var 'Y'))
-  (OR (not ('A' 4) ends (Var 'Y'))
-  (OR (not ('A' 1) starts (Var 'Y'))
-  (OR (not ('A' 2) starts (Var 'Y'))
-  (OR (not ('A' 3) starts (Var 'Y'))
-  (OR (not ('A' 4) starts (Var 'Y'))
+  (OR (not ('A' 0) ends (Var 'X'))
+  (OR (not ('A' 0) starts (Var 'X'))
+  (OR (not ('A' 0) ends (Var 'Y'))
+  (OR (not ('A' 0) starts (Var 'Y'))
 )
  (('A' 1) is (('A' 0) (i1 1) (const 0))) 
  (('A' 2) is (('A' 0) (i2 1) (const 2))) 
@@ -358,10 +533,12 @@ GetNewIndexUpdated {
  (('B' 2))
 )
 (/* Блок условий пуст */)
+ /* Условие на непустоту добавило 1 в уравнения для обеих констант */ 
 ( 
- (('B' 1) is ('B' (i1 1) (const 0))) 
- (('B' 2) is ('B' (i2 1) (const 1))) 
+ (('B' 1) is ('B' (i5 1) (const 1))) 
+ (('B' 2) is ('B' (i6 1) (const 2))) 
 )
+/* Счёт индексов двинулся дальше. Формально, мы могли бы без проблем переиспользовать i1-i4, поскольку их уже нет в уравнении, но это усложнило бы логику работы функции порождения свежих констант и индексов, поэтому проще взять свежие. */
 \end{minted}
 \item В блок коллапсирует только \verb|X|:
 \begin{minted}[breaklines,breakafter= ]{refal}
@@ -371,17 +548,14 @@ GetNewIndexUpdated {
 )
 (
   (OR (not empty (Var 'Y')))
-  (OR (not ('B' 1) ends (Var 'Y'))
-  (OR (not ('B' 2) ends (Var 'Y'))
-  (OR (not ('B' 3) ends (Var 'Y'))
-  (OR (not ('B' 1) starts (Var 'Y'))
-  (OR (not ('B' 2) starts (Var 'Y'))
-  (OR (not ('B' 3) starts (Var 'Y'))
+  (OR (not ('B' 0) ends (Var 'Y'))
+  (OR (not ('B' 0) starts (Var 'Y'))
 )
+/* Условие на непустоту добавило 1 в уравнение для блока по X */
 ( 
- (('B' 1) is (('B' 0) (i1 1) (const 0))) 
- (('B' 2) is (('B' 0) (i2 1) (const 1))) 
- (('B' 3) is (('B' 0) (i3 1) (const 0))) 
+ (('B' 1) is (('B' 0) (i5 1) (const 1))) 
+ (('B' 2) is (('B' 0) (i6 1) (const 1))) 
+ (('B' 3) is (('B' 0) (i7 1) (const 0))) 
 )
 \end{minted}
 \item В блок коллапсирует только \verb|Y|:
@@ -390,19 +564,16 @@ GetNewIndexUpdated {
  (('B' 1) (Var 'X') ('B' 2)) 
  (('B' 3))
 )
+/* Условие на непустоту добавило 1 в уравнение для блока по Y */
 (
   (OR (not empty (Var 'X')))
-  (OR (not ('B' 1) ends (Var 'X'))
-  (OR (not ('B' 2) ends (Var 'X'))
-  (OR (not ('B' 3) ends (Var 'X'))
-  (OR (not ('B' 1) starts (Var 'X'))
-  (OR (not ('B' 2) starts (Var 'X'))
-  (OR (not ('B' 3) starts (Var 'X'))
+  (OR (not ('B' 0) ends (Var 'X'))
+  (OR (not ('B' 0) starts (Var 'X'))
 )
 ( 
- (('B' 1) is (('B' 0) (i1 1) (const 0))) 
- (('B' 2) is (('B' 0) (i2 1) (const 0))) 
- (('B' 3) is (('B' 0) (i3 1) (const 1))) 
+ (('B' 1) is (('B' 0) (i5 1) (const 0))) 
+ (('B' 2) is (('B' 0) (i6 1) (const 0))) 
+ (('B' 3) is (('B' 0) (i7 1) (const 2))) 
 )
 \end{minted}
 \item Ничего не коллапсирует:
@@ -414,36 +585,24 @@ GetNewIndexUpdated {
 (
   (OR (not empty (Var 'X')))
   (OR (not empty (Var 'Y')))
-  (OR (not ('B' 1) ends (Var 'X'))
-  (OR (not ('B' 2) ends (Var 'X'))
-  (OR (not ('B' 3) ends (Var 'X'))
-  (OR (not ('B' 4) ends (Var 'X'))
-  (OR (not ('B' 1) starts (Var 'X'))
-  (OR (not ('B' 2) starts (Var 'X'))
-  (OR (not ('B' 3) starts (Var 'X'))
-  (OR (not ('B' 4) starts (Var 'X'))
-  (OR (not ('B' 1) ends (Var 'Y'))
-  (OR (not ('B' 2) ends (Var 'Y'))
-  (OR (not ('B' 3) ends (Var 'Y'))
-  (OR (not ('B' 4) ends (Var 'Y'))
-  (OR (not ('B' 1) starts (Var 'Y'))
-  (OR (not ('B' 2) starts (Var 'Y'))
-  (OR (not ('B' 3) starts (Var 'Y'))
-  (OR (not ('B' 4) starts (Var 'Y'))
+  (OR (not ('B' 0) ends (Var 'X'))
+  (OR (not ('B' 0) starts (Var 'X'))
+  (OR (not ('B' 0) ends (Var 'Y'))
+  (OR (not ('B' 0) starts (Var 'Y'))
 )
- (('B' 1) is (('B' 0) (i1 1) (const 0))) 
- (('B' 2) is (('B' 0) (i2 1) (const 0))) 
- (('B' 3) is (('B' 0) (i3 1) (const 1))) 
- (('B' 4) is (('B' 0) (i4 1) (const 0))) 
+ (('B' 1) is (('B' 0) (i5 1) (const 0))) 
+ (('B' 2) is (('B' 0) (i6 1) (const 0))) 
+ (('B' 3) is (('B' 0) (i7 1) (const 1))) 
+ (('B' 4) is (('B' 0) (i8 1) (const 0))) 
 )
 \end{minted}
 
 \end{enumerate}
 \item Пусть далее рассматривается опять ветка 4: \mintinline{refal}{(Pick 4)}, и аналогичные рассмотренным ранее подстановки:
 
-\mintinline{refal}{(Subst i1 ((i3 1) (const 1)))}
+\mintinline{refal}{(Subst i5 ((i7 1) (const 1)))}
 
-\mintinline{refal}{(Subst i2 ((i4 1) (const 0)))}
+\mintinline{refal}{(Subst i6 ((i8 1) (const 0)))}
 
 После такого преобразования останется только уравнение 
 
@@ -453,7 +612,7 @@ GetNewIndexUpdated {
 
 \item Если бы рассматривалась первая ветка, то следующая подстановка:
 
-\mintinline{refal}{(Subst i1 ((i2 1) (const 1)))}
+\mintinline{refal}{(Subst i5 ((i6 1) (const 1)))}
 
 привела бы к сообщению о нахождении решения.
 \end{itemize}

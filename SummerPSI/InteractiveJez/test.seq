@@ -1,0 +1,103 @@
+((AreEqual ((Var Y) (A 0) (Var X)) ((Var X) (B 0) (Var Y)))()())
+
+(PairComp (A 0) (B 0))
+
+(Set ((AreEqual ((Var Y)(A 0) (Var X)) ((Var X) (B 0)(Var Y)))
+  ((OR (not (B 0) starts (Var X)))
+   (OR (not (A 0) ends (Var X))))
+   ())
+((AreEqual ((Var Y)(A 1) (Var X)(A 0)) ((B 0)(Var X)(A 1)(Var Y)))
+   ()
+   (((A 1) is ((A 0) ((const) 1))((B 0) ((const) 1)))))
+((AreEqual ((Var Y)(A 1) (Var X)) ((B 0)(Var X) (B 0)(Var Y)))
+   ((OR (not (A 0) ends (Var X))))
+   (((A 1) is ((A 0) ((const) 1))((B 0) ((const) 1)))))
+((AreEqual ((Var Y)(A 0) (Var X)(A 0)) ((Var X) (A 1)(Var Y)))
+   ((OR (not (B 0) starts (Var X))))
+   (((A 1) is ((A 0) ((const) 1))((B 0) ((const) 1)))))
+)
+
+(Pick 1)
+
+((AreEqual ((Var Y)(A 0) (Var X)) ((Var X) (B 0)(Var Y)))
+  ((OR (not (B 0) starts (Var X)))
+   (OR (not (A 0) ends (Var X))))
+   ())
+
+(BlockComp (A 0))
+
+(Set
+ ((AreEqual ((A 1)) ((B 0) (A 2)))
+  ()
+   (
+     ((A 1) is ((A 0) ((i1) 1) ((const) 1)))
+     ((A 2) is ((A 0) ((i1) 1) ((const) 0)))
+   )
+ )
+((AreEqual ((A 2)(Var X)) ((A 3)(Var X)(B 0)(A 4)))
+  ((OR (not empty (Var X)))
+   (OR (not (A 0) starts (Var X)))
+   (OR (not (A 0) ends (Var X)))
+  )
+   (
+     ((A 2) is ((A 0) ((i1) 1) ((i2) 1) ((const) 1)))
+     ((A 3) is ((A 0) ((i2) 1) ((const) 0)))
+     ((A 4) is ((A 0) ((i1) 1) ((const) 0)))
+   )
+ ) 
+((AreEqual ((A 2)(Var Y)(A 3)) ((B 0)(A 2) (Var Y) (A 4)))
+  ((OR (not empty (Var Y)))
+   (OR (not (A 0) starts (Var Y)))
+   (OR (not (A 0) ends (Var Y)))
+  )
+   (
+     ((A 2) is ((A 0) ((i1) 1) ((const) 0)))
+     ((A 3) is ((A 0) ((i2) 1) ((const) 1)))
+     ((A 4) is ((A 0) ((i2) 1) ((const) 0)))
+   )
+ ) 
+((AreEqual ((A 2)(Var Y)(A 3)(Var X)) ((A 4)(Var X)(B 0)(A 2) (Var Y) (A 5)))
+  ((OR (not empty (Var Y)))(OR (not empty (Var X)))
+   (OR (not (A 0) starts (Var X)))
+   (OR (not (A 0) ends (Var X)))
+   (OR (not (A 0) starts (Var Y)))
+   (OR (not (A 0) ends (Var Y)))
+   )
+   (
+     ((A 2) is ((A 0) ((i3) 1) ((const) 0)))
+     ((A 3) is ((A 0) ((i1) 1) ((i4) 1) ((const) 1)))
+     ((A 4) is ((A 0) ((i1) 1) ((const) 0)))
+     ((A 5) is ((A 0) ((i4) 1) ((const) 0)))
+   )
+ ) 
+)
+
+(Pick 2)
+
+((AreEqual ((A 2)(Var X)) ((A 3)(Var X)(B 0)(A 4)))
+  ((OR (not empty (Var X)))
+   (OR (not (A 2) starts (Var X)))
+   (OR (not (A 2) ends (Var X)))
+  )
+   (
+     ((A 2) is ((A 0) ((i1) 1) ((i2) 1) ((const) 1)))
+     ((A 3) is ((A 0) ((i2) 1) ((const) 0)))
+     ((A 4) is ((A 0) ((i1) 1) ((const) 0)))
+   )
+ ) 
+
+(SubstIndex (i1) (((const) 0)))
+
+((AreEqual ((A 2)(Var X)) ((Var X)(A 3)(B 0)))
+  ((OR (not empty (Var X)))
+   (OR (not (A 2) starts (Var X)))
+   (OR (not (A 2) ends (Var X)))
+ )
+   (
+     ((A 2) is ((A 0) ((i2) 1) ((const) 1)))
+     ((A 3) is ((A 0) ((i2) 1) ((const) 0)))
+   )
+ )
+
+
+

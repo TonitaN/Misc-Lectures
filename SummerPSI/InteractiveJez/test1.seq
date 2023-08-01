@@ -1,0 +1,47 @@
+((AreEqual 
+   ((Var 'X') ('B' 0) (Var 'Y') ('A' 0))
+   ((Var 'Y') (Var 'Y') ('B' 0) ('A' 0) (Var 'X'))
+)
+(
+   (OR (not empty (Var 'X')))
+)
+()
+)
+
+(PairComp ('B' 0) ('A' 0))
+
+(Set
+((AreEqual 
+   ((Var 'X') ('A' 1) (Var 'Y') ('A' 1))
+   (('A' 0) (Var 'Y') ('A' 1) (Var 'Y') ('B' 0)('A' 1) (Var 'X'))
+)
+((OR (not empty (Var 'X'))))
+(((A 1) is ((A 0) ((const) 1))((B 0) ((const) 1)))))
+((AreEqual 
+   ((Var 'X') ('B' 0) (Var 'Y') ('A' 1))
+   ((Var 'Y') ('B' 0) (Var 'Y') ('B' 0)('A' 1) (Var 'X')))
+((OR (not empty (Var 'X')))
+   (OR (not ('A' 0) starts (Var 'Y'))))
+(((A 1) is ((A 0) ((const) 1))((B 0) ((const) 1)))))
+((AreEqual 
+   ((Var 'X') ('A' 1) (Var 'Y') ('A' 0))
+   (('A' 0) (Var 'Y') ('A' 0) (Var 'Y') ('A' 1) (Var 'X')))
+((OR (not empty (Var 'X')))
+   (OR (not ('B' 0) ends (Var 'Y'))))
+(((A 1) is ((A 0) ((const) 1))((B 0) ((const) 1)))))
+((AreEqual 
+   ((Var 'X') ('B' 0) (Var 'Y') ('A' 0))
+   ((Var 'Y') (Var 'Y') ('A' 1) (Var 'X')))
+((OR (not empty (Var 'X')))
+   (OR (not ('A' 0) starts (Var 'Y')))
+   (OR (not ('B' 0) ends (Var 'Y'))))
+(((A 1) is ((A 0) ((const) 1))((B 0) ((const) 1)))))
+((AreEqual 
+   ((Var 'X') ('A' 1))
+   (('A' 1) (Var 'X')))
+(
+   (OR (not empty (Var 'X'))))
+()
+))
+
+

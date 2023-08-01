@@ -61,3 +61,9 @@ CallTill {
   (e.ExpectedResult) s.AnyMode t.Function /* Empty list */ = e.ExpectedResult;
 }
 
+/* Given a call with arguments, requiring reading from a file, and a datum from the file, determine whether the call is to be executed */
+ContinueIfNotEOF {
+  (e.Function) e.Data 0 = /* No action */;
+  (e.Function) e.Data = <UnwrapCalls (e.Function)>;
+}
+

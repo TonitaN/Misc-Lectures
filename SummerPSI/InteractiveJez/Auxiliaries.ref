@@ -197,3 +197,36 @@ $ENTRY FormTerm {
   e.Any = (e.Any);
 }
 
+$ENTRY StructParens {
+  e.Arg = <ExtractRealParens Plain e.Arg>; 
+}
+
+ExtractRealParens {
+ Plain e.x'('e.y')'e.z
+ , e.y : {
+   e.y1'('e.y2
+   , <ExtractRealParens Left () e.y2> : 
+  {() e.v2
+    = <ExtractRealParens Plain e.x'('e.y1 (e.v2) e.z>;
+   (e.v1'(') e.v2
+    = <ExtractRealParens Plain e.x'('e.y1'('e.v1 (e.v2) e.z>;
+  };
+   e.other = <ExtractRealParens Plain e.x (e.y) e.z>;
+ };
+ Left (e.drop) e.y
+ , e.y : 
+  {e.y1'('e.y2
+     = <ExtractRealParens Left (e.drop e.y1'(')e.y2>;
+   e.z = (e.drop) e.y;
+  };
+ Plain e.Rest = e.Rest;
+}
+
+$ENTRY ChooseMax {
+ s.Val1 s.Val2
+ , <Compare s.Val1 s.Val2> :
+ {'+' = s.Val1;
+  s.Any = s.Val2;
+ };
+}
+

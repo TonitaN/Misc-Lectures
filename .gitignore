@@ -1,2 +1,7 @@
 *.rsl
 *_INLINED.*
+*.log
+*.aux
+*.gz
+*.pygtex
+*.pygstyle

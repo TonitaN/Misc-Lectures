@@ -1,0 +1,26 @@
+\documentclass[crop,tikz]{standalone}
+\usepackage{makeidx,fancybox,tikz,nicematrix}
+\usetikzlibrary{automata, graphs,positioning, arrows,patterns,shapes.geometric,shapes.multipart,shapes.symbols,shapes.arrows}
+\usetikzlibrary{arrows.meta}
+
+%\usegdlibrary{trees,layered}
+\pgfdeclarelayer{background}
+\pgfdeclarelayer{foreground}
+\pgfsetlayers{background,main,foreground}
+
+\usetikzlibrary{fit, calc}
+\usepackage{xparse}
+\makeatletter
+\NewDocumentCommand {\getnodedimen} {O{\nodewidth} O{\nodeheight} m} {
+  \begin{pgfinterruptboundingbox}
+  \begin{scope}[local bounding box=bb@temp]
+    \node[inner sep=0pt, fit=(#3)] {};
+  \end{scope}
+  \path ($(bb@temp.north east)-(bb@temp.south west)$);
+  \end{pgfinterruptboundingbox}
+  \pgfgetlastxy{#1}{#2}
+}
+\makeatother
+
+\begin{document}
+
