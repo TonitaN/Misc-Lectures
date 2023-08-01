@@ -1108,15 +1108,21 @@ HandleNonEmptySubsts {
         Curry
         (ProcessOption (e.Conditions))
         e.MultipliedOptions
-      >
-    : e.ProcessedOptions /* remove duplicates? */
-    , <Prout 'Processed options: ' e.ProcessedOptions> : /* EMPTY */
-    /* Assume there are no duplicated equations. */
-    = <MapCall
-        Curry
-        (ApplyOption t.ReplacingConst t.Const1 t.Const2 t.Equation)
-        e.ProcessedOptions
-      >
+      > : {
+      /* No implicit occurences. Applying empty option to the equation. */
+      /* EMPTY */
+        = <ApplyOption
+            t.ReplacingConst t.Const1 t.Const2 t.Equation
+            ((/* No substitutions */)(/* No constraints */))
+          >;
+
+      e.ProcessedOptions
+        = <MapCall
+            Curry
+            (ApplyOption t.ReplacingConst t.Const1 t.Const2 t.Equation)
+            e.ProcessedOptions
+          >;
+    };
 }
 
 /*
@@ -1697,7 +1703,7 @@ ApplyOption {
         'New equation: '
         (
           (AreEqual (e.TrimmedLHS) (e.TrimmedRHS))
-          (e.NecessaryConstraints)
+          (e.NecessaryConstraints e.NewConstraints)
           (e.NecessaryConditions)
         )
       > : /* EMPTY */
@@ -1835,6 +1841,12 @@ IsRestrictionRedundant {
         };
     };
 }
+
+/*
+  Что не учёл:
+    - удаление неиспользующихся индексных уравнений;
+    - 
+*/
 
 /*
   Индексное уравнение избыточное, если все константы, составляющие его правую
