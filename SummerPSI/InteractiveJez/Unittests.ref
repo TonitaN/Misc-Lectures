@@ -355,7 +355,6 @@ RunPairComp {
       ('B' 1) (e.NewEqs)
         , e.NewEqs
         : e.L1
-          /* (Var 'Y') ends with ('B' 0) and starts with ('A' 0) */
           (
             (
               AreEqual
@@ -372,7 +371,6 @@ RunPairComp {
           e.R1
         , e.L1 e.R1
         : e.L2
-          /* (Var 'Y') ends with ('B' 0) and doesn't start with ('A' 0) */
           (
             (
               AreEqual
@@ -390,7 +388,6 @@ RunPairComp {
           e.R2
         , e.L2 e.R2
         : e.L3
-          /* (Var 'Y') doesn't end with ('B' 0) and starts with ('A' 0) */
           (
             (
               AreEqual
@@ -408,7 +405,6 @@ RunPairComp {
           e.R3
         , e.L3 e.R3
         : e.L4
-          /* (Var 'Y') doesn't end with ('B' 0) and start with ('A' 0) */
           (
             (
               AreEqual
@@ -418,8 +414,8 @@ RunPairComp {
             (
               (OR (not empty (Var 'X')))
               (OR (not empty (Var 'Y')))
-              (OR (not ('A' 0) starts (Var 'Y')))
               (OR (not ('B' 0) ends (Var 'Y')))
+              (OR (not ('A' 0) starts (Var 'Y')))
             )
             (
               (('A' 1) is (('B' 0) (const 1)) (('A' 0) (const 1)))
@@ -428,7 +424,6 @@ RunPairComp {
           e.R4
         , e.L4 e.R4
         : e.L5
-          /* (Var 'Y') is empty */
           (
             (
               AreEqual
@@ -438,9 +433,7 @@ RunPairComp {
             (
               (OR (not empty (Var 'X')))
             )
-            (
-              (('A' 1) is (('B' 0) (const 1)) (('A' 0) (const 1)))
-            )
+            (/* No Conditions */)
           )
           e.R5
         = True;
@@ -453,7 +446,6 @@ RunPairComp {
       ('B' 1) (e.NewEqs)
         , e.NewEqs
         : e.L1
-          /* (Var 'Y') ends with ('A' 0) and (Var 'X') starts with ('B' 0) */
           (
             (
               AreEqual
@@ -468,8 +460,6 @@ RunPairComp {
           e.R1
         , e.L1 e.R1
         : e.L2
-          /* (Var 'Y') ends with ('A' 0) and
-             (Var 'X') doesn't start with ('B' 0) */
           (
             (
               AreEqual
@@ -486,8 +476,6 @@ RunPairComp {
           e.R2
         , e.L2 e.R2
         : e.L3
-          /* (Var 'Y') doesn't end with ('A' 0) and
-             (Var 'X') starts with ('B' 0) */
           (
             (
               AreEqual
@@ -505,8 +493,6 @@ RunPairComp {
           e.R3
         , e.L3 e.R3
         : e.L4
-          /* (Var 'Y') doesn't end with ('A' 0) and
-             (Var 'X') doesn't start with ('B' 0) */
           (
             (
               AreEqual
@@ -1089,7 +1075,6 @@ GetEmptySubst {
 HandleNonEmptySubsts {
   t.ReplacingConst t.Const1 t.Const2 t.Equation
     , t.Equation : ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions))
-    , <Prout 'Equation: ' t.Equation> : /* EMPTY */
     , <GetNonEmptySubsts /* substitutions for the right half */
         t.Const1 t.Const2 (e.Constraints) (e.Conditions)
         <GetNonEmptySubsts /* substitutions for the left half */
@@ -1124,28 +1109,6 @@ HandleNonEmptySubsts {
           >;
     };
 }
-
-/*
-  bXYa = XbZY; сжатие ab.
-  GetNonEmptySubsts добавляет только возможные подстановки.
-    (X = Xa & Y = bY) (X = Xa) (Z = Za & Y = bY)
-  GenOptionSets:
-    (X = Xa && Y = bY, X = Xa && Y != bY, X != Xa)
-    (Z = Za && Y = bY, Z != Za || Y != bY)
-  CartesianProduct:
-    (X = Xa && Y = bY && Z = Za && Y = bY)
-    (X = Xa && Y = bY && (Z != Za || Y != bY))
-    (X = Xa && Y != bY && Z = Za && Y = bY)
-    (X = Xa && Y != bY && (Z != Za || Y != bY))
-    (X != Xa && Z = Za && Y = bY)
-    (X != Xa && (Z != Za || Y != bY))
-  ProcessOption:
-    (X = Xa && Y = bY && Z = Za)
-    (X = Xa && Y = bY && Z != Za)
-    (X = Xa && Y != bY)
-    (X != Xa && Z = Za && Y = bY)
-    (X != Xa && (Z != Za || Y != bY))
-*/
 
 /*
   Returns essentially non-empty substitutions for the given equation half.
@@ -1663,6 +1626,8 @@ FixOptionConsistency {
 /*
   Applies option substitutions to the equation (also adds corresponding index
   equation) and appends the option constraints to the equation constraints.
+  Thereafter trimmes this equation, removes redundant elements and modifies
+  constraints.
   
   <ApplyOption t.ReplacingConst t.Const1 t.Const2 t.Equation t.Option>
     == t.NewEquation
@@ -1699,38 +1664,92 @@ ApplyOption {
     , <RemoveRedundantRestrictions
         (e.EqConsts) (e.NecessaryConditions) (e.Constraints) (/* EMPTY */)
       > : e.NecessaryConstraints
-    , <Prout
-        'New equation: '
-        (
-          (AreEqual (e.TrimmedLHS) (e.TrimmedRHS))
-          (e.NecessaryConstraints e.NewConstraints)
-          (e.NecessaryConditions)
-        )
-      > : /* EMPTY */
-    /* ... */
-      = /* New equation */;
+    , <ModifyRestrictions
+        (e.Substs) (e.NecessaryConstraints e.NewConstraints)
+        (e.NecessaryConditions)
+      > : e.ModifiedConstraints
+    =
+      (
+        (AreEqual (e.TrimmedLHS) (e.TrimmedRHS))
+        (e.ModifiedConstraints) (e.NecessaryConditions)
+      );
 }
 
 /*
-  Позже все комментарии удалю.
-
-  - раскрытие подстановок; OK
-  - замена пар на константу; OK
-  - тримминг o_O; OK
-  - удаление избыточных индексных уравнений; OK
-  - удаление избыточных рестрикций; OK
-  - X = aX при X != bX - удаление X != bX.
-  - X = aX при X != empty - удаление X != empty.
-  - X = aX при Y != Yc || X != bX - замена дизъюнкта на Y != Xc.
-    (b not in First(a))
-
-  Возникнет ли дублирование при добавлении рестрикций опции к уравнениям?
-  Пусть рестрикции опции X != aX, (Y != Ya || Z != bZ). Они получились в
-  результате отрицания подстановок. Т.е. у нас были существенные непустые
-  непротиворечивые подстановки X = aX и Y = Ya && Z = bZ. Т.е. в уравнении
-  не было рестрикций X != cX, где c in First(a), Y != Yd, где d in Last(b),
-  Z != eZ, где e in First(a). Дублирования не возникнет.
+  Modifies constraints taking into account the substitutions.
+  
+  <ModifyRestrictions (e.Substs) (e.Constraints) (e.Conditions)>
+    == e.ModifiedConstraints
 */
+ModifyRestrictions {
+  (e.Substs) (e.Constraints) (e.Conditions)
+    , e.Substs : {
+      (assign (t.Var) (t.Const t.Var)) e.RestSubsts
+        , e.Constraints : { /* the order of the rules is important here */
+          e.L (OR (not empty t.Var)) e.R
+            = <ModifyRestrictions (e.Substs) (e.L e.R) (e.Conditions)>;
+
+          /* Thanks to the GetNonEmptySubsts the t.PrefixConst is definitely
+             not in the First(t.Const) set. */
+          e.L (OR (not t.PrefixConst starts t.Var)) e.R
+            = <ModifyRestrictions (e.Substs) (e.L e.R) (e.Conditions)>;
+
+          e.L (OR t.SuffixRestr (not t.PrefixConst starts t.Var)) e.R
+            , <IsElemInSet
+                t.PrefixConst
+                (<GetFirst t.Const (e.Conditions)>)
+              > : {
+              True /* forcing the suffix restriction to be executed */
+                = <ModifyRestrictions
+                    (e.RestSubsts) /* pay attention that we're moving on */
+                    (e.L (OR t.SuffixRestr) e.R) (e.Conditions)
+                  >;
+
+              False /* cannot say anything definite, moving on */
+                = <ModifyRestrictions
+                    (e.RestSubsts) (e.Constraints) (e.Conditions)
+                  >;
+            };
+
+          e.Other /* moving on */
+            = <ModifyRestrictions
+                (e.RestSubsts) (e.Constraints) (e.Conditions)
+              >;
+        };
+      
+      (assign (t.Var) (t.Var t.Const)) e.RestSubsts
+        , e.Constraints : {
+          e.L (OR (not empty t.Var)) e.R
+            = <ModifyRestrictions (e.Substs) (e.L e.R) (e.Conditions)>;
+            
+          e.L (OR (not t.SuffixConst ends t.Var)) e.R
+            = <ModifyRestrictions (e.Substs) (e.L e.R) (e.Conditions)>;
+
+          e.L (OR (not t.SuffixConst ends t.Var) t.PrefixRestr) e.R
+            , <IsElemInSet
+                t.SuffixConst
+                (<GetLast t.Const (e.Conditions)>)
+              > : {
+              True
+                = <ModifyRestrictions
+                    (e.RestSubsts) (e.L (OR t.PrefixRestr) e.R) (e.Conditions)
+                  >;
+
+              False
+                = <ModifyRestrictions
+                    (e.RestSubsts) (e.Constraints) (e.Conditions)
+                  >;
+            };
+
+          e.Other
+            = <ModifyRestrictions
+                (e.RestSubsts) (e.Constraints) (e.Conditions)
+              >;
+        };
+        
+      /* EMPTY */ = e.Constraints;
+    };
+}
 
 /*
   <RemoveRedundantRestrictions
@@ -1818,7 +1837,7 @@ RemoveRedundantRestrictions {
 }
 
 /*
-  Accepts only the prefix and suffix restrictions!
+  Accepts only the prefix and suffix restrictions.
 
   <IsRestrictionRedundant t.Restr (e.EqConsts) (e.Conditions)>
     == True
@@ -1843,29 +1862,11 @@ IsRestrictionRedundant {
 }
 
 /*
-  Что не учёл:
-    - удаление неиспользующихся индексных уравнений;
-    - 
-*/
+  An index equation (condition) is redundant if:
+  - a constant in its left half is missing from the equation;
+  - all constants in its right half are missing from the equation and they
+    are not left halfs of some index equations.
 
-/*
-  Индексное уравнение избыточное, если все константы, составляющие его правую
-  часть, не входят в уравнение и не являются левыми частями каких-либо
-  индексных уравнений.
-
-  A1 X = X A1
-    , A1 = A0 B0 - избыточное
-  
-  A1 X A0 = Y A1 Z
-    , A1 = A0 B0 - не избыточное.
-
-  Y A2 X = A0 Z A2
-    , A1 = A0 B0
-    , B1 = C0 D0 - избыточное
-    , A2 = A1 B1 - не избыточное.
-*/
-
-/*
   <RemoveRedundantConditions
     (e.EqConsts) (e.UncheckedConditions) (e.CheckedConditions)
   >
@@ -1875,35 +1876,43 @@ RemoveRedundantConditions {
   (e.EqConsts) (e.UncheckedConditions) (e.CheckedConditions)
     , e.UncheckedConditions : {
       t.Condition e.RestConditions
-        , <GetConditionConsts t.Condition> : e.ConditionConsts
-        , <IntersectSets (e.EqConsts) (e.ConditionConsts)> : {
-            /* None of the condition constants are in the equation. */
-            /* EMPTY */
-              , <CallTill
-                  (/* EMPTY */)
-                  Revert
-                  (GetCondition (e.UncheckedConditions e.CheckedConditions))
-                  e.ConditionConsts
-                > : {
-                  /* No conditions were found. The condition is redundant. */
-                  /* EMPTY */
-                    = <RemoveRedundantConditions
-                        (e.EqConsts) (e.RestConditions)
-                        (e.CheckedConditions)
-                      >;
+        , t.Condition : (t.DefConst is e.Elems)
+        , <IsElemInSet t.DefConst (e.EqConsts)> : {
+          False
+            = <RemoveRedundantConditions
+                (e.EqConsts) (e.RestConditions) (e.CheckedConditions)
+              >;
+              
+          True
+            , <GetConditionConsts t.Condition> : e.ConditionConsts
+            , <IntersectSets (e.EqConsts) (e.ConditionConsts)> : {
+                /* None of the condition constants are in the equation. */
+                /* EMPTY */
+                  , <CallTill
+                      (/* EMPTY */)
+                      Revert
+                      (GetCondition (e.UncheckedConditions e.CheckedConditions))
+                      e.ConditionConsts
+                    > : {
+                      /* EMPTY */
+                        = <RemoveRedundantConditions
+                            (e.EqConsts) (e.RestConditions)
+                            (e.CheckedConditions)
+                          >;
 
-                  e.SomeConditions
-                    = <RemoveRedundantConditions
-                        (e.EqConsts) (e.RestConditions)
-                        (e.CheckedConditions t.Condition)
-                      >;
-              };
+                      e.SomeConditions
+                        = <RemoveRedundantConditions
+                            (e.EqConsts) (e.RestConditions)
+                            (e.CheckedConditions t.Condition)
+                          >;
+                  };
 
-            e.SomeConsts
-              = <RemoveRedundantConditions
-                  (e.EqConsts) (e.RestConditions)
-                  (e.CheckedConditions t.Condition)
-                >;
+                e.SomeConsts
+                  = <RemoveRedundantConditions
+                      (e.EqConsts) (e.RestConditions)
+                      (e.CheckedConditions t.Condition)
+                    >;
+            };
         };
         
       /* EMPTY */ = e.CheckedConditions;
