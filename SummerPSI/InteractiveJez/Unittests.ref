@@ -1,18 +1,8 @@
 *$INLINE HigherOrder;
 
-/*
-  Abbreviations:
-  - subst: substitution;
-  - elem: element;
-  - var: variable;
-  - restr: restriction;
-  - cond: condition;
-  - def: definition;
-*/
-
-$EXTERN FormPair, Zip, Take, GetNextConst, IsWordInAlphabet, IsEmpty,
+$EXTERN FormPair, Zip, Take, GetNewConst, IsWordInAlphabet, IsEmpty,
         LatinCapitalLetters, SubtractSets, GetUniqueValues, QuickSort,
-        Partition, Overlap, IsElemInSet, FormTerm;
+        Partition, Overlap, IsElemInSet, FormTerm, GetNewIndex;
         
 $ENTRY Go {
   = <Prout
@@ -56,55 +46,11 @@ $ENTRY Go {
     >
     <Prout
       <MapCall Plain RunPairComp <TestSet-PairComp>>
+    >
+    <Prout
+      <MapCall Plain Run-BlockComp <TestSet-BlockComp>>
     >;
 }
-
-VariableAlphabet {
-  = <MapCall
-      Plain
-      GenVariable
-      <LatinCapitalLetters>
-    >;
-}
-
-GenVariable {
-  s.Name = (Var s.Name);
-}
-
-/*
-  Returns the First-elements of the constant.
-
-  <GetFirst t.Const (e.Conditions)>
-    == e.FirstElems
-*/
-GetFirst {
-  t.Const (e.Conditions)
-    , e.Conditions : {
-      e.L (t.Const is (t.FirstElem e.Details) e.Elems) e.R
-        = t.FirstElem <GetFirst t.FirstElem (e.L e.R)>;
-
-      /* No condition for the constant. */
-      e.Conditions = /* EMTPY */;
-    };
-}
-
-/*
-  Returns the Last-elements of the constant.
-
-  <GetLast t.Const (e.Conditions)>
-    == e.LastElems
-*/
-GetLast {
-  t.Const (e.Conditions)
-    , e.Conditions : {
-      e.L (t.Const is e.Elems (t.LastElem e.Details)) e.R
-        = t.LastElem <GetLast t.LastElem (e.L e.R)>;
-      
-      /* No condition for the constant. */
-      e.Conditions = /* EMPTY */;
-    };
-}
-
 
 TestSet-Pick {
   = (
@@ -259,6 +205,112 @@ TestSet-PairComp {
         (/* No index equations */)
       )
     );
+}
+
+/*
+  <TestSet-BlockComp>
+    == *(s.SeqNumber t.Const t.Index t.BlockConst t.Eq)
+*/
+TestSet-BlockComp {
+  = (
+      1
+      ('A' 0) i1
+      (
+        (
+          AreEqual
+          ((Var 'X') ('A' 0) ('A' 0))
+          (('B' 0)(Var 'Y'))
+        )
+        (/* No constraints */)
+        (/* No conditions */)
+      )
+    );
+}
+
+Run-BlockComp {
+  (1 e.Input)
+    , <BlockComp e.Input> : {
+      e.NewEqs
+        , e.NewEqs
+        : e.L1
+          (
+            (
+              AreEqual
+              (('A' 1))
+              (('B' 0) ('A' 2))
+            )
+            (/* no constraints */)
+            (
+              (('A' 1) is (('A' 0) (i1 1) (const 2)))
+              (('A' 2) is (('A' 0) (i2 1) (const 0)))
+            )
+          )
+          e.R1
+        , e.L1 e.R1
+        : e.L2
+          (
+            (AreEqual
+              (('A' 1))
+              (('B' 0) ('A' 2) (Var 'Y') ('A' 3))
+            )
+            (
+              (OR (not ('A' 0) starts (Var 'Y')))
+              (OR (not ('A' 0) ends (Var 'Y')))
+              (OR (not empty (Var 'Y')))
+            )
+            (
+              (('A' 1) is (('A' 0) (i1 1) (const 2)))
+              (('A' 2) is (('A' 0) (i2 1) (const 0)))
+              (('A' 3) is (('A' 0) (i3 1) (const 0)))
+            )
+          )
+          e.R2
+        , e.L2 e.R2
+        : e.L3
+          (
+            (AreEqual
+              (('A' 1) (Var 'X') ('A' 2))
+              (('B' 0) ('A' 3))
+            )
+            (
+              (OR (not ('A' 0) starts (Var 'X')))
+              (OR (not ('A' 0) ends (Var 'X')))
+              (OR (not empty (Var 'X')))
+            )
+            (
+              (('A' 1) is (('A' 0) (i1 1) (const 0)))
+              (('A' 2) is (('A' 0) (i2 1) (const 2)))
+              (('A' 3) is (('A' 0) (i3 1) (const 0)))
+            )
+          )
+          e.R3
+        , e.L3 e.R3
+        : e.L4
+          (
+            (AreEqual
+              (('A' 1) (Var 'X') ('A' 2))
+              (('B' 0) ('A' 3) (Var 'Y') ('A' 4))
+            )
+            (
+              (OR (not ('A' 0) starts (Var 'X')))
+              (OR (not ('A' 0) ends (Var 'X')))
+              (OR (not empty (Var 'X')))
+              (OR (not ('A' 0) starts (Var 'Y')))
+              (OR (not ('A' 0) ends (Var 'Y')))
+              (OR (not empty (Var 'Y')))
+            )
+            (
+              (('A' 1) is (('A' 0) (i1 1) (const 0)))
+              (('A' 2) is (('A' 0) (i2 1) (const 2)))
+              (('A' 3) is (('A' 0) (i3 1) (const 0)))
+              (('A' 4) is (('A' 0) (i4 1) (const 0)))
+            )
+          )
+          e.R4
+        = True;
+
+      e.Other = False;
+    };
 }
 
 RunPick {
@@ -681,19 +733,14 @@ GetNonEmptyVars {
   e.Other = /* EMPTY */;
 }
 
+/*
+  <GetVars (e.Elems)>
+    == e.Vars
+*/
 GetVars {
-  (t.Comp e.RestComps)
-    , t.Comp : {
-      (Var s.Name) = t.Comp <GetVars (e.RestComps)>;
+  (e.L (Var s.X) e.R) = (Var s.X) <GetVars (e.R)>;
 
-      (s.Name s.Number) = <GetVars (e.RestComps)>; /* Ignore consts. */
-
-      e.Other = <Prout 'GetVars: Invalid component ' e.Other>;
-    };
-
-  (/* No more comps */) = /* EMPTY */;
-
-  e.Other = <Prout 'GetVars: Invalid input ' e.Other>;
+  (e.Other) = /* EMPTY */;
 }
 
 GetConsts {
@@ -922,7 +969,7 @@ ReplaceRepeatedIndexEqs {
 */
 PairComp {
   t.ReplacingConst t.Const1 t.Const2 t.Equation
-    = <GetNextConst t.ReplacingConst>
+    = <GetNewConst t.ReplacingConst>
       (
         <HandleEmptySubsts
           t.ReplacingConst t.Const1 t.Const2 t.Equation
@@ -1000,7 +1047,7 @@ HandleEmptySubsts {
 GetEmptySubst {
   t.Const1 t.Const2 (e.Constraints) (e.EquationHalf)
     /* Saving the result of frequently called functions */
-    , <VariableAlphabet> : e.Vars
+    , <VarAlphabet> : e.Vars
     , <GetNonEmptyVars e.Constraints> : e.NonEmptyVars
     , e.EquationHalf : {
       e.L t.Const1 e.M t.Const2 e.R
@@ -1014,8 +1061,8 @@ GetEmptySubst {
             (<GetUniqueValues Flat e.M>)
             (e.NonEmptyVars)
           >
-        : (t.SubstVariable e.RestVars)
-        = <GenSubst (t.SubstVariable) (/* EMPTY */)>;
+        : (t.SubstVar e.RestVars)
+        = <GenSubst (t.SubstVar) (/* EMPTY */)>;
         
       e.L t.Const1 e.M (Var s.X) e.R
         , <IsEmpty e.M> : False
@@ -1028,8 +1075,8 @@ GetEmptySubst {
             (<GetUniqueValues Flat e.M>)
             (e.NonEmptyVars)
           >
-        : (t.SubstVariable e.RestVars)
-        = <GenSubst (t.SubstVariable) (/* EMPTY */)>;
+        : (t.SubstVar e.RestVars)
+        = <GenSubst (t.SubstVar) (/* EMPTY */)>;
 
       e.L (Var s.X) e.M t.Const2 e.R
         , <IsEmpty e.M> : False
@@ -1042,8 +1089,8 @@ GetEmptySubst {
             (<GetUniqueValues Flat e.M>)
             (e.NonEmptyVars)
           >
-        : (t.SubstVariable e.RestVars)
-        = <GenSubst (t.SubstVariable) (/* EMPTY */)>;
+        : (t.SubstVar e.RestVars)
+        = <GenSubst (t.SubstVar) (/* EMPTY */)>;
 
       e.L (Var s.X) e.M  (Var s.Y) e.R
         , <IsEmpty e.M> : False
@@ -1056,12 +1103,24 @@ GetEmptySubst {
             (<GetUniqueValues Flat e.M>)
             (e.NonEmptyVars)
           >
-        : (t.SubstVariable e.RestVars)
-        = <GenSubst (t.SubstVariable) (/* EMPTY */)>;
+        : (t.SubstVar e.RestVars)
+        = <GenSubst (t.SubstVar) (/* EMPTY */)>;
         
       /* No essentially empty substitutions for this half of the equation */
       e.Other = /* EMPTY */;
     };
+}
+
+VarAlphabet {
+  = <MapCall
+      Plain
+      GenVar
+      <LatinCapitalLetters>
+    >;
+}
+
+GenVar {
+  s.Name = (Var s.Name);
 }
 
 /*
@@ -1256,6 +1315,40 @@ GetNonEmptySubsts {
           >;
 
       e.OneOrNoTerm = (e.ElementarySubsts) (e.CompositeSubsts);
+    };
+}
+
+/*
+  Returns the First-elements of the constant.
+
+  <GetFirst t.Const (e.Conditions)>
+    == e.FirstElems
+*/
+GetFirst {
+  t.Const (e.Conditions)
+    , e.Conditions : {
+      e.L (t.Const is (t.FirstElem e.Details) e.Elems) e.R
+        = t.FirstElem <GetFirst t.FirstElem (e.L e.R)>;
+
+      /* No condition for the constant. */
+      e.Conditions = /* EMTPY */;
+    };
+}
+
+/*
+  Returns the Last-elements of the constant.
+
+  <GetLast t.Const (e.Conditions)>
+    == e.LastElems
+*/
+GetLast {
+  t.Const (e.Conditions)
+    , e.Conditions : {
+      e.L (t.Const is e.Elems (t.LastElem e.Details)) e.R
+        = t.LastElem <GetLast t.LastElem (e.L e.R)>;
+      
+      /* No condition for the constant. */
+      e.Conditions = /* EMPTY */;
     };
 }
 
@@ -1676,6 +1769,8 @@ ApplyOption {
 }
 
 /*
+  TODO: fix the cycling
+
   Modifies constraints taking into account the substitutions.
   
   <ModifyRestrictions (e.Substs) (e.Constraints) (e.Conditions)>
@@ -1964,5 +2059,295 @@ IntersectSets {
 
   /* No common elements */
   (e.Set1) (e.Set2) = /* EMPTY */;
+}
+
+/*
+  <BlockComp t.BlockConst s.Index t.Eq>
+    == e.NewEqs
+*/
+BlockComp {
+  t.BlockConst s.Index t.Eq
+    , t.Eq : ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions))
+    , <GetUniqueValues
+        Flat
+        <MapCall Plain GetVars (e.LHS) (e.RHS)>
+      > : e.EqVars
+    , <MapCall
+        Curry
+        (GenBlockOptionSets (e.Constraints) (e.Conditions) t.BlockConst)
+        e.EqVars
+      > : e.OptionSets
+    , <CartesianProductOfOptionSets e.OptionSets> : (e.MultipliedOptions)
+    , <MapCall
+        Curry
+        (ApplyBlockOption t.BlockConst s.Index t.Eq)
+        e.MultipliedOptions
+      > : e.Eqs
+    = e.Eqs; /* dummy output */
+}
+
+/*
+  <ApplyBlockOption t.Const s.Index t.Eq t.BlockOption>
+    == e.Eq
+*/
+ApplyBlockOption {
+  t.BlockConst s.Index t.Eq t.Option
+    , t.BlockConst : (s.Letter s.Number)
+    , t.Eq : ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions))
+    , t.Option : ((e.Substs) (e.AddedConstraints) (e.ExcludedConstraints))
+    , <MapCall
+        Curry
+        (Subst (e.Substs))
+        (e.LHS) (e.RHS)
+      > : (e.SubstLHS) (e.SubstRHS)
+    , <MapCall
+        Curry
+        (JoinBlocks t.BlockConst)
+        (e.SubstLHS) (e.SubstRHS)
+      > : (e.JoinedLHS) (e.JoinedRHS)
+    , <BuildConditions
+        t.BlockConst (s.Letter <Add s.Number 1>) s.Index (e.Conditions)
+        (/* no processed elements at start */) (e.JoinedLHS)
+      > : t.SomeConst s.SomeIndex (e.UpdatedConditionsForLHS) (e.UpdatedLHS)
+    , <BuildConditions
+        t.BlockConst t.SomeConst s.SomeIndex (e.UpdatedConditionsForLHS)
+        (/* no processed elements at start */) (e.JoinedRHS)
+      > : t.NewConst s.NewIndex (e.UpdatedConditions) (e.UpdatedRHS)
+    = (
+        (AreEqual (e.UpdatedLHS) (e.UpdatedRHS))
+        <SubtractSets
+          (e.Constraints e.AddedConstraints) (e.ExcludedConstraints)
+        >
+        (e.UpdatedConditions)
+      );
+}
+
+/*
+  TODO: придумать название получше...
+
+  <BuildConditions
+    t.BlockConst t.Const s.Index (e.Conditions) (e.ProcessedElems) (e.Elems)
+  >
+    == t.NewConst s.NewIndex (e.UpdatedConditions) (e.UpdatedElems)
+*/
+BuildConditions {
+  t.BlockConst t.Const s.Index (e.Conditions) (e.ProcessedElems) (e.Elems)
+    , t.Const : (s.Letter s.Number)
+    , e.Elems : {
+      e.L (t.BlockConst e.Indices t.Summand) e.R
+        , <NameIndices
+            s.Index (e.Indices) (/* no named indices at start */)
+          > : s.NewIndex (e.NamedIndices)
+        = <BuildConditions
+            t.BlockConst (s.Letter <Add s.Number 1>) s.NewIndex
+            (
+              e.Conditions
+              (
+                t.Const is
+                (
+                  t.BlockConst <MapCall Revert (FormPair 1) e.NamedIndices>
+                  t.Summand
+                )
+              )
+            )
+            (e.ProcessedElems e.L t.Const) (e.R)
+          >;
+          
+      e.Other = t.Const s.Index (e.Conditions) (e.ProcessedElems e.Elems);
+    };
+}
+
+/*
+  <NameIndices s.Index (e.NamelessIndices) (e.NamedIndices)>
+    == s.NewIndex (e.NamedIndices)
+*/
+NameIndices {
+  s.Index (e.NamelessIndices) (e.NamedIndices)
+    , e.NamelessIndices : {
+      Ind e.RestIndices
+        = <NameIndices
+            <GetNewIndex s.Index> (e.RestIndices) (e.NamedIndices s.Index)
+          >;
+
+      /* No nameless indices */ = s.Index (e.NamedIndices);
+    };
+}
+
+/*
+  Принимает блочную константу и часть уравнения и сжимает извлечённые блоки
+  (а также явные длины >= 2).
+  
+  <JoinBlocks t.Const (e.Elems)>
+    == (e.)
+*/
+JoinBlocks {
+  t.Const (e.Elems)
+    , e.Elems : {
+      e.L t.Const (t.Const e.Inds (const s.Num)) e.R
+        = <JoinBlocks
+            t.Const
+            (e.L (t.Const e.Inds (const <Add s.Num 1>)) e.R)
+          >;
+          
+      e.L (t.Const e.Inds (const s.Num)) t.Const e.R
+        = <JoinBlocks
+            t.Const
+            (e.L (t.Const e.Inds (const <Add s.Num 1>)) e.R)
+          >;
+          
+      e.L (t.Const e.Inds1 (const s.Num1)) (t.Const e.Inds2 (const s.Num2)) e.R
+        = <JoinBlocks
+            t.Const
+            (e.L (t.Const e.Inds1 e.Inds2 (const <Add s.Num1 s.Num2>)) e.R)
+          >;
+      
+      e.L t.Const t.Const e.R
+        = <JoinBlocks t.Const (e.L (t.Const (const 2)) e.R)>;
+
+      e.Other = (e.Elems);
+    };
+}
+
+/*
+  Dummy! Currently only pure cases are processed.
+    
+  TODO: processing non-trivial disjuncts.
+
+  <GenBlockOptionSets (e.Constraints) (e.Conditions) t.BlockConst t.Var>
+    == e.OptionSets
+*/
+GenBlockOptionSets {
+  (e.Constraints) (e.Conditions) t.BlockConst t.Var
+    , (t.BlockConst Ind (const 0)) : t.Block
+    , e.Constraints : {
+      e.L (OR (not t.SuffixConst ends t.Var)) e.R
+        , <IsElemInSet
+            t.SuffixConst
+            (t.BlockConst <GetLast t.BlockConst (e.Conditions)>)
+          > : {
+          True
+            = (
+                ((assign (t.Var) (/* EMPTY */)))
+                (/* no added constraints */)
+                ((OR (not t.SuffixConst ends t.Var)))
+              )
+              (
+                ((assign (t.Var) (t.Block t.Var)))
+                (
+                  (OR (not t.BlockConst starts t.Var))
+                  (OR (not empty t.Var))
+                )
+                (/* no excluded constraints */)
+              );
+
+          False
+            = (
+                ((assign (t.Var) (t.Block)))
+                (/* no added constraints */)
+                ((OR (not t.SuffixConst ends t.Var)))
+              )
+              (
+                ((assign (t.Var) (t.Block t.Var)))
+                (
+                  (OR (not t.BlockConst starts t.Var))
+                  (OR (not empty t.Var))
+                  (OR (not t.BlockConst ends t.Var))
+                )
+                (/* no excluded constraints */)
+              )
+              (
+                ((assign (t.Var) (t.Block t.Var t.Block)))
+                (
+                  (OR (not t.BlockConst starts t.Var))
+                  (OR (not empty t.Var))
+                  (OR (not t.BlockConst ends t.Var))
+                )
+                ((OR (not t.SuffixConst ends t.Var)))
+              );
+        };
+
+      e.L (OR (not t.PrefixConst starts t.Var)) e.R
+        , <IsElemInSet
+            t.PrefixConst
+            (t.BlockConst <GetFirst t.BlockConst (e.Conditions)>)
+          > : {
+          True
+            = (
+                (
+                  ((assign (t.Var) (/* EMPTY */)))
+                  (/* no added constraints */)
+                  ((OR (not t.PrefixConst starts t.Var)))
+                )
+                (
+                  ((assign (t.Var) (t.Var t.Block)))
+                  (
+                    (OR (not empty t.Var))
+                    (OR (not t.BlockConst ends t.Var))
+                  )
+                  (/* no excluded constraints */)
+                )
+              );
+
+          False
+            = (
+                (
+                  ((assign (t.Var) (t.Block)))
+                  (/* no added constraints */)
+                  ((OR (not t.PrefixConst starts t.Var)))
+                )
+                (
+                  ((assign (t.Var) (t.Var t.Block)))
+                  (
+                    (OR (not t.BlockConst starts t.Var))
+                    (OR (not empty t.Var))
+                    (OR (not t.BlockConst ends t.Var))
+                  )
+                  (/* no excluded constraints */)
+                )
+                (
+                  ((assign (t.Var) (t.Block t.Var t.Block)))
+                  (
+                    (OR (not t.BlockConst starts t.Var))
+                    (OR (not empty t.Var))
+                    (OR (not t.BlockConst ends t.Var))
+                  )
+                  ((OR (not t.PrefixConst starts t.Var)))
+                )
+              );
+        };
+
+      e.L (OR (not empty t.Var)) e.R
+        = (
+            ((assign (t.Var) (t.BlockConst Ind (const 1))))
+            (/* no added constraints */)
+            ((OR (not empty t.Var)))
+          )
+          (
+            ((assign (t.Var) (t.Block t.Var t.Block)))
+            (
+              (OR (not t.BlockConst starts t.Var))
+              (OR (not t.BlockConst ends t.Var))
+            )
+            (/* no excluded constraints */)
+          );
+
+      e.Other
+        = (
+            (
+              ((assign (t.Var) (t.Block)))
+              (/* no added constraints */)
+              (/* no excluded constraints */)
+            )
+            (
+              ((assign (t.Var) (t.Block t.Var t.Block)))
+              (
+                (OR (not t.BlockConst starts t.Var))
+                (OR (not t.BlockConst ends t.Var))
+                (OR (not empty t.Var))
+              )
+              (/* no excluded constraints */)
+            )
+          );
+    };
 }
 

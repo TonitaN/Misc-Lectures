@@ -10,10 +10,10 @@ $ENTRY GetNewIndex {
 }
 
 /*
-  <GetNextConst t.Const>
+  <GetNewConst t.Const>
     == t.NextConst
 */
-$ENTRY GetNextConst {
+$ENTRY GetNewConst {
   (s.Letter s.Number)
     , <LatinCapitalLetters> : {
       e.U1 s.Letter s.NextLetter e.U2 = (s.NextLetter s.Number);
