@@ -1,5 +1,10 @@
 *$INLINE HigherOrder;
 
+/*
+  t.Const ::= (s.CHAR s.NUMBER)
+  t.Var   ::= (Var s.CHAR)
+*/
+
 $EXTERN FormPair, Zip, Take, GetNewConst, IsWordInAlphabet, IsEmpty,
         LatinCapitalLetters, SubtractSets, GetUniqueValues, QuickSort,
         Partition, Overlap, IsElemInSet, FormTerm, GetNewIndex;
@@ -255,8 +260,8 @@ Run-BlockComp {
             )
             (
               (OR (not ('A' 0) starts (Var 'Y')))
-              (OR (not ('A' 0) ends (Var 'Y')))
               (OR (not empty (Var 'Y')))
+              (OR (not ('A' 0) ends (Var 'Y')))
             )
             (
               (('A' 1) is (('A' 0) (i1 1) (const 2)))
@@ -274,8 +279,8 @@ Run-BlockComp {
             )
             (
               (OR (not ('A' 0) starts (Var 'X')))
-              (OR (not ('A' 0) ends (Var 'X')))
               (OR (not empty (Var 'X')))
+              (OR (not ('A' 0) ends (Var 'X')))
             )
             (
               (('A' 1) is (('A' 0) (i1 1) (const 0)))
@@ -293,11 +298,11 @@ Run-BlockComp {
             )
             (
               (OR (not ('A' 0) starts (Var 'X')))
-              (OR (not ('A' 0) ends (Var 'X')))
               (OR (not empty (Var 'X')))
+              (OR (not ('A' 0) ends (Var 'X')))
               (OR (not ('A' 0) starts (Var 'Y')))
-              (OR (not ('A' 0) ends (Var 'Y')))
               (OR (not empty (Var 'Y')))
+              (OR (not ('A' 0) ends (Var 'Y')))
             )
             (
               (('A' 1) is (('A' 0) (i1 1) (const 0)))
@@ -2164,7 +2169,7 @@ BuildConditions {
 NameIndices {
   s.Index (e.NamelessIndices) (e.NamedIndices)
     , e.NamelessIndices : {
-      Ind e.RestIndices
+      Index e.RestIndices
         = <NameIndices
             <GetNewIndex s.Index> (e.RestIndices) (e.NamedIndices s.Index)
           >;
@@ -2209,145 +2214,352 @@ JoinBlocks {
 }
 
 /*
-  Dummy! Currently only pure cases are processed.
-    
-  TODO: processing non-trivial disjuncts.
+  Относительно данной константы A будем называть рестрикцию X != BX зависимой,
+  если B принадлежит множеству First(A), и независимой в противном случае.
+  
+  <IsDependentConstraint (e.Conditions) t.Const t.Constraint>
+    == True
+    == False
+*/
+IsDependentConstraint {
+  (e.Conditions) t.Const t.Constraint
+    , t.Constraint : {
+      (OR (not t.PrefixConst starts t.Var))
+        = <IsElemInSet
+            t.PrefixConst
+            (t.Const <GetFirst t.Const (e.Conditions)>)
+          >;
 
+      (OR (not t.SuffixConst ends t.Var))
+        = <IsElemInSet
+            t.SuffixConst
+            (t.Const <GetLast t.Const (e.Conditions)>)
+          >;
+    };
+}
+
+/*
   <GenBlockOptionSets (e.Constraints) (e.Conditions) t.BlockConst t.Var>
     == e.OptionSets
 */
 GenBlockOptionSets {
   (e.Constraints) (e.Conditions) t.BlockConst t.Var
-    , (t.BlockConst Ind (const 0)) : t.Block
-    , e.Constraints : {
-      e.L (OR (not t.SuffixConst ends t.Var)) e.R
-        , <IsElemInSet
-            t.SuffixConst
-            (t.BlockConst <GetLast t.BlockConst (e.Conditions)>)
-          > : {
+    , <SelectConstraints (e.Constraints) Prefix t.Var> : e.PrefixConstraints
+    , <CallTill
+        (False) Curry (IsDependentConstraint (e.Conditions) t.BlockConst)
+        e.PrefixConstraints
+      > : s.HasDependentPrefixConstraints
+    , <SelectConstraints (e.Constraints) Suffix t.Var> : e.SuffixConstraints
+    , <CallTill
+        (False) Curry (IsDependentConstraint (e.Conditions) t.BlockConst)
+        e.SuffixConstraints
+      > : s.HasDependentSuffixConstraints
+    , (t.BlockConst Index (const 0)) : t.Block
+    , (t.BlockConst Index (const 1)) : t.NonEmptyBlock
+    , <SelectConstraints (e.Constraints) Empty t.Var> : {
+      /* EMPTY */
+        , <IsEmpty e.PrefixConstraints> : {
           True
-            = (
-                ((assign (t.Var) (/* EMPTY */)))
-                (/* no added constraints */)
-                ((OR (not t.SuffixConst ends t.Var)))
-              )
-              (
-                ((assign (t.Var) (t.Block t.Var)))
-                (
-                  (OR (not t.BlockConst starts t.Var))
-                  (OR (not empty t.Var))
-                )
-                (/* no excluded constraints */)
-              );
+            , <IsEmpty e.SuffixConstraints> : {
+              /* no constraints */
+              True
+                = (
+                    (
+                      (<GenSubst (t.Var) (t.Block)>)
+                      (/* no added constraints */)
+                      (/* no excluded constraints */)
+                    )
+                    (
+                      (<GenSubst (t.Var) (t.Block t.Var t.Block)>)
+                      (
+                        <GenPrefixConstraint t.Var t.BlockConst>
+                        <GenEmptyConstraint t.Var>
+                        <GenSuffixConstraint t.Var t.BlockConst>
+                      )
+                      (/* no excluded constraints */)
+                    )
+                  );
 
+              False
+                , s.HasDependentSuffixConstraints : {
+                  /* dependent suffix constraints */
+                  True
+                    = (
+                        (
+                          (<GenSubst (t.Var) (/* empty */)>)
+                          (/* no added constraints */)
+                          (e.SuffixConstraints)
+                        )
+                        (
+                          (<GenSubst (t.Var) (t.Block t.Var)>)
+                          (
+                            <GenPrefixConstraint t.Var t.BlockConst>
+                            <GenEmptyConstraint t.Var>
+                          )
+                          (/* no excluded constraints */)
+                        )
+                      );
+
+                  /* independent suffix constraints */
+                  False
+                    = (
+                        (
+                          (<GenSubst (t.Var) (t.Block)>)
+                          (/* no added constraints */)
+                          (e.SuffixConstraints)
+                        )
+                        (
+                          (<GenSubst (t.Var) (t.Block t.Var)>)
+                          (
+                            <GenPrefixConstraint t.Var t.BlockConst>
+                            <GenEmptyConstraint t.Var>
+                            <GenSuffixConstraint t.Var t.BlockConst>
+                          )
+                          (/* no excluded constraints */)
+                        )
+                        (
+                          (<GenSubst (t.Var) (t.Block t.Var t.Block)>)
+                          (
+                            <GenPrefixConstraint t.Var t.BlockConst>
+                            <GenEmptyConstraint t.Var>
+                            <GenSuffixConstraint t.Var t.BlockConst>
+                          )
+                          (e.SuffixConstraints)
+                        )
+                      );
+                };
+            };
+          
           False
-            = (
-                ((assign (t.Var) (t.Block)))
-                (/* no added constraints */)
-                ((OR (not t.SuffixConst ends t.Var)))
-              )
-              (
-                ((assign (t.Var) (t.Block t.Var)))
-                (
-                  (OR (not t.BlockConst starts t.Var))
-                  (OR (not empty t.Var))
-                  (OR (not t.BlockConst ends t.Var))
-                )
-                (/* no excluded constraints */)
-              )
-              (
-                ((assign (t.Var) (t.Block t.Var t.Block)))
-                (
-                  (OR (not t.BlockConst starts t.Var))
-                  (OR (not empty t.Var))
-                  (OR (not t.BlockConst ends t.Var))
-                )
-                ((OR (not t.SuffixConst ends t.Var)))
-              );
+            , s.HasDependentPrefixConstraints : {
+              True
+                , <IsEmpty e.SuffixConstraints> : {
+                  /* dependent prefix constraints */
+                  True
+                    = (
+                        (
+                          (<GenSubst (t.Var) (/* empty */)>)
+                          (/* no added constraints */)
+                          (e.PrefixConstraints)
+                        )
+                        (
+                          (<GenSubst (t.Var) (t.Var t.Block)>)
+                          (
+                            <GenEmptyConstraint t.Var>
+                            <GenSuffixConstraint t.Var t.BlockConst>
+                          )
+                          (/* no excluded constraints */)
+                        )
+                      );
+                  
+                  False
+                    , s.HasDependentSuffixConstraints : {
+                      /* dependent both prefix and suffix constraints */
+                      True
+                        = (
+                            (
+                              (<GenSubst (t.Var) (/* empty */)>)
+                              (/* no added constraints */)
+                              (e.PrefixConstraints e.SuffixConstraints)
+                            )
+                            (
+                              (/* no substitutions */) 
+                              (<GenEmptyConstraint t.Var>)
+                              (/* no excluded constraints */)
+                            )
+                          );
+                          
+                      /* dependent prefix, independent suffix constraints */
+                      False
+                        = (
+                            (
+                              (<GenSubst (t.Var) (/* empty */)>)
+                              (/* no added constraints */)
+                              (e.PrefixConstraints e.SuffixConstraints)
+                            )
+                            (
+                              (/* no substitutions */)
+                              (
+                                <GenEmptyConstraint t.Var>
+                                <GenSuffixConstraint t.Var t.BlockConst>
+                              )
+                              (/* no excluded constraints */)
+                            )
+                            (
+                              (<GenSubst (t.Var) (t.Var t.Block)>)
+                              (
+                                <GenEmptyConstraint t.Var>
+                                <GenSuffixConstraint t.Var t.BlockConst>
+                              )
+                              (e.SuffixConstraints)
+                            )
+                          );
+                    };
+                };
+
+              False
+                , <IsEmpty e.SuffixConstraints> : {
+                  /* independent prefix constraints */
+                  True
+                    = (
+                        (
+                          (<GenSubst (t.Var) (t.Block)>)
+                          (/* no added constraints */)
+                          (e.PrefixConstraints)
+                        )
+                        (
+                          (<GenSubst (t.Var) (t.Var t.Block)>)
+                          (
+                            <GenPrefixConstraint t.Var t.BlockConst>
+                            <GenEmptyConstraint t.Var>
+                            <GenSuffixConstraint t.Var t.BlockConst>
+                          )
+                          (/* no excluded constraints */)
+                        )
+                        (
+                          (<GenSubst (t.Var) (t.Block t.Var t.Block)>)
+                          (
+                            <GenPrefixConstraint t.Var t.BlockConst>
+                            <GenEmptyConstraint t.Var>
+                            <GenSuffixConstraint t.Var t.BlockConst>
+                          )
+                          (e.PrefixConstraints)
+                        )
+                      );
+                      
+                  False
+                    , s.HasDependentSuffixConstraints : {
+                      /* independent prefix, dependent suffix constraints */
+                      True
+                        = (
+                            (
+                              (<GenSubst (t.Var) (/* empty */)>)
+                              (/* no added constraints */)
+                              (e.PrefixConstraints e.SuffixConstraints)
+                            )
+                            (
+                              (/* no substitutions */)
+                              (
+                                <GenPrefixConstraint t.Var t.BlockConst>
+                                <GenEmptyConstraint t.Var>
+                              )
+                              (/* no excluded constraints */)
+                            )
+                            (
+                              (<GenSubst (t.Var) (t.Block t.Var)>)
+                              (
+                                <GenPrefixConstraint t.Var t.BlockConst>
+                                <GenEmptyConstraint t.Var>
+                              )
+                              (e.PrefixConstraints)
+                            )
+                          );
+
+                      /* independent both prefix and suffix constraints */
+                      False
+                        = (
+                            (
+                              (<GenSubst (t.Var) (/* empty */)>)
+                              (/* no added constraints */)
+                              (e.PrefixConstraints e.SuffixConstraints)
+                            )
+                            (
+                              (/* no substitutions */) 
+                              (
+                                <GenPrefixConstraint t.Var t.BlockConst>
+                                <GenEmptyConstraint t.Var>
+                                <GenSuffixConstraint t.Var t.BlockConst>
+                              )
+                              (/* no excluded constraints */)
+                            )
+                            (
+                              (<GenSubst (t.Var) (t.Var t.Block)>) 
+                              (
+                                <GenPrefixConstraint t.Var t.BlockConst>
+                                <GenEmptyConstraint t.Var>
+                                <GenSuffixConstraint t.Var t.BlockConst>
+                              )
+                              (e.SuffixConstraints)
+                            )
+                            (
+                              (<GenSubst (t.Var) (t.Block t.Var)>) 
+                              (
+                                <GenPrefixConstraint t.Var t.BlockConst>
+                                <GenEmptyConstraint t.Var>
+                                <GenSuffixConstraint t.Var t.BlockConst>
+                              )
+                              (e.PrefixConstraints)
+                            )
+                            (
+                              (<GenSubst (t.Var) (t.Block t.Var t.Block)>) 
+                              (
+                                <GenPrefixConstraint t.Var t.BlockConst>
+                                <GenEmptyConstraint t.Var>
+                                <GenSuffixConstraint t.Var t.BlockConst>
+                              )
+                              (e.PrefixConstraints e.SuffixConstraints)
+                            )
+                          );
+                    };
+                };
+            };
         };
-
-      e.L (OR (not t.PrefixConst starts t.Var)) e.R
-        , <IsElemInSet
-            t.PrefixConst
-            (t.BlockConst <GetFirst t.BlockConst (e.Conditions)>)
-          > : {
-          True
-            = (
-                (
-                  ((assign (t.Var) (/* EMPTY */)))
-                  (/* no added constraints */)
-                  ((OR (not t.PrefixConst starts t.Var)))
-                )
-                (
-                  ((assign (t.Var) (t.Var t.Block)))
-                  (
-                    (OR (not empty t.Var))
-                    (OR (not t.BlockConst ends t.Var))
-                  )
-                  (/* no excluded constraints */)
-                )
-              );
-
-          False
-            = (
-                (
-                  ((assign (t.Var) (t.Block)))
-                  (/* no added constraints */)
-                  ((OR (not t.PrefixConst starts t.Var)))
-                )
-                (
-                  ((assign (t.Var) (t.Var t.Block)))
-                  (
-                    (OR (not t.BlockConst starts t.Var))
-                    (OR (not empty t.Var))
-                    (OR (not t.BlockConst ends t.Var))
-                  )
-                  (/* no excluded constraints */)
-                )
-                (
-                  ((assign (t.Var) (t.Block t.Var t.Block)))
-                  (
-                    (OR (not t.BlockConst starts t.Var))
-                    (OR (not empty t.Var))
-                    (OR (not t.BlockConst ends t.Var))
-                  )
-                  ((OR (not t.PrefixConst starts t.Var)))
-                )
-              );
-        };
-
-      e.L (OR (not empty t.Var)) e.R
-        = (
-            ((assign (t.Var) (t.BlockConst Ind (const 1))))
-            (/* no added constraints */)
-            ((OR (not empty t.Var)))
-          )
-          (
-            ((assign (t.Var) (t.Block t.Var t.Block)))
-            (
-              (OR (not t.BlockConst starts t.Var))
-              (OR (not t.BlockConst ends t.Var))
-            )
-            (/* no excluded constraints */)
-          );
-
-      e.Other
-        = (
-            (
-              ((assign (t.Var) (t.Block)))
-              (/* no added constraints */)
-              (/* no excluded constraints */)
-            )
-            (
-              ((assign (t.Var) (t.Block t.Var t.Block)))
-              (
-                (OR (not t.BlockConst starts t.Var))
-                (OR (not t.BlockConst ends t.Var))
-                (OR (not empty t.Var))
-              )
-              (/* no excluded constraints */)
-            )
-          );
+      
+      t.Constraint = /* ... */;
     };
+}
+
+SelectConstraints {
+  (e.Constraints) s.Mode t.Var
+    , s.Mode : {
+      Prefix
+        , e.Constraints : {
+          e.L (OR (not t.PrefixConst starts t.Var)) e.R
+            = (OR (not t.PrefixConst starts t.Var))
+              <SelectConstraints (e.R) s.Mode t.Var>;
+
+          e.Other = /* EMPTY */;
+        };
+      
+      Suffix
+        , e.Constraints : {
+          e.L (OR (not t.SuffixConst ends t.Var)) e.R
+            = (OR (not t.SuffixConst ends t.Var))
+              <SelectConstraints (e.R) s.Mode t.Var>;
+
+          e.Other = /* EMPTY */;
+        };
+
+      Empty
+        , e.Constraints : {
+          e.L (OR (not empty t.Var)) e.R = (OR (not empty t.Var));
+        
+          e.Other = /* EMPTY */;
+        };
+    };
+}
+
+/*
+  <GenPrefixConstraint t.Var t.Const>
+    == t.PrefixConstraint
+*/
+GenPrefixConstraint {
+  t.Var t.Const = (OR (not t.Const starts t.Var)) 
+}
+
+/*
+  <GenSuffixConstraint t.Var t.Const>
+    == t.SuffixConstraint
+*/
+GenSuffixConstraint {
+  t.Var t.Const = (OR (not t.Const ends t.Var)) 
+}
+
+/*
+  <GenEmptyConstraint t.Var>
+    == t.EmptyConstraint
+*/
+GenEmptyConstraint {
+  t.Var = (OR (not empty t.Var)) 
 }
 
