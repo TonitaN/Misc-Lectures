@@ -26,11 +26,12 @@
 
   ABBREVIATIONS.
   
-  Eq    == Equation
-  Restr == Restriction
-  Const == Constant
-  Var   == Variable
-  Subst == Substitution
+  eq    == equation
+  restr == restriction
+  const == constant
+  var   == variable
+  subst == substitution
+  acc   == accumulator
 */
 
 $EXTERN FormPair, Zip, Take, GetNewConst, IsWordInAlphabet, IsEmpty,
@@ -2736,7 +2737,6 @@ IsDependentConstraint {
     };
 }
 
-
 SelectConstraints {
   (e.Constraints) s.Mode t.Var
     , s.Mode : {
@@ -2789,5 +2789,76 @@ GenSuffixConstraint {
 */
 GenEmptyConstraint {
   t.Var = (OR (not empty t.Var)) 
+}
+
+/*
+  Будем называть уравнение нормальным, если в нём нет совпадающих префиксов и
+  суффиксов, избыточных условий и ограничений.
+
+  <NormalizeEq t.Eq> == t.NormalEq
+*/
+NormalizeEq {
+  t.Eq
+    , <MapCompose ((TrimEquation Left) (TrimEquation Right)) t.Eq>
+    : ((AreEqual (e.NormalLHS) (e.NormalRHS)) (e.Constraints) (e.Conditions))
+    , <MapCompose-Acc
+        (GetUniqueElems Const) ((e.NormalLHS) (e.NormalRHS))
+        (/* empty accumulator */)
+      > : (e.Consts)
+    , <RemoveRedundantConditions
+        (e.Consts) (e.Conditions) (/* empty acc */)
+      > : e.NormalConditions
+    , <RemoveRedundantRestrictions
+        (e.Consts) (e.NormalConditions) (e.Constraints) (/* empty acc */)
+      > : e.NormalConstraints
+    /* ... */
+    = ( /* dummy output */
+        (AreEqual (e.NormalLHS) (e.NormalRHS))
+        (e.NormalConstraints) (e.NormalConditions)
+      );
+}
+
+/*
+  <MapCompose-Acc (s.Function e.Args) (e.Lists) e.Accumulator> == e.Accumulator
+
+  s.Function has a format <s.Function e.Args e.Accumulator> == e.Accumulator
+*/
+MapCompose-Acc {
+  (e.Call) (e.Lists) e.Accumulator
+    = <MapCompose
+        (<MapCall Curry (FormTerm e.Call) e.Lists>) e.Accumulator
+      >;
+}
+
+/*
+  <GetUniqueElems s.Mode (e.Elems) t.Accumulator> == t.Accumulator
+
+  s.Mode ::= Var | Const
+*/
+GetUniqueElems {
+  s.Mode (e.Elems) (e.UniqueElems)
+    , e.Elems : {
+      (Var s.Letter) e.RestElems
+        , s.Mode : {
+          Var, <IsElemInSet (Var s.Letter) (e.UniqueElems)> : False
+            = <GetUniqueElems
+                s.Mode (e.RestElems) (e.UniqueElems (Var s.Letter))
+              >;
+
+          s.Other = <GetUniqueElems s.Mode (e.RestElems) (e.UniqueElems)>;
+        };
+
+      (s.Letter s.Number) e.RestElems
+        , s.Mode : {
+          Const, <IsElemInSet (s.Letter s.Number) (e.UniqueElems)> : False 
+            = <GetUniqueElems
+                s.Mode (e.RestElems) (e.UniqueElems (s.Letter s.Number))
+              >;
+
+          s.Other = <GetUniqueElems s.Mode (e.RestElems) (e.UniqueElems)>;
+        };
+
+      /* no elements */ = (e.UniqueElems);
+    };
 }
 
