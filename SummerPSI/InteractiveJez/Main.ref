@@ -1,102 +1,222 @@
 *$INLINE HigherOrder;
 
 /*
-  TODO:
-  - rewrite Overlap
-*/
+  t.Eq ::= ((AreEqual (t.Elem*) (t.Elem*)) (t.Constraint*) (t.Condition*))
 
-/*
-  DATA STRUCTURES.
-  
-  t.Equation
-    ::= ((AreEqual (t.Element*) (t.Element*)) (t.Constraint*) (t.Condition*))
+  t.Elem  ::= t.Const | t.Var
+  t.Const ::= (s.LETTER s.NUMBER)
+  t.Var   ::= (Var s.LETTER)
 
-  t.Element  ::= t.Constant | t.Variable
-  t.Constant ::= (s.LETTER s.NUMBER)
-  t.Variable ::= (Var s.LETTER)
+  t.Constraint  ::= (OR t.Restriction+)
+  t.Restriction ::= (not t.Const starts t.Var) | (not t.Const ends t.Var) |
+                    (not empty t.Var)
 
-  t.Constraint ::= (OR t.Restriction+)
-  t.Restriction
-    ::= (not empty t.Variable) |
-        (not t.Constant starts t.Variable) |
-        (not t.Constant ends t.Variable)
-
-  t.Condition ::= (t.Constant is t.Factor+)
-  t.Factor    ::= (t.Constant t.Exponent* (const s.NUMBER))
+  t.Condition ::= (t.Const is t.Factor+)
+  t.Factor    ::= (t.Const t.Exponent* (const s.NUMBER))
   t.Exponent  ::= (s.WORD s.NUMBER)
 
-  e.OptionSet    ::= (t.Option*)
-  t.Option       ::= ((t.Substitution*) (t.Constraint*) (t.Constraint*))
-  t.Substitution ::= (assign (e.ANY) (e.ANY))
-
-  ABBREVIATIONS.
-  
-  arg    == argument
-  const  == constant
-  eq     == equation
-  restr  == restriction
-  subst  == substitution
-  var    == variable
+  t.Option ::= ((t.Subst*) (t.Constraint*) (t.Constraint*))
+  t.Subst  ::= (assign (e.ANY) (e.ANY))
 */
 
 /*
-  <GetNewIndex t.Index>
-    == t.NewIndex
+  <Pick s.SeqNumber e.Eqs> == t.Eq
 */
-GetNewIndex {
-  s.OldIndex
-    , <Explode s.OldIndex> : s.Letter s.FirstDigit e.Digits
-    , <Symb <Add <Numb s.FirstDigit e.Digits> 1>> : e.NewNumber
-    = <Implode s.Letter e.NewNumber>;
-}
+$ENTRY Pick {
+  s.Number t.Eq e.RestEqs
+    , s.Number : {
+      1, t.Eq : ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions))
+        , <MapCompose
+            ((GetVars (e.LHS)) (GetVars (e.RHS))) (/* no vars at start */)
+          > : (e.Vars)
+        , <SubtractSets
+            (e.Vars) (<GetNonEmptyVars e.Constraints>)
+          > : (e.EmptyVars)
+        , <MapCall
+            Revert (GenSubst (/* empty */))
+            <MapCall Plain FormTerm e.EmptyVars>
+          > : e.Substs
+        , <MapCall
+            Curry (Subst (e.Substs)) (e.LHS) (e.RHS)
+          > : {
+          (e.Half) (e.Half) = Success;
 
-/*
-  <GetNewConst t.Const>
-    == t.NextConst
-*/
-GetNewConst {
-  (s.Letter s.Number)
-    , <LatinCapitalLetters> : {
-      e.U1 s.Letter s.NextLetter e.U2 = (s.NextLetter s.Number);
+          (e.NewLHS) (e.NewRHS)
+            , <MapCompose
+                ((GetConsts (e.NewLHS)) (GetConsts (e.NewRHS))) (/* empty */)
+              > : {
+              (/* no consts were found */) = NotMinimal;
 
-      s.FirstLetter e.U s.Letter = (s.FirstLetter <Add s.Number 1>);
+              (e.SomeConsts)
+                = (
+                    (AreEqual (e.NewLHS) (e.NewRHS))
+                    (e.Constraints) (e.Conditions)
+                  ); 
+            };
+        };
+
+      s.Other = <Pick <Sub s.Number 1> e.RestEqs>;
     };
 }
 
 /*
-  <SubtractSets (e.FirstSet) (e.SecondSet)
-    == (e.FirstSetWithoutSecond)
+  <GetVars (e.Elems) (e.UniqueVars)> == (e.UniqueVars)
 */
-SubtractSets {
-  (e.U1 t.CommonElement e.U2) (e.V1 t.CommonElement e.V2)
-    = <SubtractSets (e.U1 e.U2) (e.V1 e.V2)>;
+GetVars {
+  (e.Elems) (e.UniqueVars)
+    , e.Elems : {
+      e.L (Var s.Letter) e.R
+        , <IsElemInSet (Var s.Letter) (e.UniqueVars)> : False
+        = <GetVars (e.R) (e.UniqueVars (Var s.Letter))>;
 
-  /* No common elements */
-  t.Reduced t.Subtracted = t.Reduced;
+      e.Other = (e.UniqueVars);
+    };
 }
 
 /*
-  <GetUniqueValues s.Mode e.Expr>
-    == e.UniqueExpr
-*/
-GetUniqueValues {
-  Flat e.U1 t.X e.U2 t.X e.U3 = <GetUniqueValues Flat e.U1 t.X e.U2 e.U3>;
-  
-  Wrap (e.U1 t.X e.U2 t.X e.U3) = <GetUniqueValues Wrap (e.U1 t.X e.U2 e.U3)>;
-  
-  s.AnyMode e.AlreadyUnique = e.AlreadyUnique;
-}
-
-/*
-  <IsEmpty e.Any>
+  <IsElemInSet t.Elem (e.Set)>
     == True
     == False
 */
-IsEmpty {
-  /* EMPTY */ = True;
+IsElemInSet {
+  t.Elem (e.Set)
+    , e.Set : {
+      e.L t.Elem e.R = True;
+
+      e.Other = False;
+    };
+}
+
+/*
+  <SubtractSets t.Set1 t.Set2> == t.Set
+*/
+SubtractSets {
+  (e.L1 t.Elem e.R1) (e.L2 t.Elem e.R2)
+    = <SubtractSets (e.L1 e.R1) (e.L2 e.R2)>;
+
+  t.Set1 t.Set2 = t.Set1; /* no common elements */
+}
+
+/*
+  A variable is called non-empty if there is a restriction to its emptiness.
+  Otherwise, the variable is called empty.
+
+  <GetNonEmptyVars e.Constraints> == e.Vars
+*/
+GetNonEmptyVars {
+  e.L (OR (not empty (Var s.X))) e.R = (Var s.X) <GetNonEmptyVars e.R>;
+
+  e.Other = /* empty */;
+}
+
+/*
+  <FormTerm e.Any> == (e.Any)
+*/
+FormTerm {
+  e.Any = (e.Any);
+}
+
+/*
+  <GenSubst (e.OldElems) (e.NewElems)> == t.Subst
+*/
+GenSubst {
+  (e.Old) (e.New) = (assign (e.Old) (e.New));
+}
+
+/*
+  <Subst (e.Substs) (e.Expr)> == (e.NewExpr)
+*/
+Subst {
+  (e.Substs) (e.Expr)
+    , e.Substs : {
+      t.Subst e.RestSubsts
+        = <Subst (e.RestSubsts) (<Subst-Aux t.Subst e.Expr>)>;
+
+      /* No substs */ = (e.Expr);
+    };
+}
+
+Subst-Aux {
+  t.Subst e.Expr
+    , t.Subst : (assign (e.Old) (e.New))
+    , e.Expr : {
+      e.L e.Old e.R = e.L e.New <Subst-Aux t.Subst e.R>;
+
+      /* Nothing to substitute. */
+      e.Other = e.Other;
+    };
+}
+
+/*
+  <GetConsts (e.Elems) (e.UniqueConsts)> == (e.UniqueConsts)
+*/
+GetConsts {
+  (e.Elems) (e.UniqueConsts)
+    , e.Elems : {
+      e.L (s.Letter s.Number) e.R
+        , <AreEqual s.Letter Var> : False
+        , <IsElemInSet (s.Letter s.Number) (e.UniqueConsts)> : False
+        = <GetConsts (e.R) (e.UniqueConsts (s.Letter s.Number))>;
+
+      e.Other = (e.UniqueConsts);
+    };
+}
+
+/*
+  <AreEqual t.Elem1 t.Elem2>
+    == True
+    == False
+*/
+AreEqual {
+  t.Elem t.Elem = True;
 
   e.Other = False;
 }
+
+/*
+  <SubstIndex s.Index (e.Subst) (e.Eq)> == t.NewEq
+*/
+$ENTRY SubstIndex {
+  s.Index (e.Multiset)
+  ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.IndexEqs))
+    , <MapCall
+        Curry
+        (SubstToIndexEq (s.Index (e.Multiset)))
+        e.IndexEqs
+      >
+    : e.SubstIndexEqs
+    , <MapCompose
+        ((TrimEquation Left) (TrimEquation Right))
+        ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.SubstIndexEqs))
+      >
+    : ((AreEqual (e.TrimmedLHS) (e.TrimmedRHS)) e.Rest)
+    , <MapCall
+        Curry
+        (
+          CheckIndexEqToCollapse
+          <MapCompose
+            ((GetConsts (e.TrimmedLHS)) (GetConsts (e.TrimmedRHS)))
+            (/* no consts at start */)
+          >
+        )
+        e.SubstIndexEqs
+      >
+    : e.NecessaryIndexEqs
+    , <ReplaceRepeatedIndexEqs
+        (e.NecessaryIndexEqs)
+        (/* No substitutions at start */)
+      > : (e.UniqueIndexEqs) (e.Substs)
+    , <MapCall
+        Curry
+        (Subst (e.Substs))
+        (e.TrimmedLHS) (e.TrimmedRHS)
+      > : (e.SubstLHS) (e.SubstRHS)
+    = ((AreEqual (e.SubstLHS) (e.SubstRHS)) (e.Constraints) (e.UniqueIndexEqs));
+  
+  e.Other = <Prout 'SubstIndex: Invalid input ' e.Other>;
+}
+
+/* ... */
 
 /*
   <QuickSort s.LessFunc e.List>
@@ -132,6 +252,39 @@ Partition {
           False = <Partition s.LessFunc (e.Left) t.Pivot (e.Right t.X) e.Tail>;
         };
     };
+}
+
+/*
+  <GetUniqueValues s.Mode e.Expr>
+    == e.UniqueExpr
+*/
+GetUniqueValues {
+  Flat e.U1 t.X e.U2 t.X e.U3 = <GetUniqueValues Flat e.U1 t.X e.U2 e.U3>;
+  
+  Wrap (e.U1 t.X e.U2 t.X e.U3) = <GetUniqueValues Wrap (e.U1 t.X e.U2 e.U3)>;
+  
+  s.AnyMode e.AlreadyUnique = e.AlreadyUnique;
+}
+
+/*
+  <IsEmpty e.Any>
+    == True
+    == False
+*/
+IsEmpty {
+  /* EMPTY */ = True;
+
+  e.Other = False;
+}
+
+/*
+  <IntersectSets t.Set1 t.Set2 t.Intersection> == t.Set
+*/
+IntersectSets {
+  (e.L1 t.Elem e.R1) (e.L2 t.Elem e.R2) (e.Intersection)
+    = <IntersectSets (e.L1 e.R1) (e.L2 e.R2) (e.Intersection t.Elem)>;
+
+  t.Set1 t.Set2 t.Intersection = t.Intersection;
 }
 
 /* Throws `Recognition Impossible` if the lists have not equal lengths. */
@@ -220,120 +373,46 @@ LatinCapitalLetters {
   = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 }
 
-/*
-  <IsElemInSet t.Elem (e.Set)>
-    == True
-    == False
-*/
-IsElemInSet {
-  t.Elem (e.Set)
-    , e.Set : {
-      e.L t.Elem e.R = True;
-
-      e.Set = False;
-    };
-}
-
 StructParens {
   e.Arg = <ExtractRealParens Plain e.Arg>; 
 }
 
 ExtractRealParens {
- Plain e.x'('e.y')'e.z
- , e.y : {
-   e.y1'('e.y2
-   , <ExtractRealParens Left () e.y2> : 
-  {() e.v2
-    = <ExtractRealParens Plain e.x'('e.y1 (e.v2) e.z>;
-   (e.v1'(') e.v2
-    = <ExtractRealParens Plain e.x'('e.y1'('e.v1 (e.v2) e.z>;
-  };
-   e.other = <ExtractRealParens Plain e.x (e.y) e.z>;
- };
- Left (e.drop) e.y
- , e.y : 
-  {e.y1'('e.y2
-     = <ExtractRealParens Left (e.drop e.y1'(')e.y2>;
-   e.z = (e.drop) e.y;
-  };
- Plain e.Rest = e.Rest;
+  Plain e.x'('e.y')'e.z
+    , e.y : {
+      e.y1'('e.y2
+        , <ExtractRealParens Left () e.y2> : {
+          (/* empty */) e.v2
+            = <ExtractRealParens Plain e.x '(' e.y1 (e.v2) e.z>;
+    
+          (e.v1 '(') e.v2
+            = <ExtractRealParens Plain e.x '(' e.y1 '(' e.v1 (e.v2) e.z>;
+        };
+  
+      e.other = <ExtractRealParens Plain e.x (e.y) e.z>;
+    };
+
+  Left (e.drop) e.y
+    , e.y : {
+      e.y1 '(' e.y2
+        = <ExtractRealParens Left (e.drop e.y1 '(') e.y2>;
+
+      e.z = (e.drop) e.y;
+    };
+  
+  Plain e.Rest = e.Rest;
 }
 
+/*
+  <ChooseMax s.Val1 s.Val2> == s.MaxVal
+*/
 ChooseMax {
- s.Val1 s.Val2
- , <Compare s.Val1 s.Val2> :
- {'+' = s.Val1;
-  s.Any = s.Val2;
- };
-}
-
-/*
-  <Subst (e.Substs) (e.Expr)>
-    == (e.SubstExpr)
-*/
-Subst {
-  (e.Substs) (e.Expr)
-    , e.Substs : {
-      t.Subst e.RestSubsts
-        = <Subst (e.RestSubsts) (<Subst-Aux t.Subst e.Expr>)>;
-
-      /* No substs */ = (e.Expr);
-    };
-}
-
-Subst-Aux {
-  t.Subst e.Expr
-    , t.Subst : (assign (e.Old) (e.New))
-    , e.Expr : {
-      e.L e.Old e.R = e.L e.New <Subst-Aux t.Subst e.R>;
-
-      /* Nothing to substitute. */
-      e.Other = e.Other;
-    };
-}
-
-/*
-  <GenSubst (e.Old) (e.New)>
-    == t.Subst
-*/
-GenSubst {
-  (e.Old) (e.New) = (assign (e.Old) (e.New));
-}
-
-/*
-  <GetNonEmptyVars e.Constraints>
-    == e.NonEmptyVars
-*/
-GetNonEmptyVars {
-  e.L (OR (not empty (Var s.X))) e.R = (Var s.X) <GetNonEmptyVars e.R>;
-
-  /* No appropriate disjuncts left */
-  e.Other = /* EMPTY */;
-}
-
-/*
-  <GetVars (e.Elems)>
-    == e.Vars
-*/
-GetVars {
-  (e.L (Var s.X) e.R) = (Var s.X) <GetVars (e.R)>;
-
-  (e.Other) = /* EMPTY */;
-}
-
-GetConsts {
-  (t.Comp e.RestComps)
-    , t.Comp : {
-      (Var s.Name) = <GetConsts (e.RestComps)>; /* Ignore vars. */
-
-      (s.Name s.Number) = t.Comp <GetConsts (e.RestComps)>;
+  s.Val1 s.Val2
+    , <Compare s.Val1 s.Val2> : {
+      '+' = s.Val1;
       
-      e.Other = <Prout 'GetConsts: Invalid component ' e.Other>;
+      s.Any = s.Val2;
     };
-
-  (/* No more comps */) = /* EMPTY */;
-
-  e.Other = <Prout 'GetConsts: Invalid input ' e.Other>;
 }
 
 /*
@@ -397,10 +476,6 @@ VarAlphabet {
       GenVar
       <LatinCapitalLetters>
     >;
-}
-
-GenVar {
-  s.Name = (Var s.Name);
 }
 
 /*
@@ -621,9 +696,9 @@ RemoveRedundantConditions {
               
           True
             , <GetConditionConsts t.Condition> : e.ConditionConsts
-            , <IntersectSets (e.EqConsts) (e.ConditionConsts)> : {
+            , <IntersectSets (e.EqConsts) (e.ConditionConsts) (/* empty */)> : {
                 /* None of the condition constants are in the equation. */
-                /* EMPTY */
+                (/* EMPTY */)
                   , <CallTill
                       (/* EMPTY */)
                       Revert
@@ -643,7 +718,7 @@ RemoveRedundantConditions {
                           >;
                   };
 
-                e.SomeConsts
+                (e.SomeConsts)
                   = <RemoveRedundantConditions
                       (e.EqConsts) (e.RestConditions)
                       (e.CheckedConditions t.Condition)
@@ -688,18 +763,6 @@ GetConditionConsts {
       /* No elements (abnormal on the first call) */
       /* EMPTY */ = /* EMPTY */;
     };
-}
-
-/*
-  <IntersectSets (e.Set1) (e.Set2)>
-    == e.Intersection
-*/
-IntersectSets {
-  (e.L1 t.Elem e.R1) (e.L2 t.Elem e.R2)
-    = t.Elem <IntersectSets (e.L1 e.R1) (e.L2 e.R2)>;
-
-  /* No common elements */
-  (e.Set1) (e.Set2) = /* EMPTY */;
 }
 
 /*
@@ -749,27 +812,6 @@ SelectConstraints {
 }
 
 /*
-  <GenPrefixConstraint t.Var t.Const> == t.PrefixConstraint
-*/
-GenPrefixConstraint {
-  t.Var t.Const = (OR (not t.Const starts t.Var)) 
-}
-
-/*
-  <GenSuffixConstraint t.Var t.Const> == t.SuffixConstraint
-*/
-GenSuffixConstraint {
-  t.Var t.Const = (OR (not t.Const ends t.Var)) 
-}
-
-/*
-  <GenEmptyConstraint t.Var> == t.EmptyConstraint
-*/
-GenEmptyConstraint {
-  t.Var = (OR (not empty t.Var)) 
-}
-
-/*
   Будем называть уравнение нормальным, если в нём нет совпадающих префиксов и
   суффиксов, избыточных условий и ограничений.
 
@@ -780,8 +822,8 @@ NormalizeEq {
     , <MapCompose ((TrimEquation Left) (TrimEquation Right)) t.Eq>
     : ((AreEqual (e.NormalLHS) (e.NormalRHS)) (e.Constraints) (e.Conditions))
     , <MapCompose
-        (<MapCall Curry (FormTerm GetElems Const) (e.NormalLHS) (e.NormalRHS)>)
-        (/* empty */)
+        ((GetConsts (e.NormalLHS)) (GetConsts (e.NormalRHS)))
+        (/* no consts at start */)
       > : (e.Consts)
     , <RemoveRedundantConditions
         (e.Consts) (e.Conditions) (/* empty */)
@@ -796,118 +838,43 @@ NormalizeEq {
 }
 
 /*
-  <GetElems s.Mode (e.Elems) (e.SelectedElems)> == t.Elems
-
-  s.Mode ::= Var | Const
+  <GetNewIndex t.Index>
+    == t.NewIndex
 */
-GetElems {
-  s.Mode (e.Elems) (e.UniqueElems)
-    , e.Elems : {
-      (Var s.Letter) e.RestElems
-        , s.Mode : {
-          Var, <IsElemInSet (Var s.Letter) (e.UniqueElems)> : False
-            = <GetElems
-                s.Mode (e.RestElems) (e.UniqueElems (Var s.Letter))
-              >;
-
-          s.Other = <GetElems s.Mode (e.RestElems) (e.UniqueElems)>;
-        };
-
-      (s.Letter s.Number) e.RestElems
-        , s.Mode : {
-          Const, <IsElemInSet (s.Letter s.Number) (e.UniqueElems)> : False 
-            = <GetElems
-                s.Mode (e.RestElems) (e.UniqueElems (s.Letter s.Number))
-              >;
-
-          s.Other = <GetElems s.Mode (e.RestElems) (e.UniqueElems)>;
-        };
-
-      /* no elements */ = (e.UniqueElems);
-    };
+GetNewIndex {
+  s.OldIndex
+    , <Explode s.OldIndex> : s.Letter s.FirstDigit e.Digits
+    , <Symb <Add <Numb s.FirstDigit e.Digits> 1>> : e.NewNumber
+    = <Implode s.Letter e.NewNumber>;
 }
 
 /*
-  <Pick s.Number e.Equations>
-    == t.Equation
+  <GetNewConst t.Const>
+    == t.NextConst
 */
-$ENTRY Pick {
-  1 ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions)) e.RestEquations
-    , <SubtractSets
-        (<GetUniqueValues Flat <MapCall Plain GetVars (e.LHS) (e.RHS)>>)
-        (<GetNonEmptyVars e.Constraints>)
-      >
-    : (e.VarsForSubst)
-    , <MapCall
-        Revert
-        (GenSubst (/* EMPTY */))
-        <MapCall Plain FormTerm e.VarsForSubst>
-      >
-    : e.Substs
-    , <MapCall
-        Curry
-        (Subst (e.Substs))
-        (e.LHS) (e.RHS)
-      >
-    : {
-      (e.Half) (e.Half) = Success;
+GetNewConst {
+  (s.Letter s.Number)
+    , <LatinCapitalLetters> : {
+      e.U1 s.Letter s.NextLetter e.U2 = (s.NextLetter s.Number);
 
-      (e.NewLHS) (e.NewRHS)
-        , <MapCall Plain GetConsts (e.NewLHS) (e.NewRHS)> : {
-          /* No consts were found */ = NotMinimal;
-
-          e.SomeConsts
-            = ((AreEqual (e.NewLHS) (e.NewRHS)) (e.Constraints) (e.Conditions)); 
-        };
+      s.FirstLetter e.U s.Letter = (s.FirstLetter <Add s.Number 1>);
     };
-
-  s.Number t.Equation e.RestEquations = <Pick <Sub s.Number 1> e.RestEquations>;
 }
 
-/*
-  <SubstIndex s.Index (e.Subst) (e.Eq)>
-    == (e.SubstEq)
-*/
-$ENTRY SubstIndex {
-  s.Index (e.Multiset)
-  ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.IndexEqs))
-    , <MapCall
-        Curry
-        (SubstToIndexEq (s.Index (e.Multiset)))
-        e.IndexEqs
-      >
-    : e.SubstIndexEqs
-    , <MapCompose
-        ((TrimEquation Left) (TrimEquation Right))
-        ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.SubstIndexEqs))
-      >
-    : ((AreEqual (e.TrimmedLHS) (e.TrimmedRHS)) e.Rest)
-    , <MapCall
-        Curry
-        (
-          CheckIndexEqToCollapse
-          (
-            <GetUniqueValues
-              Flat
-              <GetConsts (e.TrimmedLHS)> <GetConsts (e.TrimmedRHS)>
-            >
-          )
-        )
-        e.SubstIndexEqs
-      >
-    : e.NecessaryIndexEqs
-    , <ReplaceRepeatedIndexEqs
-        (e.NecessaryIndexEqs)
-        (/* No substitutions at start */)
-      > : (e.UniqueIndexEqs) (e.Substs)
-    , <MapCall
-        Curry
-        (Subst (e.Substs))
-        (e.TrimmedLHS) (e.TrimmedRHS)
-      > : (e.SubstLHS) (e.SubstRHS)
-    = ((AreEqual (e.SubstLHS) (e.SubstRHS)) (e.Constraints) (e.UniqueIndexEqs));
-  
-  e.Other = <Prout 'SubstIndex: Invalid input ' e.Other>;
+GenPrefixConstraint {
+  t.Var t.Const = (OR (not t.Const starts t.Var)) 
+}
+
+GenSuffixConstraint {
+  t.Var t.Const = (OR (not t.Const ends t.Var)) 
+}
+
+GenEmptyConstraint {
+  t.Var = (OR (not empty t.Var)) 
+}
+
+GenVar {
+  s.Name = (Var s.Name);
 }
 
 /*
@@ -1696,10 +1663,10 @@ ApplyOption {
         ((TrimEquation Left) (TrimEquation Right))
         ((AreEqual (e.SubstLHS) (e.SubstRHS)) (e.Constraints) (e.Conditions))
       > : ((AreEqual (e.TrimmedLHS) (e.TrimmedRHS)) e.Rest)
-    , <GetUniqueValues
-        Flat
-        <MapCall Plain GetConsts (e.TrimmedLHS) (e.TrimmedRHS)>
-      >: e.EqConsts
+    , <MapCompose
+        ((GetConsts (e.TrimmedLHS)) (GetConsts (e.TrimmedRHS)))
+        (/* no consts at start */)
+      > : (e.EqConsts)
     , <RemoveRedundantConditions
         (e.EqConsts)
         (
@@ -1808,7 +1775,7 @@ $ENTRY BlockComp {
   t.BlockConst t.Const s.Index t.Eq
     , t.Eq : ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Conditions))
     , <MapCompose
-        (<MapCall Curry (FormTerm GetElems Var) (e.LHS) (e.RHS)>) (/* empty */)
+        (<MapCall Curry (FormTerm GetVars) (e.LHS) (e.RHS)>) (/* empty */)
       > : (e.EqVars)
     , <MapCall
         Curry

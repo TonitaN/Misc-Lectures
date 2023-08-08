@@ -95,7 +95,3 @@ MapCall-Compose {
     };
 }
 
-FormTerm {
-  e.Any = (e.Any);
-}
-
