@@ -67,3 +67,35 @@ ContinueIfNotEOF {
   (e.Function) e.Data = <UnwrapCalls (e.Function)>;
 }
 
+/*
+  <MapCall-Compose (e.Call) (e.CompArgs) e.Elems>
+    == e.NewElems e.NewCompArgs
+
+  For given (possibly curried) function f, composition argument x and
+  elements y1, y2, ..., yn calculates
+
+    <f x   y1>    = x'   y1'
+    <f x'  y2>    = x''  y2'
+    <f x'' y3>    = x''' y3'
+    ........................
+    <f x(n-1) yn> = x(n) yn'
+    
+  and returns y1' y2' ... yn' x(n). Function f must have the following format:
+  
+    <f e.Args e.CompArgs t.List> == e.NewCompArgs t.NewList
+*/
+MapCall-Compose {
+  (e.Call) (e.CompArgs) e.Elems
+    , e.Elems : {
+      t.Elem e.RestElems
+        , <Mu e.Call e.CompArgs t.Elem> : e.NewCompArgs t.NewElem
+        = t.NewElem <MapCall-Compose (e.Call) (e.NewCompArgs) e.RestElems>;
+
+      /* empty */ = e.CompArgs;
+    };
+}
+
+FormTerm {
+  e.Any = (e.Any);
+}
+
