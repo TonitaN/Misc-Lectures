@@ -1,6 +1,10 @@
-/* Given a sequence of (possibly curried) functions f1 ... fn, and an arg a, returns <fn...<f2 <f1 a>>..> */
+/*
+  Given a sequence of (possibly curried) functions f1 ... fn, and an arg a,
+  returns <fn...<f2 <f1 a>>..>
+*/
 MapCompose {
   ((e.Call) e.RestCalls) e.Arg = <MapCompose (e.RestCalls) <Mu e.Call e.Arg>>;
+
   (/* EMPTY */) e.Arg = e.Arg;
 }
 
@@ -34,11 +38,11 @@ UnwrapCalls {
   Calls the given function till it returns expected result. If different result
   is recieved, immediately returns it. Otherwise, returns the expected one.
 */
-CallTill {
+MapCall-Till {
   (e.ExpectedResult) Curry (s.Function e.Arguments) t.Element e.List
     , <Mu s.Function e.Arguments t.Element> : {
       e.ExpectedResult
-        = <CallTill (e.ExpectedResult) Curry (s.Function e.Arguments) e.List>;
+        = <MapCall-Till (e.ExpectedResult) Curry (s.Function e.Arguments) e.List>;
 
       e.OtherResult = e.OtherResult;
     };
@@ -46,14 +50,14 @@ CallTill {
   (e.ExpectedResult) Revert (s.Function e.Arguments) t.Element e.List
     , <Mu s.Function t.Element e.Arguments> : {
       e.ExpectedResult
-        = <CallTill (e.ExpectedResult) Revert (s.Function e.Arguments) e.List>;
+        = <MapCall-Till (e.ExpectedResult) Revert (s.Function e.Arguments) e.List>;
 
       e.OtherResult = e.OtherResult;
     };
     
   (e.ExpectedResult) Plain s.Function t.Element e.List
     , <Mu s.Function t.Element> : {
-      e.ExpectedResult = <CallTill (e.ExpectedResult) Plain s.Function e.List>;
+      e.ExpectedResult = <MapCall-Till (e.ExpectedResult) Plain s.Function e.List>;
 
       e.OtherResult = e.OtherResult;
     };
