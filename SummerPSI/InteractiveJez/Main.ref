@@ -24,8 +24,8 @@
   t.Eq ::= ((AreEqual (t.Elem*) (t.Elem*)) (t.Constr*) (t.Cond*))
 
   t.Elem ::= t.Const | t.Var
-  t.Const ::= (s.LETTER s.NUMBER)
-  t.Var ::= (Var s.LETTER)
+  t.Const ::= (s.CHAR s.NUMBER)
+  t.Var ::= (Var s.CHAR)
 
   t.Constr ::= t.TrivialConstr | t.NonTrivialConstr
   t.TrivialConstr ::= (OR t.Restr)
@@ -41,7 +41,9 @@
   t.BlockCond ::= (t.Const is (t.Const t.Exp* (const s.NUMBER)))
   t.Exp ::= (s.WORD s.NUMBER)
 
-  t.Option ::= ((t.Subst*) (t.Constr*) (t.Constr*))
+  t.PairOption ::= ((e.Substs) (e.AddedConstrs))
+  t.BlockOption ::= ((e.Substs) (e.AddedConstrs) (e.ExcludedConstrs))
+
   t.Subst  ::= (assign (e.ANY) (e.ANY))
 */
 
@@ -53,24 +55,26 @@ $ENTRY Pick {
     , s.Number : {
       1, t.Eq : ((AreEqual (e.LHS) (e.RHS)) (e.Constrs) (e.Conds))
         , <MapCompose
-            ((GetVars (e.LHS)) (GetVars (e.RHS))) (/* no vars at start */)
+            ((GetVars (e.LHS)) (GetVars (e.RHS))) (/* empty */)
           > : (e.Vars)
         , <SubtractSets
             (e.Vars) (<GetNonEmptyVars e.Constrs>)
           > : (e.EmptyVars)
         , <MapCall
-            Revert (GenSubst (/* empty */))
+            Revert
+            (GenSubst (/* empty */))
             <MapCall Plain Wrap e.EmptyVars>
           > : e.Substs
         , <MapCall
-            Curry (Subst (e.Substs)) (e.LHS) (e.RHS)
+            Curry
+            (Subst (e.Substs))
+            (e.LHS) (e.RHS)
           > : {
           (e.Elems) (e.Elems) = Success;
 
           (e.NewLHS) (e.NewRHS)
             , <MapCompose
-                ((GetConsts (e.NewLHS)) (GetConsts (e.NewRHS)))
-                (/* no consts at start */)
+                ((GetConsts (e.NewLHS)) (GetConsts (e.NewRHS))) (/* empty */)
               > : {
               (/* no consts */) = NotMinimal;
 
@@ -209,7 +213,8 @@ $ENTRY SubstIndex {
         (e.ReplacedConds) (/* no substs at start */)
       > : (e.UniqueConds) (e.RepeatedConstsSubsts)
     , <MapCall
-        Curry (Subst (e.CollapsedConstsSubsts e.RepeatedConstsSubsts))
+        Curry
+        (Subst (e.CollapsedConstsSubsts e.RepeatedConstsSubsts))
         (e.LHS) (e.RHS)
       > : (e.ReplacedLHS) (e.ReplacedRHS)
     = <NormalizeEq
@@ -255,7 +260,7 @@ SubstExpsToBlock {
         , <SumUpExps
             e.L <MapCall Revert (MulExp s.Multiplier) e.Exps> e.R
           > : {
-          (const 0) = /* empty */; /* block collapsed */
+          (const 0) = /* empty */;
 
           e.ReplacedExps (const s.Number)
             , <QuickSort IsLess-Exp e.ReplacedExps> : e.SortedExps
@@ -356,40 +361,48 @@ ReplaceRepeatedConds {
 
 /*
   An equation is called normal if it has no equal prefixes of suffixes,
-  redundant constraints or conditions.
+  redundant constraints or conditions. In normal equation all constraints
+  are sorted.
 
   <NormalizeEq t.Eq> == t.NormalEq
 */
 NormalizeEq {
   ((AreEqual (e.LHS) (e.RHS)) (e.Constrs) (e.Conds))
     , <MapCompose
-        (<MapCall Curry (Wrap TrimEq (e.Conds)) Left Right>)
+        (<MapCall Curry (Wrap TrimEq) Left Right>)
         (e.LHS) (e.RHS)
-      > : (e.NormalLHS) (e.NormalRHS)
+      > : (e.NormLHS) (e.NormRHS)
     , <MapCompose
-        ((GetConsts (e.NormalLHS)) (GetConsts (e.NormalRHS)))
+        ((GetConsts (e.NormLHS)) (GetConsts (e.NormRHS)))
         (/* no consts at start */)
       > : (e.Consts)
     , <RemoveRedundantConds
         (e.Consts) (e.Conds) (/* empty */)
-      > : e.NormalConds
-    , <RemoveRedundantRestrs
-        (e.Consts) (e.NormalConds) (e.Constrs) (/* empty */)
-      > : e.NormalConstrs
-    = ((AreEqual (e.NormalLHS) (e.NormalRHS)) (e.NormalConstrs) (e.NormalConds));
+      > : e.NormConds
+    , <QuickSort
+        IsLess-Constr
+        <RemoveRedundantRestrs
+          (e.Consts) (e.NormConds) (e.Constrs) (/* empty */)
+        >
+      > : e.NormConstrs
+    = ((AreEqual (e.NormLHS) (e.NormRHS)) (e.NormConstrs) (e.NormConds));
 }
 
 /*
-  <TrimEq (e.Conds) s.Mode (e.LHS) (e.RHS)> == (e.NewLHS) (e.NewRHS)
+  <TrimEq s.Mode (e.LHS) (e.RHS)> == (e.NewLHS) (e.NewRHS)
 
   s.Mode ::= Left | Right
 */
 TrimEq {
-  (e.Conds) s.Mode (e.LHS) (e.RHS)
-    , <MapCall Curry (Take s.Mode) (e.LHS) (e.RHS)> : {
+  s.Mode (e.LHS) (e.RHS)
+    , <MapCall
+        Curry
+        (Take s.Mode)
+        (e.LHS) (e.RHS)
+      > : {
       (t.Elem1 e.NewLHS) (t.Elem2 e.NewRHS)
         , <AreEqual t.Elem1 t.Elem2> : {
-          True = <TrimEq (e.Conds) s.Mode (e.NewLHS) (e.NewRHS)>;
+          True = <TrimEq s.Mode (e.NewLHS) (e.NewRHS)>;
 
           False = (e.LHS) (e.RHS);
         };
@@ -408,7 +421,8 @@ Take {
 
 /*
   A condition is redundant if:
-  - a constant in its left half is missing from the equation;
+  - a constant in its left half is missing from the equation and is not the
+    first, last or block element of some other constant;
   - the condition has the pair type, all constants in its right half are
     missing from the equation and they are not left halfs of some conditions.
 */
@@ -421,58 +435,308 @@ RemoveRedundantConds {
   (e.Consts) (e.Conds) (e.ProcessedConds)
     , e.Conds : {
       t.Cond e.RestConds 
-        , (RemoveRedundantConds
-            (e.Consts) (e.RestConds) (e.ProcessedConds)
-          ) : t.RemoveCall
-        , (RemoveRedundantConds
-            (e.Consts) (e.RestConds) (e.ProcessedConds t.Cond)
-          ) : t.SkipCall
-        , t.Cond : (t.Const is e.Details)
-        , <IsElemInSet t.Const (e.Consts)> : {
-          True
-            , e.Details : {
-              (t.Const1 (const 1)) (t.Const2 (const 1))
-                , <IsRedundantPairCond
-                    (e.Consts) (e.ProcessedConds e.RestConds)
-                    t.Const1 t.Const2
-                  > : {
-                    True = <UnwrapCalls t.RemoveCall>;
+        , t.Cond : {
+          (t.BlockConst is t.Block)
+            , <IsBlockCondRedundant (e.Consts) (e.Conds) t.Cond> : {
+              True
+                = <RemoveRedundantConds
+                    (e.Consts) (e.RestConds) (e.ProcessedConds)
+                  >;
 
-                    False = <UnwrapCalls t.SkipCall>;
-                  };
-
-              t.Block = <UnwrapCalls t.SkipCall>;
+              False
+                = <RemoveRedundantConds
+                    (e.Consts) (e.RestConds) (e.ProcessedConds t.Cond)
+                  >;
             };
 
-          False = <UnwrapCalls t.RemoveCall>;
+          (t.PairConst is t.Block1 t.Block2)
+            , <IsPairCondRedundant (e.Consts) (e.Conds) t.Cond> : {
+              True
+                = <RemoveRedundantConds
+                    (e.Consts) (e.RestConds) (e.ProcessedConds)
+                  >;
+
+              False
+                = <RemoveRedundantConds
+                    (e.Consts) (e.RestConds) (e.ProcessedConds t.Cond)
+                  >;
+            };
         };
 
       /* empty */ = e.ProcessedConds;
     };
 }
 
+IsBlockCondRedundant {
+  (e.EqConsts) (e.Conds) (t.BlockConst is t.Block)
+    , <IsElemInSet t.BlockConst (e.EqConsts)> : {
+      True = False;
+
+      False
+        , e.Conds : {
+          e.L (t.SomeConst is e.L1 (t.BlockConst e.SomeDetails) e.L2) e.R
+            = False;
+
+          e.Other = True;
+        };
+    };
+}
+
 /*
-  <IsRedundantPairCond (e.Consts) (e.Conds) t.Const1 t.Const2>
+  <IsPairCondRedundant (e.Consts) (e.Conds) t.PairCond>
     == True
     == False
 */
-IsRedundantPairCond {
-  (e.Consts) (e.Conds) t.Const1 t.Const2
-    , <IntersectSets
-        (t.Const1 t.Const2) (e.Consts) (/* empty at start */)
-      > : {
-      (/* empty */)
-        , <MapCall-Till
-            (/* empty */) Revert (GetCond (e.Conds))
-            t.Const1 t.Const2
-          > : {
-            /* empty */ = True;
+IsPairCondRedundant {
+  (e.EqConsts) (e.Conds) t.PairCond
+    , t.PairCond : (t.PairConst is (t.Const1 (const 1)) (t.Const2 (const 1)))
+    , <IsElemInSet t.PairConst (e.EqConsts)> : {
+      False
+        , e.Conds : {
+          e.L (t.Const is e.L1 (t.PairConst e.Details) e.L2) e.R = False;
 
-            e.SomeConds = False;
+          e.Other = True;
         };
 
-      (e.SomeConsts) = False;
+      True
+        , <IntersectSets
+            (t.Const1 t.Const2) (e.EqConsts) (/* empty */)
+          > : {
+          (/* empty */)
+            , <MapCall-Till
+                (/* empty */)
+                Revert
+                (GetCond (e.Conds))
+                t.Const1 t.Const2
+              > : {
+                /* empty */ = True;
+
+                e.SomeConds = False;
+            };
+
+          (e.SomeConsts) = False;
+        };
     };
+}
+
+/*
+  <RemoveRedundantRestrs (e.Consts) (e.Conds) (e.Constrs) (e.ProcessedConstrs)>
+    == e.ProcessedConstrs
+*/
+RemoveRedundantRestrs {
+  (e.Consts) (e.Conds) (e.Constrs) (e.ProcessedConstrs)
+    , e.Constrs : {
+      t.Constr e.RestConstrs
+        , t.Constr : {
+          (OR (not empty t.Var)) /* skipping empty constraints */
+            = <RemoveRedundantRestrs
+                (e.Consts) (e.Conds) (e.RestConstrs)
+                (e.ProcessedConstrs t.Constr)
+              >;
+              
+          (OR t.Restr1 e.AnotherRestr)
+            , <IsRestrRedundant
+                t.Restr1 (e.Consts) (e.Conds)
+              > : {
+              True
+                , e.AnotherRestr : {
+                  /* empty */ /* removing the trivial constraint */
+                    = <RemoveRedundantRestrs
+                        (e.Consts) (e.Conds) (e.RestConstrs)
+                        (e.ProcessedConstrs)
+                      >;
+
+                  t.Restr2
+                    , <IsRestrRedundant
+                        t.Restr2 (e.Consts) (e.Conds)
+                      > : {
+                      True /* removing the non-trivial constraint */
+                        = <RemoveRedundantRestrs
+                            (e.Consts) (e.Conds) (e.RestConstrs)
+                            (e.ProcessedConstrs)
+                          >;
+                      
+                      False /* removing the first restriction */
+                        = <RemoveRedundantRestrs
+                            (e.Consts) (e.Conds) (e.RestConstrs)
+                            (e.ProcessedConstrs (OR t.Restr2))
+                          >;
+                    };
+                };
+
+              False
+                , e.AnotherRestr : {
+                  /* empty */ /* saving the trivial constraint */
+                    = <RemoveRedundantRestrs
+                        (e.Consts) (e.Conds) (e.RestConstrs)
+                        (e.ProcessedConstrs t.Constr)
+                      >;
+
+                  t.Restr2
+                    , <IsRestrRedundant
+                        t.Restr2 (e.Consts) (e.Conds)
+                      > : {
+                      True /* removing the second restriction */
+                        = <RemoveRedundantRestrs
+                            (e.Consts) (e.Conds) (e.RestConstrs)
+                            (e.ProcessedConstrs (OR t.Restr1))
+                          >;
+
+                      False /* saving the non-trivial constraint */
+                        = <RemoveRedundantRestrs
+                            (e.Consts) (e.Conds) (e.RestConstrs)
+                            (e.ProcessedConstrs t.Constr)
+                          >;
+                    };
+                };
+            };
+        
+        };
+        
+      /* empty */ = e.ProcessedConstrs;
+    };
+}
+
+/*
+  <IsRestrRedundant t.Restr (e.Consts) (e.Conds)>
+    == True
+    == False
+*/
+IsRestrRedundant {
+  (not t.Const s.Action t.Var) /* s.Action ::= starts | ends */
+  (e.Consts) (e.Conds)
+    , <IsElemInSet t.Const (e.Consts)> : {
+      True = False; /* the constant is in the equation */
+      
+      False
+        , e.Conds : {
+          /* at least one condition has the constant in its right half. */
+          e.L (t.SomeConst is e.L1 (t.Const e.Details) e.R1) e.R = False;
+            
+          e.Other = True; 
+        };
+    };
+}
+
+/*
+  <IsLess-Constr t.Constr1 t.Constr2>
+    == True
+    == False
+
+  Comparator for lexicographic sort of constraints.
+*/
+IsLess-Constr {
+  t.Constr1 t.Constr2
+    , t.Constr1 : {
+      (OR (not empty t.Var1))
+        , t.Constr2 : {
+          (OR (not empty t.Var2))
+            , <CompareVars t.Var1 t.Var2> : '+' = False;
+
+          e.Other = True;
+        };
+
+      (OR (not t.Const1 ends t.Var1))
+        , t.Constr2 : {
+          (OR (not empty t.Var2)) = False;
+
+          (OR (not t.Const2 ends t.Var2))
+            , <CompareVars t.Var1 t.Var2> : {
+              '-' = True;
+              
+              '+' = False;
+              
+              '0', <CompareConsts t.Const1 t.Const2> : {
+                  '-' = True;
+
+                  s.Other = False;
+                };
+            };
+
+          e.Other = True;
+        };
+        
+      (OR (not t.Const1 starts t.Var1))
+        , t.Constr2 : {
+          (OR (not empty t.Var2)) = False;
+
+          (OR (not t.Const2 ends t.Var2)) = False;
+
+          (OR (not t.Const2 starts t.Var2))
+            , <CompareVars t.Var1 t.Var2> : {
+              '-' = True;
+              
+              '+' = False;
+            
+              '0', <CompareConsts t.Const1 t.Const2> : {
+                  '-' = True;
+
+                  s.Other = False;
+                };
+            };
+
+          e.Other = True;
+        };
+        
+      (OR (not t.Const1 ends t.Var1) (not t.Const2 starts t.Var2))
+        , t.Constr2 : {
+          (OR (not empty t.Var3)) = False;
+
+          (OR (not t.Const3 ends t.Var3)) = False;
+
+          (OR (not t.Const3 starts t.Var3)) = False;
+
+          (OR (not t.Const3 ends t.Var3) (not t.Const4 starts t.Var4))
+            , <CompareVars t.Var1 t.Var3> : {
+              '-' = True;
+
+              '+' = False;
+              
+              '0', <CompareConsts t.Const1 t.Const3> : {
+                  '-' = True;
+
+                  '+' = False;
+
+                  '0', <CompareVars t.Var2 t.Var4> : {
+                      '-' = True;
+
+                      '+' = False;
+
+                      '0', <CompareConsts t.Const2 t.Const4> : {
+                          '-' = True;
+
+                          s.Other = False;
+                        };
+                    };
+                };
+            };
+        };
+    };
+}
+
+/*
+  <CompareConsts t.Const1 t.Const2>
+    == '-'
+    == '0'
+    == '+'
+*/
+CompareConsts {
+  (s.Char1 s.Num1) (s.Char2 s.Num2)
+    , <Compare s.Num1 s.Num2> : {
+      '0' = <Compare <Ord s.Char1> <Ord s.Char2>>;
+
+      s.Other = s.Other;
+    };
+}
+
+/*
+  <CompareVars t.Var1 t.Var2>
+    == '-'
+    == '0'
+    == '+'
+*/
+CompareVars {
+  (Var s.Char1) (Var s.Char2) = <Compare <Ord s.Char1> <Ord s.Char2>>;
 }
 
 /*
@@ -486,11 +750,11 @@ IntersectSets {
 }
 
 /*
-  Returns a condition for t.Const or empty, if the condition isn't found.
-  
   <GetCond t.Const (e.Conds)>
     == t.Cond
     == empty
+    
+  Returns a condition for t.Const or empty, if the condition isn't found.
 */
 GetCond {
   t.Const (e.Conds)
@@ -539,15 +803,18 @@ HandleEmptySubsts {
   t.Const t.Const1 t.Const2 t.Eq
     , t.Eq : ((AreEqual (e.LHS) (e.RHS)) (e.Constrs) (e.Conds))
     , <MapCall-Till
-        (/* empty */) Curry (GetEmptySubst t.Const1 t.Const2 (e.Constrs))
+        (/* empty */)
+        Curry
+        (GetEmptySubst t.Const1 t.Const2 (e.Constrs))
         (e.LHS) (e.RHS)
       > : {
       t.Subst
+        , t.Subst : (assign (t.Var) (e.NewValue)) /* need to get the var */
         = <HandleEmptySubsts  /* calling with performed substitution */
             t.Const t.Const1 t.Const2
             (
               (AreEqual <MapCall Curry (Subst (t.Subst)) (e.LHS) (e.RHS)>)
-              (e.Constrs) (e.Conds)
+              (<RemoveRestrsForEmptyVar (e.Constrs) t.Var>) (e.Conds)
             )
           >
           <HandleEmptySubsts /* calling with not performed substitution */
@@ -559,6 +826,34 @@ HandleEmptySubsts {
           >;
       
       /* empty */ = <HandleNonEmptySubsts t.Const t.Const1 t.Const2 t.Eq>;
+    };
+}
+
+/*
+  <RemoveRestrsForEmptyVar (e.Constrs) t.Var>
+    == e.NewConstrs
+  
+  Removes all restrictions for given empty variable.
+*/
+RemoveRestrsForEmptyVar {
+  (e.Constrs) t.Var
+    , e.Constrs : {
+      (OR e.L (not t.Const1 s.Action1 t.Var) e.R) e.RestConstrs
+        , e.L e.R : {
+          /* empty */ /* removing the trivial constr */
+            = <RemoveRestrsForEmptyVar (e.RestConstrs) t.Var>;
+
+          (not t.Const2 s.Action2 t.Var) /* removing the non-trivial constr */
+            = <RemoveRestrsForEmptyVar (e.RestConstrs) t.Var>;
+            
+          t.Restr /* saving another restriction */
+            = (OR t.Restr) <RemoveRestrsForEmptyVar (e.RestConstrs) t.Var>;
+        };
+
+      t.Constr e.RestConstrs
+        = t.Constr <RemoveRestrsForEmptyVar (e.RestConstrs) t.Var>;
+
+      /* empty */ = /* empty */;
     };
 }
 
@@ -711,16 +1006,19 @@ HandleNonEmptySubsts {
         <GenOptionSets (e.ElementarySubsts) (e.CompositeSubsts)>
       > : (e.MultipliedOptions)
     , <MapCall
-        Curry (NormalizePairOption (e.Conds)) e.MultipliedOptions
+        Curry
+        (NormalizePairOption (e.Conds) (e.Constrs))
+        e.MultipliedOptions
       > : {
       /* empty */
         = <ApplyPairOption
-            t.Const t.Const1 t.Const2 t.Eq ((/* empty */)(/* empty */))
+            t.Const t.Const1 t.Const2 t.Eq ((/* empty */) (e.Constrs))
           >;
 
       e.NormalizedOptions
         = <MapCall
-            Curry (ApplyPairOption t.Const t.Const1 t.Const2 t.Eq)
+            Curry
+            (ApplyPairOption t.Const t.Const1 t.Const2 t.Eq)
             e.NormalizedOptions
           >;
     };
@@ -756,11 +1054,15 @@ GetNonEmptySubsts {
               
           False
             , <MapCall-Till
-                (False) Curry (IsDependentConstr (e.Conds) t.Const1)
+                (False)
+                Curry
+                (IsDependentConstr (e.Conds) t.Const1)
                 <SelectConstrs (e.Constrs) (Var s.X) Suffix>
               > : s.HaveDependentSuffixConstrsForX
             , <MapCall-Till
-                (False) Curry (IsDependentConstr (e.Conds) t.Const2)
+                (False)
+                Curry
+                (IsDependentConstr (e.Conds) t.Const2)
                 <SelectConstrs (e.Constrs) (Var s.Y) Prefix>
               > : {
               False
@@ -786,7 +1088,9 @@ GetNonEmptySubsts {
               
           False
             , <MapCall-Till
-                (False) Curry (IsDependentConstr (e.Conds) t.Const2)
+                (False)
+                Curry
+                (IsDependentConstr (e.Conds) t.Const2)
                 <SelectConstrs (e.Constrs) (Var s.Y) Prefix>
               > : {
               True = <UnwrapCalls t.Skip>;
@@ -810,7 +1114,9 @@ GetNonEmptySubsts {
               
           False
             , <MapCall-Till
-                (False) Curry (IsDependentConstr (e.Conds) t.Const1)
+                (False)
+                Curry
+                (IsDependentConstr (e.Conds) t.Const1)
                 <SelectConstrs (e.Constrs) (Var s.X) Suffix>
               > : {
               True = <UnwrapCalls t.Skip>;
@@ -1123,19 +1429,19 @@ CartesianProduct-Aux {
 }
 
 /*
-  Removes duplicates, trivially performed constraints and checks the option
-  for consistency.
+  Adds constraints of the equation to the option constraints, removes
+  duplicates, trivially performed constraints and tries to fix contradictions.
   
-  <NormalizePairOption (e.Conds) t.PairOption>
+  <NormalizePairOption (e.Conds) (e.Constrs) t.PairOption>
     == t.NormalPairOption
     == empty
 */
 NormalizePairOption {
-  (e.Conds) ((e.Substs) (e.Constrs))
+  (e.Conds) (e.Constrs) ((e.Substs) (e.AddedConstrs))
     , <MapCall
         Curry
         (GetUniqueValues Wrap)
-        (e.Substs) (e.Constrs)
+        (e.Substs) (e.Constrs e.AddedConstrs)
       > : (e.UniqueSubsts) (e.UniqueConstrs)
     , <RemoveTrivialConstrs
         (e.UniqueConstrs) (/* empty */) (e.Conds)
@@ -1158,14 +1464,18 @@ RemoveTrivialConstrs {
       e.L (OR t.SuffixRestr t.PrefixRestr) e.R
         , t.SuffixRestr : (not t.SuffixConst ends t.SuffixVar)
         , t.PrefixRestr : (not t.PrefixConst starts t.PrefixVar)
-        , e.ProcessedConstrs e.Constrs : e.JoinedConstrs
+        , e.ProcessedConstrs e.L e.R : e.JoinedConstrs
         , <MapCall-Till
-            (False) Curry (IsDependentConstr (e.Conds) t.SuffixConst)
+            (False)
+            Curry
+            (IsDependentConstr (e.Conds) t.SuffixConst)
             <SelectConstrs (e.JoinedConstrs) t.SuffixVar Suffix>
           > : {
           False
             , <MapCall-Till
-                (False) Curry (IsDependentConstr (e.Conds) t.PrefixConst)
+                (False)
+                Curry
+                (IsDependentConstr (e.Conds) t.PrefixConst)
                 <SelectConstrs (e.JoinedConstrs) t.PrefixVar Prefix>
               > : False
             = <RemoveTrivialConstrs /* all constraints are independent */
@@ -1198,7 +1508,9 @@ FixPairOptionConsistency {
       t.Subst e.RestSubsts
         , <Fold-Subst t.Subst> : s.Mode t.Var t.Const
         , <MapCall-Till
-            (False) Curry (IsDependentConstr (e.Conds) t.Const)
+            (False)
+            Curry
+            (IsDependentConstr (e.Conds) t.Const)
             <SelectConstrs (e.Constrs) t.Var s.Mode>
           > : {
           True = /* empty */;
@@ -1273,20 +1585,35 @@ ForceDependentConstrs {
     == t.NewEq
 */
 ApplyPairOption {
-  t.Const t.Const1 t.Const2 t.Eq ((e.Substs) (e.AddedConstrs))
-    , t.Eq : ((AreEqual (e.LHS) (e.RHS)) (e.Constrs) (e.Conds))
+  t.Const t.Const1 t.Const2 t.Eq ((e.Substs) (e.Constrs))
+    , t.Eq : ((AreEqual (e.LHS) (e.RHS)) (e.IrrelevantConstrs) (e.Conds))
     , (t.Const is (t.Const1 (const 1)) (t.Const2 (const 1))) : t.NewCond
-    , <MapCall
-        Curry (Subst (e.Substs <GenSubst (t.Const1 t.Const2) (t.Const)>))
+    , <MapCall /* performing substitutions */
+        Curry
+        (Subst (e.Substs <GenSubst (t.Const1 t.Const2) (t.Const)>))
         (e.LHS) (e.RHS)
       > : (e.ReplLHS) (e.ReplRHS)
-    , <NormalizeEq
-        ((AreEqual (e.ReplLHS) (e.ReplRHS)) (e.Constrs) (e.Conds t.NewCond))
-      > : ((AreEqual (e.NormLHS) (e.NormRHS)) (e.NormConstrs) (e.NormConds))
-    , <ModifyPairOptionConstrs
-        (e.Substs) (e.NormConstrs e.AddedConstrs) (e.NormConds)
+    , <MapCompose /* trimming the equation */
+        (<MapCall Curry (Wrap TrimEq) Left Right>)
+        (e.ReplLHS) (e.ReplRHS)
+      > : (e.NormLHS) (e.NormRHS)
+    , <MapCompose
+        ((GetConsts (e.NormLHS)) (GetConsts (e.NormRHS)))
+        (/* no consts at start */)
+      > : (e.Consts)
+    , <RemoveRedundantConds /* removing redundant conditions */
+        (e.Consts) (e.Conds t.NewCond) (/* empty */)
+      > : e.NormConds
+    , <ModifyPairOptionConstrs /* modifying constraints */
+        (e.Substs) (e.Constrs) (e.NormConds)
       > : e.ModifiedConstrs
-    = ((AreEqual (e.NormLHS) (e.NormRHS)) (e.ModifiedConstrs) (e.NormConds));
+    , <QuickSort /* sorting the constraints */
+        IsLess-Constr
+        <RemoveRedundantRestrs /* removing redundant restrictions */
+          (e.Consts) (e.NormConds) (e.ModifiedConstrs) (/* empty */)
+        >
+      > : e.NormConstrs
+    = ((AreEqual (e.NormLHS) (e.NormRHS)) (e.NormConstrs) (e.NormConds));
 }
 
 /*
@@ -1299,7 +1626,9 @@ ModifyPairOptionConstrs {
       t.Subst e.RestSubsts
         , <Fold-Subst t.Subst> : s.Mode t.Var t.Const
         , <MapCall
-            Curry (SelectConstrs (e.Constrs) t.Var) Empty s.Mode
+            Curry
+            (SelectConstrs (e.Constrs) t.Var)
+            Empty s.Mode
           > : e.ExcludedConstrs
         , <ForceDependentConstrs
             (e.Constrs) (/* empty */) (e.Conds) t.Subst
@@ -1313,139 +1642,6 @@ ModifyPairOptionConstrs {
 
       /* empty */ = e.Constrs;
     };
-}
-
-/*
-  <RemoveRedundantRestrs
-    (e.EqConsts) (e.Conds) (e.UncheckedConstrs) (e.CheckedConstrs)
-  >
-    == e.CheckedConstrs
-*/
-RemoveRedundantRestrs {
-  (e.EqConsts) (e.Conds) (e.UncheckedConstrs) (e.CheckedConstrs)
-    , e.UncheckedConstrs : {
-      t.Constr e.RestConstrs
-        , t.Constr : {
-          /* Skipping constraints on emptiness. */
-          (OR (not empty t.Var))
-            = <RemoveRedundantRestrs
-                (e.EqConsts) (e.Conds) (e.RestConstrs)
-                (e.CheckedConstrs t.Constr)
-              >;
-              
-          /* Handling prefix (suffix) restrictions */ 
-          (OR t.Restr1 e.AnotherRestr)
-            , <IsRestrRedundant
-                t.Restr1 (e.EqConsts) (e.Conds)
-              > : {
-              True
-                , e.AnotherRestr : {
-                  /* empty */ /* removing the disjunct */
-                    = <RemoveRedundantRestrs
-                        (e.EqConsts) (e.Conds) (e.RestConstrs)
-                        (e.CheckedConstrs)
-                      >;
-
-                  t.Restr2
-                    , <IsRestrRedundant
-                        t.Restr2 (e.EqConsts) (e.Conds)
-                      > : {
-                      True /* removing the disjunct */
-                        = <RemoveRedundantRestrs
-                            (e.EqConsts) (e.Conds) (e.RestConstrs)
-                            (e.CheckedConstrs)
-                          >;
-                      
-                      False /* removing the first restriction */
-                        = <RemoveRedundantRestrs
-                            (e.EqConsts) (e.Conds) (e.RestConstrs)
-                            (e.CheckedConstrs (OR t.Restr2))
-                          >;
-                    };
-                };
-
-              False
-                , e.AnotherRestr : {
-                  /* empty */
-                    /* Saving the constraint */
-                    = <RemoveRedundantRestrs
-                        (e.EqConsts) (e.Conds) (e.RestConstrs)
-                        (e.CheckedConstrs t.Constr)
-                      >;
-
-                  t.Restr2
-                    , <IsRestrRedundant
-                        t.Restr2 (e.EqConsts) (e.Conds)
-                      > : {
-                      True
-                        /* Removing the second restriction. */
-                        = <RemoveRedundantRestrs
-                            (e.EqConsts) (e.Conds) (e.RestConstrs)
-                            (e.CheckedConstrs (OR t.Restr1))
-                          >;
-
-                      False
-                        /* Saving the constraint */
-                        = <RemoveRedundantRestrs
-                            (e.EqConsts) (e.Conds) (e.RestConstrs)
-                            (e.CheckedConstrs t.Constr)
-                          >;
-                    };
-                };
-            };
-        
-        };
-        
-      /* empty */ = e.CheckedConstrs;
-    };
-}
-
-/*
-  Accepts only the prefix and suffix restrictions.
-
-  <IsRestrRedundant t.Restr (e.EqConsts) (e.Conds)>
-    == True
-    == False
-*/
-IsRestrRedundant {
-  /* s.Action ::= starts | ends */
-  (not t.Const s.Action t.Var) (e.EqConsts) (e.Conds)
-    , <IsElemInSet t.Const (e.EqConsts)> : {
-      /* The constant is used in the equation. */
-      True = False;
-      
-      False
-        , e.Conds : {
-          /* At least one condition has the constant in the right half. */
-          e.L (t.DefConst is e.L1 (t.Const e.Details) e.R1) e.R = False;
-            
-          /* The restriction is redundant. */
-          e.Other = True; 
-        };
-    };
-}
-
-/*
-  <GetNewIndex t.Index>
-    == t.NewIndex
-*/
-GetNewIndex {
-  s.OldIndex
-    , <Explode s.OldIndex> : s.Char s.FirstDigit e.Digits
-    , <Symb <Add <Numb s.FirstDigit e.Digits> 1>> : e.NewNumber
-    = <Implode s.Char e.NewNumber>;
-}
-
-GenPrefixConstr {
-  t.Var t.Const = (OR (not t.Const starts t.Var)) 
-}
-
-GenSuffixConstr {
-  t.Var t.Const = (OR (not t.Const ends t.Var)) 
-}
-
-GenEmptyConstr {
-  t.Var = (OR (not empty t.Var)) 
 }
 
 /*
@@ -1472,123 +1668,6 @@ $ENTRY BlockComp {
 }
 
 /*
-  <ApplyBlockOption t.BlockConst t.Const s.Index t.Eq t.BlockOption>
-    == (t.NewConst t.NewIndex t.NewEq)
-*/
-ApplyBlockOption {
-  t.BlockConst t.Const s.Index t.Eq t.Option
-    , t.Eq : ((AreEqual (e.LHS) (e.RHS)) (e.Constrs) (e.Conds))
-    , t.Option : ((e.Substs) (e.AddedConstrs) (e.ExcludedConstrs))
-    , <MapCall
-        Curry
-        (Subst (e.Substs))
-        (e.LHS) (e.RHS)
-      > : (e.ReplacedLHS) (e.ReplacedRHS)
-    , <MapCall
-        Curry
-        (JoinBlocks t.BlockConst)
-        (e.ReplacedLHS) (e.ReplacedRHS)
-      > : (e.JoinedLHS) (e.JoinedRHS)
-    , <MapCall-Compose
-        (NameBlocks t.BlockConst (/* no processed elems at start */))
-        (t.Const s.Index (e.Conds))
-        (e.JoinedLHS) (e.JoinedRHS)
-      > : (e.NewLHS) (e.NewRHS) t.NewConst s.NewIndex (e.NewConds)
-    , <SubtractSets
-        (e.Constrs e.AddedConstrs) (e.ExcludedConstrs)
-      > : (e.NewConstrs)
-    /* seems the equation is already normal */
-    = (
-        t.NewConst s.NewIndex
-        ((AreEqual (e.NewLHS) (e.NewRHS)) (e.NewConstrs) (e.NewConds))
-      );
-}
-
-/*
-  Compatible with the MapCall-Compose function.
-
-  <NameBlocks
-    t.BlockConst (e.ProcessedElems) ; curried args
-    t.Const s.Index (e.Conds)  ; composition args
-    (e.Elems)
-  > == t.NewConst t.NewIndex (e.NewConds) t.NewElem
-*/
-NameBlocks {
-  t.BlockConst (e.ProcessedElems) t.Const s.Index (e.Conds) (e.Elems)
-    , e.Elems : {
-      e.L (t.BlockConst e.Indices t.Summand) e.R
-        , <NameIndices
-            s.Index (e.Indices) (/* no named indices at start */)
-          > : s.NewIndex (e.NamedIndices)
-        , <MapCall Revert (FormPair 1) e.NamedIndices> : e.Exps
-        = <NameBlocks
-            t.BlockConst (e.ProcessedElems e.L t.Const)
-            <GetNewConst t.Const> s.NewIndex
-            (e.Conds (t.Const is (t.BlockConst e.Exps t.Summand)))
-            (e.R)
-          >;
-          
-      e.Other = t.Const s.Index (e.Conds) (e.ProcessedElems e.Elems);
-    };
-}
-
-/*
-  <NameIndices s.Index (e.NamelessIndices) (e.NamedIndices)>
-    == s.NewIndex (e.NamedIndices)
-*/
-NameIndices {
-  s.Index (e.NamelessIndices) (e.NamedIndices)
-    , e.NamelessIndices : {
-      Index e.RestIndices
-        = <NameIndices
-            <GetNewIndex s.Index> (e.RestIndices) (e.NamedIndices s.Index)
-          >;
-
-      /* no nameless indices */ = s.Index (e.NamedIndices);
-    };
-}
-
-/*
-  Accepts the block constant and half of the equation. Compresses extracted
-  blocks and explicit blocks of length more than two. 
-  
-  <JoinBlocks t.BlockConst (e.Elems)> == (e.NewElems)
-*/
-JoinBlocks {
-  t.BlockConst (e.Elems)
-    , e.Elems : {
-      /* assumed nameless indices, i.e. of the form Index */
-      e.L t.BlockConst (t.BlockConst e.Indices (const s.Num)) e.R
-        = <JoinBlocks
-            t.BlockConst
-            (e.L (t.BlockConst e.Indices (const <Add s.Num 1>)) e.R)
-          >;
-          
-      e.L (t.BlockConst e.Indices (const s.Num)) t.BlockConst e.R
-        = <JoinBlocks
-            t.BlockConst
-            (e.L (t.BlockConst e.Indices (const <Add s.Num 1>)) e.R)
-          >;
-          
-      e.L (t.BlockConst e.Indices1 (const s.Num1))
-      (t.BlockConst e.Indices2 (const s.Num2)) e.R
-        = <JoinBlocks
-            t.BlockConst
-            (
-              e.L
-              (t.BlockConst e.Indices1 e.Indices2 (const <Add s.Num1 s.Num2>))
-              e.R
-            )
-          >;
-      
-      e.L t.BlockConst t.BlockConst e.R
-        = <JoinBlocks t.BlockConst (e.L (t.BlockConst (const 2)) e.R)>;
-
-      e.Other = (e.Elems);
-    };
-}
-
-/*
   <GenBlockOptionSets (e.Constrs) (e.Conds) t.BlockConst t.Var>
     == e.OptionSets
 */
@@ -1596,14 +1675,19 @@ GenBlockOptionSets {
   (e.Constrs) (e.Conds) t.BlockConst t.Var
     , <SelectConstrs (e.Constrs) t.Var Prefix> : e.PrefixConstrs
     , <MapCall-Till
-        (False) Curry (IsDependentConstr (e.Conds) t.BlockConst)
+        (False)
+        Curry
+        (IsDependentConstr (e.Conds) t.BlockConst)
         e.PrefixConstrs
       > : s.HasDependentPrefixConstrs
     , <SelectConstrs (e.Constrs) t.Var Suffix> : e.SuffixConstrs
     , <MapCall-Till
-        (False) Curry (IsDependentConstr (e.Conds) t.BlockConst)
+        (False)
+        Curry
+        (IsDependentConstr (e.Conds) t.BlockConst)
         e.SuffixConstrs
       > : s.HasDependentSuffixConstrs
+    /* indices of the form Index later will be named */
     , (t.BlockConst Index (const 0)) : t.Block
     , (t.BlockConst Index (const 1)) : t.NonEmptyBlock
     , <SelectConstrs (e.Constrs) t.Var Empty> : {
@@ -2056,5 +2140,143 @@ GenBlockOptionSets {
             };
         };
     };
+}
+
+GenPrefixConstr {
+  t.Var t.Const = (OR (not t.Const starts t.Var)) 
+}
+
+GenSuffixConstr {
+  t.Var t.Const = (OR (not t.Const ends t.Var)) 
+}
+
+GenEmptyConstr {
+  t.Var = (OR (not empty t.Var)) 
+}
+
+/*
+  <ApplyBlockOption t.BlockConst t.Const s.Index t.Eq t.BlockOption>
+    == (t.NewConst t.NewIndex t.NewEq)
+*/
+ApplyBlockOption {
+  t.BlockConst t.Const s.Index t.Eq t.Option
+    , t.Eq : ((AreEqual (e.LHS) (e.RHS)) (e.Constrs) (e.Conds))
+    , t.Option : ((e.Substs) (e.AddedConstrs) (e.ExcludedConstrs))
+    , <MapCall
+        Curry
+        (Subst (e.Substs))
+        (e.LHS) (e.RHS)
+      > : (e.ReplacedLHS) (e.ReplacedRHS)
+    , <MapCall
+        Curry
+        (JoinBlocks t.BlockConst)
+        (e.ReplacedLHS) (e.ReplacedRHS)
+      > : (e.JoinedLHS) (e.JoinedRHS)
+    , <MapCall-Compose
+        (NameBlocks t.BlockConst (/* empty */))
+        (t.Const s.Index (e.Conds))
+        (e.JoinedLHS) (e.JoinedRHS)
+      > : (e.NewLHS) (e.NewRHS) t.NewConst s.NewIndex (e.NewConds)
+    , <SubtractSets
+        (e.Constrs e.AddedConstrs) (e.ExcludedConstrs)
+      > : (e.NewConstrs)
+    /* seems the equation is already normal */
+    = (
+        t.NewConst s.NewIndex
+        ((AreEqual (e.NewLHS) (e.NewRHS)) (e.NewConstrs) (e.NewConds))
+      );
+}
+
+/*
+  <JoinBlocks t.BlockConst (e.Elems)> == (e.NewElems)
+
+  Joins extracted blocks and explicit blocks of length more than two. 
+*/
+JoinBlocks {
+  t.BlockConst (e.Elems)
+    , e.Elems : {
+      /* assumed nameless indices, i.e. of the form Index */
+      e.L t.BlockConst (t.BlockConst e.Indices (const s.Num)) e.R
+        = <JoinBlocks
+            t.BlockConst
+            (e.L (t.BlockConst e.Indices (const <Add s.Num 1>)) e.R)
+          >;
+          
+      e.L (t.BlockConst e.Indices (const s.Num)) t.BlockConst e.R
+        = <JoinBlocks
+            t.BlockConst
+            (e.L (t.BlockConst e.Indices (const <Add s.Num 1>)) e.R)
+          >;
+          
+      e.L (t.BlockConst e.Indices1 (const s.Num1))
+      (t.BlockConst e.Indices2 (const s.Num2)) e.R
+        = <JoinBlocks
+            t.BlockConst
+            (
+              e.L
+              (t.BlockConst e.Indices1 e.Indices2 (const <Add s.Num1 s.Num2>))
+              e.R
+            )
+          >;
+      
+      e.L t.BlockConst t.BlockConst e.R
+        = <JoinBlocks t.BlockConst (e.L (t.BlockConst (const 2)) e.R)>;
+
+      e.Other = (e.Elems);
+    };
+}
+
+/*
+  <NameBlocks
+    t.BlockConst (e.ProcessedElems) t.Const s.Index (e.Conds) (e.Elems)
+  >
+    == t.NewConst t.NewIndex (e.NewConds) t.NewElem
+
+  Compatible with the MapCall-Compose function.
+*/
+NameBlocks {
+  t.BlockConst (e.ProcessedElems) t.Const s.Index (e.Conds) (e.Elems)
+    , e.Elems : {
+      e.L (t.BlockConst e.Indices t.Summand) e.R
+        , <NameIndices
+            s.Index (e.Indices) (/* empty */)
+          > : s.NewIndex (e.NamedIndices)
+        , <MapCall Revert (FormPair 1) e.NamedIndices> : e.Exps
+        = <NameBlocks
+            t.BlockConst (e.ProcessedElems e.L t.Const)
+            <GetNewConst t.Const> s.NewIndex
+            (e.Conds (t.Const is (t.BlockConst e.Exps t.Summand)))
+            (e.R)
+          >;
+          
+      e.Other = t.Const s.Index (e.Conds) (e.ProcessedElems e.Elems);
+    };
+}
+
+/*
+  <NameIndices s.Index (e.NamelessIndices) (e.NamedIndices)>
+    == s.NewIndex (e.NamedIndices)
+*/
+NameIndices {
+  s.Index (e.NamelessIndices) (e.NamedIndices)
+    , e.NamelessIndices : {
+      Index e.RestIndices
+        = <NameIndices
+            <GetNewIndex s.Index> (e.RestIndices) (e.NamedIndices s.Index)
+          >;
+
+      /* no nameless indices */ = s.Index (e.NamedIndices);
+    };
+}
+
+/*
+  <GetNewIndex t.Index>
+    == t.NewIndex
+*/
+GetNewIndex {
+  s.OldIndex
+    , <Explode s.OldIndex> : s.Char s.FirstDigit e.Digits
+    , <Symb <Add <Numb s.FirstDigit e.Digits> 1>> : e.NewNumber
+    = <Implode s.Char e.NewNumber>;
 }
 
