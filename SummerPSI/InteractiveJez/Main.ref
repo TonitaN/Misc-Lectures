@@ -46,7 +46,7 @@
 
   t.Subst  ::= (assign (e.ANY) (e.ANY))
 
-  s.Action ::= starts | ends
+  s.RestrMode ::= starts | ends | empty
 */
 
 /*
@@ -381,13 +381,31 @@ NormalizeEq {
     , <RemoveRedundantConds
         (e.Consts) (e.Conds) (/* empty */)
       > : e.NormConds
-    , <QuickSort
-        IsLess-Constr
-        <RemoveRedundantRestrs
-          (e.Consts) (e.NormConds) (e.Constrs) (/* empty */)
-        >
-      > : e.NormConstrs
+    , <MapCompose
+        (
+          (RemoveRedundantRestrs (e.Consts) (e.NormConds) (/* empty */))
+          (RemoveWeakRestrs (e.NormConds))
+        )
+        (e.Constrs)
+      > : (e.UnsortedConstrs)
+    , <QuickSort IsLess-Constr e.UnsortedConstrs> : e.NormConstrs
     = ((AreEqual (e.NormLHS) (e.NormRHS)) (e.NormConstrs) (e.NormConds));
+}
+
+/*
+  <RemoveWeakRestrs (e.Conds) (e.Constrs)>
+    == (e.NewConstrs)
+*/
+RemoveWeakRestrs {
+  (e.Conds) (e.Constrs)
+    , e.Constrs : {
+      e.L (OR (not t.Const s.Mode t.Var)) e.R
+        , e.L e.R : e.L1 (OR (not t.SomeConst s.Mode t.Var)) e.R1
+        , <IsElemInSet t.SomeConst (<GetElems s.Mode t.Const (e.Conds)>)> : True
+        = <RemoveWeakRestrs (e.Conds) (e.L e.R)>;
+
+      e.Other = (e.Constrs);
+    };
 }
 
 /*
@@ -479,18 +497,18 @@ RemoveRedundantConds {
 }
 
 /*
-  <RemoveRedundantRestrs (e.Consts) (e.Conds) (e.Constrs) (e.ProcessedConstrs)>
-    == e.ProcessedConstrs
+  <RemoveRedundantRestrs (e.Consts) (e.Conds) (e.ProcessedConstrs) (e.Constrs)>
+    == (e.NewConstrs)
 */
 RemoveRedundantRestrs {
-  (e.Consts) (e.Conds) (e.Constrs) (e.ProcessedConstrs)
+  (e.Consts) (e.Conds) (e.ProcessedConstrs) (e.Constrs)
     , e.Constrs : {
       t.Constr e.RestConstrs
         , t.Constr : {
           (OR (not empty t.Var)) /* skipping empty constraints */
             = <RemoveRedundantRestrs
-                (e.Consts) (e.Conds) (e.RestConstrs)
-                (e.ProcessedConstrs t.Constr)
+                (e.Consts) (e.Conds) (e.ProcessedConstrs t.Constr)
+                (e.RestConstrs)
               >;
               
           (OR t.Restr1 e.AnotherRestr)
@@ -501,8 +519,8 @@ RemoveRedundantRestrs {
                 , e.AnotherRestr : {
                   /* empty */ /* removing the trivial constraint */
                     = <RemoveRedundantRestrs
-                        (e.Consts) (e.Conds) (e.RestConstrs)
-                        (e.ProcessedConstrs)
+                        (e.Consts) (e.Conds) (e.ProcessedConstrs)
+                        (e.RestConstrs)
                       >;
 
                   t.Restr2
@@ -511,14 +529,14 @@ RemoveRedundantRestrs {
                       > : {
                       True /* removing the non-trivial constraint */
                         = <RemoveRedundantRestrs
-                            (e.Consts) (e.Conds) (e.RestConstrs)
-                            (e.ProcessedConstrs)
+                            (e.Consts) (e.Conds) (e.ProcessedConstrs)
+                            (e.RestConstrs)
                           >;
                       
                       False /* removing the first restriction */
                         = <RemoveRedundantRestrs
-                            (e.Consts) (e.Conds) (e.RestConstrs)
-                            (e.ProcessedConstrs (OR t.Restr2))
+                            (e.Consts) (e.Conds)
+                            (e.ProcessedConstrs (OR t.Restr2)) (e.RestConstrs)
                           >;
                     };
                 };
@@ -527,8 +545,8 @@ RemoveRedundantRestrs {
                 , e.AnotherRestr : {
                   /* empty */ /* saving the trivial constraint */
                     = <RemoveRedundantRestrs
-                        (e.Consts) (e.Conds) (e.RestConstrs)
-                        (e.ProcessedConstrs t.Constr)
+                        (e.Consts) (e.Conds) (e.ProcessedConstrs t.Constr)
+                        (e.RestConstrs)
                       >;
 
                   t.Restr2
@@ -537,14 +555,14 @@ RemoveRedundantRestrs {
                       > : {
                       True /* removing the second restriction */
                         = <RemoveRedundantRestrs
-                            (e.Consts) (e.Conds) (e.RestConstrs)
-                            (e.ProcessedConstrs (OR t.Restr1))
+                            (e.Consts) (e.Conds)
+                            (e.ProcessedConstrs (OR t.Restr1)) (e.RestConstrs)
                           >;
 
                       False /* saving the non-trivial constraint */
                         = <RemoveRedundantRestrs
-                            (e.Consts) (e.Conds) (e.RestConstrs)
-                            (e.ProcessedConstrs t.Constr)
+                            (e.Consts) (e.Conds) (e.ProcessedConstrs t.Constr)
+                            (e.RestConstrs)
                           >;
                     };
                 };
@@ -552,7 +570,7 @@ RemoveRedundantRestrs {
         
         };
         
-      /* empty */ = e.ProcessedConstrs;
+      /* empty */ = (e.ProcessedConstrs);
     };
 }
 
@@ -768,12 +786,11 @@ HandleEmptySubsts {
         (e.LHS) (e.RHS)
       > : {
       t.Subst
-        , t.Subst : (assign (t.Var) (e.NewValue)) /* need to get the var */
         = <HandleEmptySubsts  /* calling with performed substitution */
             t.Const t.Const1 t.Const2
             (
               (AreEqual <MapCall Curry (Subst (t.Subst)) (e.LHS) (e.RHS)>)
-              (<RemoveRestrsForEmptyVar (e.Constrs) t.Var>) (e.Conds)
+              <CleanUpConstrs t.Subst (e.Constrs)> (e.Conds)
             )
           >
           <HandleEmptySubsts /* calling with not performed substitution */
@@ -789,28 +806,39 @@ HandleEmptySubsts {
 }
 
 /*
-  <RemoveRestrsForEmptyVar (e.Constrs) t.Var>
-    == e.NewConstrs
-  
-  Removes all restrictions for given empty variable.
+  <CleanUpConstrs t.Subst (e.Constrs)>
+    == (e.NewConstrs)
 */
-RemoveRestrsForEmptyVar {
-  (e.Constrs) t.Var
+CleanUpConstrs {
+  (assign (t.Var) (e.NewValue)) (e.Constrs)
+    , <IsElemInSet t.Var (e.NewValue)> : {
+      True = (e.Constrs);
+
+      False = (<CleanUpConstrs-Aux t.Var (e.Constrs)>);
+    };
+}
+
+/*
+  <CleanUpConstrs-Aux t.Var (e.Constrs)>
+    == e.NewConstrs
+*/
+CleanUpConstrs-Aux {
+  t.Var (e.Constrs)
     , e.Constrs : {
       (OR e.L (not t.Const1 s.Action1 t.Var) e.R) e.RestConstrs
         , e.L e.R : {
           /* empty */ /* removing the trivial constr */
-            = <RemoveRestrsForEmptyVar (e.RestConstrs) t.Var>;
+            = <CleanUpConstrs-Aux t.Var (e.RestConstrs)>;
 
           (not t.Const2 s.Action2 t.Var) /* removing the non-trivial constr */
-            = <RemoveRestrsForEmptyVar (e.RestConstrs) t.Var>;
+            = <CleanUpConstrs-Aux t.Var (e.RestConstrs)>;
             
           t.Restr /* saving another restriction */
-            = (OR t.Restr) <RemoveRestrsForEmptyVar (e.RestConstrs) t.Var>;
+            = (OR t.Restr) <CleanUpConstrs-Aux t.Var (e.RestConstrs)>;
         };
 
       t.Constr e.RestConstrs
-        = t.Constr <RemoveRestrsForEmptyVar (e.RestConstrs) t.Var>;
+        = t.Constr <CleanUpConstrs-Aux t.Var (e.RestConstrs)>;
 
       /* empty */ = /* empty */;
     };
@@ -1095,29 +1123,22 @@ GetNonEmptySubsts {
 }
 
 /*
-  <SelectConstrs (e.Constrs) t.Var s.Mode>
-    == e.TrivialConstrs
-
-  s.Mode ::= empty | s.Action
+  <SelectConstrs (e.Constrs) t.Var s.RestrMode>
+    == e.NewConstrs
 */
 SelectConstrs {
-  (e.Constrs) t.Var s.Mode
-    , s.Mode : {
-      starts
-        , e.Constrs : e.L (OR (not t.PrefixConst starts t.Var)) e.R
-        = (OR (not t.PrefixConst starts t.Var))
-          <SelectConstrs (e.R) t.Var s.Mode>;
-      
-      ends
-        , e.Constrs : e.L (OR (not t.SuffixConst ends t.Var)) e.R
-        = (OR (not t.SuffixConst ends t.Var))
-          <SelectConstrs (e.R) t.Var s.Mode>;
+  (e.Constrs) t.Var s.RestrMode
+    , e.Constrs : {
+      /* case s.Mode ::= starts | ends */
+      e.L (OR (not t.RestrConst s.RestrMode t.Var)) e.R
+        = (OR (not t.RestrConst s.RestrMode t.Var))
+          <SelectConstrs (e.R) t.Var s.RestrMode>;
+          
+      /* case s.Mode ::= empty */
+      e.L (OR (not s.RestrMode t.Var)) e.R
+        = (OR (not s.RestrMode t.Var));
 
-      empty
-        , e.Constrs : e.L (OR (not empty t.Var)) e.R
-        = (OR (not empty t.Var));
-
-      s.AnyMode = /* empty */;
+      e.Other = /* empty */;
     };
 }
 
@@ -1132,17 +1153,17 @@ SelectConstrs {
 IsDependentConstr {
   (e.Conds) t.Const (OR (not t.RestrConst s.Action t.Var))
     = <IsElemInSet
-        t.RestrConst (t.Const <GetSideElems s.Action t.Const (e.Conds)>)
+        t.RestrConst (t.Const <GetElems s.Action t.Const (e.Conds)>)
       >;
 }
 
 /*
-  <GetSideElems s.Action t.Const (e.Conds)>
-    = e.SideElems
+  <GetElems s.RestrMode t.Const (e.Conds)>
+    == e.Consts
 */
-GetSideElems {
-  s.Action t.Const (e.Conds)
-    , s.Action : {
+GetElems {
+  s.RestrMode t.Const (e.Conds)
+    , s.RestrMode : {
       starts = <GetFirst t.Const (e.Conds)>;
       
       ends = <GetLast t.Const (e.Conds)>;
@@ -1393,12 +1414,8 @@ CartesianProduct-Aux {
 }
 
 /*
-  Adds constraints of the equation to the option constraints, removes
-  duplicates, trivially performed constraints, tries to fix contradictions
-  and modifies constraints.
-  
   <NormalizePairOption (e.Conds) (e.Constrs) t.PairOption>
-    == t.NewPairOption
+    == t.Option
     == empty
 */
 NormalizePairOption {
@@ -1408,29 +1425,38 @@ NormalizePairOption {
         (GetUniqueValues Wrap)
         (e.Substs) (e.Constrs e.AddedConstrs)
       > : (e.UniqueSubsts) (e.UniqueConstrs)
-    , <RemoveTrivialConstrs
-        (e.UniqueConstrs) (/* empty */) (e.Conds)
-      > : e.NecessaryConstrs
+    , <MapCall
+        Plain FoldSubst e.UniqueSubsts
+      > : e.FoldedSubsts
+    , <MapCompose
+        (
+          (TriviallyPerformConstrs (e.Conds) (/* empty */))
+          <MapCall
+            Curry
+            (Wrap ForceDependentConstrs (e.Conds) (/* empty */))
+            e.FoldedSubsts
+          >
+        )
+        (e.UniqueConstrs)
+      > : (e.ForcedConstrs)
     = <MapCompose
         (
           <MapCall
             Revert
             (Wrap (e.Conds) (/* empty */))
-            TryFixOption ModifyPairOption
+            CheckOptionConsistency ModifyPairOption
           >
         )
-        ((e.UniqueSubsts) (e.NecessaryConstrs))
+        ((e.UniqueSubsts) (e.ForcedConstrs))
       >;
 }
 
 /*
-  <RemoveTrivialConstrs (e.Constrs) (e.ProcessedConstrs) (e.Conds)>
-    == e.NecessaryConstrs
-
-  Removes trivially performed non-trivial constraints.
+  <TriviallyPerformConstrs (e.Conds) (e.ProcessedConstrs) (e.Constrs)>
+    == (e.NewConstrs)
 */
-RemoveTrivialConstrs {
-  (e.Constrs) (e.ProcessedConstrs) (e.Conds)
+TriviallyPerformConstrs {
+  (e.Conds) (e.ProcessedConstrs) (e.Constrs)
     , e.Constrs : {
       e.L (OR t.SuffixRestr t.PrefixRestr) e.R
         , t.SuffixRestr : (not t.SuffixConst ends t.SuffixVar)
@@ -1449,86 +1475,113 @@ RemoveTrivialConstrs {
                 (IsDependentConstr (e.Conds) t.PrefixConst)
                 <SelectConstrs (e.JoinedConstrs) t.PrefixVar starts>
               > : False
-            = <RemoveTrivialConstrs /* all constraints are independent */
-                (e.R) (e.ProcessedConstrs e.L (OR t.SuffixRestr t.PrefixRestr))
+            = <TriviallyPerformConstrs /* all constraints are independent */
                 (e.Conds)
+                (e.ProcessedConstrs e.L (OR t.SuffixRestr t.PrefixRestr)) (e.R)
               >;
 
           s.Other
-            = <RemoveTrivialConstrs /* have dependent constraints */
-                (e.R) (e.ProcessedConstrs e.L) (e.Conds)
+            = <TriviallyPerformConstrs /* have dependent constraints */
+                (e.Conds) (e.ProcessedConstrs e.L) (e.R)
               >;
         };
         
-      e.Other = e.ProcessedConstrs e.Constrs;
+      e.Other = (e.ProcessedConstrs e.Constrs);
     };
 }
 
 /*
-  <TryFixOption (e.Conds) (e.ProcessedSubsts) t.Option>
-    == t.NewOption
+  <ForceDependentConstrs
+    (e.Conds) (e.ProcessedConstrs) t.FoldedSubst (e.Constrs)
+  >
+    == (e.NewConstrs)
+*/
+ForceDependentConstrs {
+  (e.Conds) (e.ProcessedConstrs) t.FoldedSubst (e.Constrs)
+    , t.FoldedSubst : {
+      (e.Modes t.Var t.Const)
+        , e.Constrs : e.L (OR e.L1 (not t.RestrConst s.Mode t.Var) e.R1) e.R
+        , e.L1 e.R1 : t.Restr
+        , <IsElemInSet
+            s.Mode (e.Modes)
+          > : True
+        , <IsElemInSet
+            t.RestrConst (t.Const <GetElems s.Mode t.Const (e.Conds)>)
+          > : True
+        = <ForceDependentConstrs
+            (e.Conds) (e.ProcessedConstrs e.L (OR t.Restr)) t.FoldedSubst (e.R)
+          >;
+
+      e.Other = (e.ProcessedConstrs e.Constrs);
+    };
+}
+
+/*
+  <FoldSubst t.Subst>
+    == (s.RestrMode t.Var t.Const)
+    == (starts ends t.Var t.Const)
+*/
+FoldSubst {
+  (assign (t.Var) (e.NewValue))
+    , e.NewValue : {
+      t.Var t.BlockOrConst
+        , t.BlockOrConst : {
+          (t.Const Index (const s.Number)) = (ends t.Var t.Const);
+          
+          t.Const = (ends t.Var t.Const);
+        };
+
+      t.BlockOrConst t.Var
+        , t.BlockOrConst : {
+          (t.Const Index (const s.Number)) = (starts t.Var t.Const);
+
+          t.Const = (starts t.Var t.Const);
+        };
+      
+      (t.Const Index (const s.Number)) t.Var (t.Const Index (const s.Number))
+        = (starts ends t.Var t.Const);
+        
+      (t.Const Index (const s.Number)) = (starts ends t.Var t.Const);
+      
+      /* empty */ = (empty t.Var);
+    };
+}
+
+/*
+  <CheckOptionConsistency (e.Conds) (e.ProcessedSubsts) t.Option>
+    == t.Option
     == empty
 */
-TryFixOption {
+CheckOptionConsistency {
   (e.Conds) (e.ProcessedSubsts) ((e.Substs) (e.Constrs))
     , e.Substs : {
       t.Subst e.RestSubsts
-        , <Fold-Subst t.Subst> : t.Const s.Action t.Var
-        , <MapCall-Till
-            (False)
-            Curry
-            (IsDependentConstr (e.Conds) t.Const)
-            <SelectConstrs (e.Constrs) t.Var s.Action>
-          > : {
-          True = /* empty */; /* found a contradiction */
+        , <FoldSubst t.Subst> : {
+          (e.Modes t.Var t.Const)
+            , <MapCall
+                Curry
+                (SelectConstrs (e.Constrs) t.Var)
+                e.Modes
+              > : e.PossiblyControversialConstrs
+            , <MapCall-Till
+                (False)
+                Curry
+                (IsDependentConstr (e.Conds) t.Const)
+                e.PossiblyControversialConstrs
+              > : True
+            = /* empty */;
 
-          False
-            , <ForceDependentConstrs
-                (e.Constrs) (/* empty */) (e.Conds) t.Subst
-              > : e.ForcedConstrs
-            = <TryFixOption
+          e.Other
+            = <CheckOptionConsistency
                 (e.Conds) (e.ProcessedSubsts t.Subst)
-                ((e.RestSubsts) (e.ForcedConstrs))
+                ((e.RestSubsts) (e.Constrs))
               >;
         };
-        
+            
       /* no substs */ = ((e.ProcessedSubsts) (e.Constrs));
     };
 }
 
-/*
-  <Fold-Subst t.Subst> == t.Const s.Action t.Var
-*/
-Fold-Subst {
-  (assign (t.Var) (e.NewValue))
-    , e.NewValue : {
-      t.Var t.Const = t.Const ends t.Var;
-
-      t.Const t.Var = t.Const starts t.Var;
-    };
-}
-
-/*
-  <ForceDependentConstrs (e.Constrs) (e.ProcessedConstrs) (e.Conds) t.Subst>
-    == e.NewConstrs
-*/
-ForceDependentConstrs {
-  (e.Constrs) (e.ProcessedConstrs) (e.Conds) t.Subst
-    , <Fold-Subst t.Subst> : t.Const s.Action t.Var
-    , e.Constrs : {
-      e.L (OR e.L1 (not t.RestrConst s.Action t.Var) e.R1) e.R 
-        , e.L1 e.R1 : t.AnotherRestr
-        , <IsElemInSet
-            t.RestrConst (t.Const <GetSideElems s.Action t.Const (e.Conds)>)
-          > : True
-        = <ForceDependentConstrs
-            (e.R) (e.ProcessedConstrs e.L (OR t.AnotherRestr)) (e.Conds)
-            t.Subst
-          >;
-
-      e.Other = e.ProcessedConstrs e.Constrs;
-    };
-}
 
 /*
   <ModifyPairOption (e.Conds) (e.ProcessedSubsts) t.PairOption?>
@@ -1539,11 +1592,12 @@ ModifyPairOption {
   (e.Conds) (e.ProcessedSubsts) ((e.Substs) (e.Constrs))
     , e.Substs : {
       t.Subst e.RestSubsts
-        , <Fold-Subst t.Subst> : t.Const s.Action t.Var
+        /* empty and block substs are guaranteed not to be here */
+        , <FoldSubst t.Subst> : (s.Mode t.Var t.Const)
         , <MapCall
             Curry
             (SelectConstrs (e.Constrs) t.Var)
-            empty s.Action
+            empty s.Mode
           > : e.IrrelevantConstrs
         , <SubtractSets
             (e.Constrs) (e.IrrelevantConstrs)
@@ -1593,10 +1647,15 @@ $ENTRY BlockComp {
         e.EqVars
       > : e.OptionSets
     , <CartesianProductOfOptionSets e.OptionSets> : (e.MultipliedOptions)
+    , <MapCall
+        Curry
+        (NormalizeBlockOption (e.Conds) (e.Constrs))
+        e.MultipliedOptions
+      > : e.NormOptions
     = <MapCall
         Curry
         (ApplyBlockOption t.BlockConst t.Const s.Index t.Eq)
-        e.MultipliedOptions
+        e.NormOptions
       >;
 }
 
@@ -2088,36 +2147,68 @@ GenEmptyConstr {
 }
 
 /*
-  <ApplyBlockOption t.BlockConst t.Const s.Index t.Eq t.BlockOption>
+  <NormalizeBlockOption (e.Conds) (e.Constrs) t.BlockOption>
+    == t.Option
+    == empty
+*/
+NormalizeBlockOption {
+  (e.Conds) (e.Constrs) ((e.Substs) (e.AddedConstrs) (e.ExcludedConstrs))
+    , <MapCompose
+        (
+          <MapCall
+            Curry
+            (Wrap ForceDependentConstrs (e.Conds) (/* empty */))
+            <MapCall Plain FoldSubst e.Substs>
+          >
+        )
+        <SubtractSets (e.Constrs) (e.ExcludedConstrs)>
+      > : (e.ForcedConstrs)
+    , <CheckOptionConsistency
+        (e.Conds) (/* empty */) ((e.Substs) (e.ForcedConstrs))
+      > : ((e.Substs) (e.ForcedConstrs))
+    , <MapCompose
+        (
+          <MapCall
+            Curry
+            (Wrap CleanUpConstrs)
+            e.Substs
+          >
+        )
+        <TriviallyPerformConstrs
+          (e.Conds) (/* empty */) (e.ForcedConstrs e.AddedConstrs)
+        >
+      > : (e.NewConstrs)
+      = ((e.Substs) (e.NewConstrs));
+
+  e.Other = /* empty */;
+}
+
+/*
+  <ApplyBlockOption t.BlockConst t.Const s.Index t.Eq t.Option>
     == (t.NewConst t.NewIndex t.NewEq)
 */
 ApplyBlockOption {
-  t.BlockConst t.Const s.Index t.Eq t.Option
-    , t.Eq : ((AreEqual (e.LHS) (e.RHS)) (e.Constrs) (e.Conds))
-    , t.Option : ((e.Substs) (e.AddedConstrs) (e.ExcludedConstrs))
+  t.BlockConst t.Const s.Index t.Eq ((e.Substs) (e.Constrs))
+    , t.Eq : ((AreEqual (e.LHS) (e.RHS)) (e.IrrelevantConstrs) (e.Conds))
     , <MapCall
         Curry
         (Subst (e.Substs))
         (e.LHS) (e.RHS)
-      > : (e.ReplacedLHS) (e.ReplacedRHS)
+      > : (e.ReplLHS) (e.ReplRHS)
     , <MapCall
         Curry
         (JoinBlocks t.BlockConst)
-        (e.ReplacedLHS) (e.ReplacedRHS)
+        (e.ReplLHS) (e.ReplRHS)
       > : (e.JoinedLHS) (e.JoinedRHS)
     , <MapCall-Compose
         (NameBlocks t.BlockConst (/* empty */))
         (t.Const s.Index (e.Conds))
         (e.JoinedLHS) (e.JoinedRHS)
       > : (e.NewLHS) (e.NewRHS) t.NewConst s.NewIndex (e.NewConds)
-    , <SubtractSets
-        (e.Constrs e.AddedConstrs) (e.ExcludedConstrs)
-      > : (e.NewConstrs)
-    /* seems the equation is already normal */
     = (
         t.NewConst s.NewIndex
         <NormalizeEq
-          ((AreEqual (e.NewLHS) (e.NewRHS)) (e.NewConstrs) (e.NewConds))
+          ((AreEqual (e.NewLHS) (e.NewRHS)) (e.Constrs) (e.NewConds))
         >
       );
 }
