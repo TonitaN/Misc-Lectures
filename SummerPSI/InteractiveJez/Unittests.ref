@@ -1,8 +1,6 @@
 *$INLINE HigherOrder;
 
 $EXTERN Pick, SubstIndex, PairComp, BlockComp;
-        
-/* TODO: дописать тесты PairComp, BlockComp */
 
 $ENTRY Go {
   = <Prout
@@ -762,6 +760,53 @@ TestSet-BlockComp {
         )
         (/* no conditions */)
       )
+    )
+    (
+      3 
+      ('A' 1)
+      ('B' 1) i1
+      (
+        (
+          AreEqual
+          (('A' 1) (Var 'X') (Var 'Y') ('B' 0))
+          ((Var 'X') ('C' 0) ('A' 1) (Var 'Z'))
+        )
+        (
+          (OR (not empty (Var 'Y')))
+          (OR (not empty (Var 'Z')))
+          (OR (not ('C' 0) ends (Var 'X')))
+          (OR (not ('B' 0) ends (Var 'Y')))
+          (OR (not ('A' 1) starts (Var 'X')))
+        )
+        (
+          (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+        )
+      )
+    )
+    (
+      4 
+      ('C' 1)
+      ('D' 1) i2
+      (
+        (
+          AreEqual
+          ((Var 'X') (Var 'Y') ('C' 1))
+          ((Var 'Y') ('A' 1) ('B' 0) (Var 'X'))
+        )
+        (
+          (OR (not empty (Var 'X')))
+          (OR (not empty (Var 'Y')))
+          (OR (not ('A' 1) ends (Var 'X')))
+          (OR (not ('C' 0) ends (Var 'Y')))
+          (OR (not ('B' 0) starts (Var 'X')))
+          (OR (not ('A' 0) starts (Var 'Y')))
+        )
+        (
+          (('A' 1) is (('A' 0) (i1 1) (const 0)))
+          (('B' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
+          (('C' 1) is (('A' 1) (const 1)) (('B' 1) (const 1)))
+        )
+      )
     );
 }
 
@@ -801,9 +846,9 @@ Run-BlockComp {
                 (('B' 0) ('B' 1) (Var 'Y') ('C' 1))
               )
               (
-                (OR (not ('A' 0) starts (Var 'Y')))
                 (OR (not empty (Var 'Y')))
                 (OR (not ('A' 0) ends (Var 'Y')))
+                (OR (not ('A' 0) starts (Var 'Y')))
               )
               (
                 (('A' 1) is (('A' 0) (i1 1) (const 2)))
@@ -824,9 +869,9 @@ Run-BlockComp {
                 (('B' 0) ('C' 1))
               )
               (
-                (OR (not ('A' 0) starts (Var 'X')))
                 (OR (not empty (Var 'X')))
                 (OR (not ('A' 0) ends (Var 'X')))
+                (OR (not ('A' 0) starts (Var 'X')))
               )
               (
                 (('A' 1) is (('A' 0) (i1 1) (const 0)))
@@ -847,12 +892,12 @@ Run-BlockComp {
                 (('B' 0) ('C' 1) (Var 'Y') ('D' 1))
               )
               (
-                (OR (not ('A' 0) starts (Var 'X')))
                 (OR (not empty (Var 'X')))
-                (OR (not ('A' 0) ends (Var 'X')))
-                (OR (not ('A' 0) starts (Var 'Y')))
                 (OR (not empty (Var 'Y')))
+                (OR (not ('A' 0) ends (Var 'X')))
                 (OR (not ('A' 0) ends (Var 'Y')))
+                (OR (not ('A' 0) starts (Var 'X')))
+                (OR (not ('A' 0) starts (Var 'Y')))
               )
               (
                 (('A' 1) is (('A' 0) (i1 1) (const 0)))
@@ -899,8 +944,8 @@ Run-BlockComp {
               )
               (
                 (OR (not empty (Var 'Y')))
-                (OR (not ('B' 0) starts (Var 'Y')))
                 (OR (not ('B' 0) ends (Var 'Y')))
+                (OR (not ('B' 0) starts (Var 'Y')))
               )
               (
                 (('E' 1) is (('B' 0) (i5 1) (const 1)))
@@ -922,8 +967,8 @@ Run-BlockComp {
               )
               (
                 (OR (not empty (Var 'X')))
-                (OR (not ('B' 0) starts (Var 'X')))
                 (OR (not ('B' 0) ends (Var 'X')))
+                (OR (not ('B' 0) starts (Var 'X')))
               )
               (
                 (('E' 1) is (('B' 0) (i5 1) (const 0)))
@@ -946,10 +991,10 @@ Run-BlockComp {
               (
                 (OR (not empty (Var 'X')))
                 (OR (not empty (Var 'Y')))
-                (OR (not ('B' 0) starts (Var 'X')))
                 (OR (not ('B' 0) ends (Var 'X')))
-                (OR (not ('B' 0) starts (Var 'Y')))
                 (OR (not ('B' 0) ends (Var 'Y')))
+                (OR (not ('B' 0) starts (Var 'X')))
+                (OR (not ('B' 0) starts (Var 'Y')))
               )
               (
                 (('E' 1) is (('B' 0) (i5 1) (const 0)))
@@ -960,6 +1005,332 @@ Run-BlockComp {
             )
           )
           e.R4
+        = True;
+
+      e.Other = False;
+    };
+    
+  (3 e.Input)
+    , <BlockComp e.Input> : {
+      e.L1
+      /* X = empty, Y = A1^i Y, Z = A1^(j+1) */
+      (
+        ('D' 1) i3
+        (
+          (
+            AreEqual
+            (('B' 1) (Var 'Y') ('B' 0))
+            (('C' 0) ('C' 1))
+          )
+          (
+            (OR (not empty (Var 'Y')))
+            (OR (not ('B' 0) ends (Var 'Y')))
+            (OR (not ('A' 1) starts (Var 'Y')))
+          )
+          (
+            (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+            (('B' 1) is (('A' 1) (i1 1) (const 1)))
+            (('C' 1) is (('A' 1) (i2 1) (const 2)))
+          )
+        )
+      )
+      e.R1
+        , e.L1 e.R1
+        : e.L2
+          /* X = empty, Y = A1^i Y, Z = A1^j Z A1^k */
+          (
+            ('E' 1) i4
+            (
+              (
+                AreEqual
+                (('B' 1) (Var 'Y') ('B' 0))
+                (('C' 0) ('C' 1) (Var 'Z') ('D' 1))
+              )
+              (
+                (OR (not empty (Var 'Y')))
+                (OR (not empty (Var 'Z')))
+                (OR (not ('B' 0) ends (Var 'Y')))
+                (OR (not ('A' 1) ends (Var 'Z')))
+                (OR (not ('A' 1) starts (Var 'Y')))
+                (OR (not ('A' 1) starts (Var 'Z')))
+              )
+              (
+                (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+                (('B' 1) is (('A' 1) (i1 1) (const 1)))
+                (('C' 1) is (('A' 1) (i2 1) (const 1)))
+                (('D' 1) is (('A' 1) (i3 1) (const 0)))
+              )
+            )
+          )
+          e.R2
+        , e.L2 e.R2
+        : e.L3
+          /* X = X, Y = A1^i Y, Z = A1^(j+1) */
+          (
+            ('D' 1) i3
+            (
+              (
+                AreEqual
+                (('A' 1) (Var 'X') ('B' 1) (Var 'Y') ('B' 0))
+                ((Var 'X') ('C' 0) ('C' 1))
+              )
+              (
+                (OR (not empty (Var 'X')))
+                (OR (not empty (Var 'Y')))
+                (OR (not ('C' 0) ends (Var 'X')))
+                (OR (not ('A' 1) ends (Var 'X')))
+                (OR (not ('B' 0) ends (Var 'Y')))
+                (OR (not ('A' 1) starts (Var 'X')))
+                (OR (not ('A' 1) starts (Var 'Y')))
+              )
+              (
+                (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+                (('B' 1) is (('A' 1) (i1 1) (const 0)))
+                (('C' 1) is (('A' 1) (i2 1) (const 2)))
+              )
+            )
+          )
+          e.R3
+        , e.L3 e.R3
+        : e.L4
+          /* X = X, Y = A1^i Y, Z = A1^j Z A1^k) */
+          (
+            ('E' 1) i4
+            (
+              (
+                AreEqual
+                (('A' 1) (Var 'X') ('B' 1) (Var 'Y') ('B' 0))
+                ((Var 'X') ('C' 0) ('C' 1) (Var 'Z') ('D' 1))
+              )
+              (
+                (OR (not empty (Var 'X')))
+                (OR (not empty (Var 'Y')))
+                (OR (not empty (Var 'Z')))
+                (OR (not ('C' 0) ends (Var 'X')))
+                (OR (not ('A' 1) ends (Var 'X')))
+                (OR (not ('B' 0) ends (Var 'Y')))
+                (OR (not ('A' 1) ends (Var 'Z')))
+                (OR (not ('A' 1) starts (Var 'X')))
+                (OR (not ('A' 1) starts (Var 'Y')))
+                (OR (not ('A' 1) starts (Var 'Z')))
+              )
+              (
+                (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+                (('B' 1) is (('A' 1) (i1 1) (const 0)))
+                (('C' 1) is (('A' 1) (i2 1) (const 1)))
+                (('D' 1) is (('A' 1) (i3 1) (const 0)))
+              )
+            )
+          )
+          e.R4
+        , e.L4 e.R4
+        : e.L5
+          /* X = X A1^i, Y = A1^j Y, Z = A1^(k+1) */
+          (
+            ('E' 1) i5
+            (
+              (
+                AreEqual
+                (('A' 1) (Var 'X') ('B' 1) (Var 'Y') ('B' 0))
+                ((Var 'X') ('C' 1) ('C' 0) ('D' 1))
+              )
+              (
+                (OR (not empty (Var 'X')))
+                (OR (not empty (Var 'Y')))
+                (OR (not ('A' 1) ends (Var 'X')))
+                (OR (not ('B' 0) ends (Var 'Y')))
+                (OR (not ('A' 1) starts (Var 'X')))
+                (OR (not ('A' 1) starts (Var 'Y')))
+              )
+              (
+                (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+                (('B' 1) is (('A' 1) (i1 1) (i2 1) (const 0)))
+                (('C' 1) is (('A' 1) (i3 1) (const 0)))
+                (('D' 1) is (('A' 1) (i4 1) (const 2)))
+              )
+            )
+          )
+          e.R5
+        , e.L5 e.R5
+        : /* X = X A1^i, Y = A1^j Y, Z = A1^k Z A1^l */
+          (
+            ('F' 1) i6
+            (
+              (
+                AreEqual
+                (('A' 1) (Var 'X') ('B' 1) (Var 'Y') ('B' 0))
+                ((Var 'X') ('C' 1) ('C' 0) ('D' 1) (Var 'Z') ('E' 1))
+              )
+              (
+                (OR (not empty (Var 'X')))
+                (OR (not empty (Var 'Y')))
+                (OR (not empty (Var 'Z')))
+                (OR (not ('A' 1) ends (Var 'X')))
+                (OR (not ('B' 0) ends (Var 'Y')))
+                (OR (not ('A' 1) ends (Var 'Z')))
+                (OR (not ('A' 1) starts (Var 'X')))
+                (OR (not ('A' 1) starts (Var 'Y')))
+                (OR (not ('A' 1) starts (Var 'Z')))
+              )
+              (
+                (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+                (('B' 1) is (('A' 1) (i1 1) (i2 1) (const 0)))
+                (('C' 1) is (('A' 1) (i3 1) (const 0)))
+                (('D' 1) is (('A' 1) (i4 1) (const 1)))
+                (('E' 1) is (('A' 1) (i5 1) (const 0)))
+              )
+            )
+          )
+        = True;
+
+      e.Other = False;
+    };
+    
+  (4 e.Input)
+    , <BlockComp e.Input> : {
+      e.L1
+      /* X = C1^(i+1) */
+      (
+        ('F' 1) i4
+        (
+          (
+            AreEqual
+            (('D' 1) (Var 'Y') ('C' 1))
+            ((Var 'Y') ('A' 1) ('B' 0) ('E' 1))
+          )
+          (
+            (OR (not empty (Var 'Y')))
+            (OR (not ('C' 0) ends (Var 'Y')))
+            (OR (not ('A' 0) starts (Var 'Y')))
+          )
+          (
+            (('A' 1) is (('A' 0) (i1 1) (const 0)))
+            (('B' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
+            (('C' 1) is (('A' 1) (const 1)) (('B' 1) (const 1)))
+            (('D' 1) is (('C' 1) (i2 1) (const 1)))
+            (('E' 1) is (('C' 1) (i3 1) (const 1)))
+          )
+        )
+      )
+      e.R1
+        , e.L1 e.R1
+        : e.L2
+          /* X = X */
+          (
+            ('D' 1) i2
+            (
+              (
+                AreEqual
+                ((Var 'X') (Var 'Y') ('C' 1))
+                ((Var 'Y') ('A' 1) ('B' 0) (Var 'X'))
+              )
+              (
+                (OR (not empty (Var 'X')))
+                (OR (not empty (Var 'Y')))
+                (OR (not ('A' 1) ends (Var 'X')))
+                (OR (not ('C' 1) ends (Var 'X')))
+                (OR (not ('C' 0) ends (Var 'Y')))
+                (OR (not ('B' 0) starts (Var 'X')))
+                (OR (not ('C' 1) starts (Var 'X')))
+                (OR (not ('A' 0) starts (Var 'Y')))
+              )
+              (
+                (('A' 1) is (('A' 0) (i1 1) (const 0)))
+                (('B' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
+                (('C' 1) is (('A' 1) (const 1)) (('B' 1) (const 1)))
+              )
+            )
+          )
+          e.R2
+        , e.L2 e.R2
+        : e.L3
+          /* X = X C1^i */
+          (
+            ('F' 1) i4
+            (
+              (
+                AreEqual
+                ((Var 'X') ('D' 1) (Var 'Y') ('C' 1))
+                ((Var 'Y') ('A' 1) ('B' 0) (Var 'X') ('E' 1))
+              )
+              (
+                (OR (not empty (Var 'X')))
+                (OR (not empty (Var 'Y')))
+                (OR (not ('C' 1) ends (Var 'X')))
+                (OR (not ('C' 0) ends (Var 'Y')))
+                (OR (not ('B' 0) starts (Var 'X')))
+                (OR (not ('C' 1) starts (Var 'X')))
+                (OR (not ('A' 0) starts (Var 'Y')))
+              )
+              (
+                (('A' 1) is (('A' 0) (i1 1) (const 0)))
+                (('B' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
+                (('C' 1) is (('A' 1) (const 1)) (('B' 1) (const 1)))
+                (('D' 1) is (('C' 1) (i2 1) (const 0)))
+                (('E' 1) is (('C' 1) (i3 1) (const 0)))
+              )
+            )
+          )
+          e.R3
+        , e.L3 e.R3
+        : e.L4
+          /* X = C1^i X */
+          (
+            ('F' 1) i4
+            (
+              (
+                AreEqual
+                (('D' 1) (Var 'X') (Var 'Y') ('C' 1))
+                ((Var 'Y') ('A' 1) ('B' 0) ('E' 1) (Var 'X'))
+              )
+              (
+                (OR (not empty (Var 'X')))
+                (OR (not empty (Var 'Y')))
+                (OR (not ('A' 1) ends (Var 'X')))
+                (OR (not ('C' 1) ends (Var 'X')))
+                (OR (not ('C' 0) ends (Var 'Y')))
+                (OR (not ('C' 1) starts (Var 'X')))
+                (OR (not ('A' 0) starts (Var 'Y')))
+              )
+              (
+                (('A' 1) is (('A' 0) (i1 1) (const 0)))
+                (('B' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
+                (('C' 1) is (('A' 1) (const 1)) (('B' 1) (const 1)))
+                (('D' 1) is (('C' 1) (i2 1) (const 0)))
+                (('E' 1) is (('C' 1) (i3 1) (const 0)))
+              )
+            )
+          )
+          e.R4
+        , e.L4 e.R4
+        : /* X = C1^i X C1^j */
+          (
+            ('H' 1) i6
+            (
+              (
+                AreEqual
+                (('D' 1) (Var 'X') ('E' 1) (Var 'Y') ('C' 1))
+                ((Var 'Y') ('A' 1) ('B' 0) ('F' 1) (Var 'X') ('G' 1))
+              )
+              (
+                (OR (not empty (Var 'X')))
+                (OR (not empty (Var 'Y')))
+                (OR (not ('C' 1) ends (Var 'X')))
+                (OR (not ('C' 0) ends (Var 'Y')))
+                (OR (not ('C' 1) starts (Var 'X')))
+                (OR (not ('A' 0) starts (Var 'Y')))
+              )
+              (
+                (('A' 1) is (('A' 0) (i1 1) (const 0)))
+                (('B' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
+                (('C' 1) is (('A' 1) (const 1)) (('B' 1) (const 1)))
+                (('D' 1) is (('C' 1) (i2 1) (const 0)))
+                (('E' 1) is (('C' 1) (i3 1) (const 0)))
+                (('F' 1) is (('C' 1) (i4 1) (const 0)))
+                (('G' 1) is (('C' 1) (i5 1) (const 0)))
+              )
+            )
+          )
         = True;
 
       e.Other = False;

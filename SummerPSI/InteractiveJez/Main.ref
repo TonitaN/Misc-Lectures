@@ -1157,7 +1157,7 @@ GetSideElems {
 GetFirst {
   t.Const (e.Conds)
     , e.Conds : {
-      e.L (t.Const is (t.FirstElem (const 1)) t.LastBlock) e.R
+      e.L (t.Const is (t.FirstElem e.Exps) e.PossiblyLastBlock) e.R
         = t.FirstElem <GetFirst t.FirstElem (e.L e.R)>;
 
       e.Other = /* empty */;
@@ -1172,7 +1172,7 @@ GetFirst {
 GetLast {
   t.Const (e.Conds)
     , e.Conds : {
-      e.L (t.Const is t.FirstBlock (t.LastElem (const 1))) e.R
+      e.L (t.Const is e.PossiblyFirstBlock (t.LastElem e.Exps)) e.R
         = t.LastElem <GetLast t.LastElem (e.L e.R)>;
       
       e.Other = /* empty */;
@@ -2116,7 +2116,9 @@ ApplyBlockOption {
     /* seems the equation is already normal */
     = (
         t.NewConst s.NewIndex
-        ((AreEqual (e.NewLHS) (e.NewRHS)) (e.NewConstrs) (e.NewConds))
+        <NormalizeEq
+          ((AreEqual (e.NewLHS) (e.NewRHS)) (e.NewConstrs) (e.NewConds))
+        >
       );
 }
 
