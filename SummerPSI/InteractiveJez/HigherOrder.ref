@@ -8,30 +8,80 @@ MapCompose {
   (/* EMPTY */) e.Arg = e.Arg;
 }
 
-/* Given an arg and a (possibly curried) function, applies the function to the arg: \x f_A -> <f A x> */
+/*
+  Given an arg and a (possibly curried) function, applies the function to the
+  arg: \x f_A -> <f A x>
+*/
 Flip {
-   e.FreeArg (s.Fun e.CurriedArg) = <Mu s.Fun e.CurriedArg e.FreeArg>; /* Function with curried arguments */
-   e.FreeArg s.Fun = <Mu s.Fun e.FreeArg>; /* Not curried, plain function */
+  /* Function with curried arguments */
+  e.FreeArg (s.Fun e.CurriedArg) = <Mu s.Fun e.CurriedArg e.FreeArg>;
+  
+  /* Not curried, plain function */
+  e.FreeArg s.Fun = <Mu s.Fun e.FreeArg>;
 }
 
 /* \f_A xs -> map f_A xs */
 MapCall {
-   Curry (s.FunctionName e.Args) t.Element e.List /* Some first args are curried */
-       = <Mu s.FunctionName e.Args t.Element> <MapCall Curry (s.FunctionName e.Args) e.List>;
-   Revert (s.FunctionName e.Args) t.Element e.List /* Some last args are "curried" (impossible in Haskell-style langs w/o associativity) */
-       = <Mu s.FunctionName t.Element e.Args> <MapCall Revert (s.FunctionName e.Args) e.List>;
-   Plain s.FunctionName t.Element e.List /* A bare function is applied, no curried arguments are given */
-       = <Mu s.FunctionName t.Element> <MapCall Plain s.FunctionName e.List>;
-   s.AnyMode t.ToApply /* No args */ = /* Empty list */;
+  /* Some first args are curried */
+  Curry (s.FunctionName e.Args) t.Element e.List
+    = <Mu s.FunctionName e.Args t.Element>
+      <MapCall Curry (s.FunctionName e.Args) e.List>;
+      
+  /* Some last args are "curried" (impossible in Haskell-style langs w/o
+     associativity) */
+  Revert (s.FunctionName e.Args) t.Element e.List
+    = <Mu s.FunctionName t.Element e.Args>
+      <MapCall Revert (s.FunctionName e.Args) e.List>;
+  
+  /* A bare function is applied, no curried arguments are given */
+  Plain s.FunctionName t.Element e.List
+    = <Mu s.FunctionName t.Element>
+      <MapCall Plain s.FunctionName e.List>;
+    
+  s.AnyMode t.ToApply /* No args */ = /* Empty list */;
+  
+  Placeholder s.Placeholder (s.Function e.Args) e.Elems
+    , e.Elems : {
+      t.Elem e.RestElems
+        = <Mu s.Function <RecSubst s.Placeholder t.Elem e.Args>>
+          <MapCall Placeholder s.Placeholder (s.Function e.Args) e.RestElems>;
+    
+      /* empty */ = /* empty */;
+    };
 }
 
-/* Given a set of pairs (f1 x1) ... (fn xn), where fi is the function identifier, "unfreezes" fi: <f1 x1> ... <fn xn> */
+/*
+  <RecSubst t.Old t.New e.Expr> == e.NewExpr
+*/
+RecSubst {
+  t.Old t.New e.Expr
+    , e.Expr : {
+      t.Old e.RestExpr
+        = t.New <RecSubst t.Old t.New e.RestExpr>;
+
+      (e.InnerExpr) e.RestExpr
+        = (<RecSubst t.Old t.New e.InnerExpr>)
+          <RecSubst t.Old t.New e.RestExpr>;
+
+      s.Symb e.RestExpr
+        = s.Symb <RecSubst t.Old t.New e.RestExpr>;
+
+      /* empty */ = /* empty */;
+    };
+}
+
+/*
+  Given a set of pairs (f1 x1) ... (fn xn), where fi is the function
+  identifier, "unfreezes" fi: <f1 x1> ... <fn xn>
+*/
 UnwrapCalls {
- (s.FunctionName e.Data) e.MuList
-  = <Mu s.FunctionName e.Data> <UnwrapCalls e.MuList>;
- ((s.FunctionName e.Curried) e.Data) e.MuList
-  = <Mu s.FunctionName e.Curried e.Data> <UnwrapCalls e.MuList>;
- /* No more pairs */ = /* EMPTY */;
+  (s.FunctionName e.Data) e.MuList
+    = <Mu s.FunctionName e.Data> <UnwrapCalls e.MuList>;
+    
+  ((s.FunctionName e.Curried) e.Data) e.MuList
+    = <Mu s.FunctionName e.Curried e.Data> <UnwrapCalls e.MuList>;
+    
+  /* No more pairs */ = /* EMPTY */;
 }
 
 /*
@@ -62,10 +112,13 @@ MapCall-Till {
       e.OtherResult = e.OtherResult;
     };
 
-  (e.ExpectedResult) s.AnyMode t.Function /* Empty list */ = e.ExpectedResult;
+  (e.ExpectedResult) s.AnyMode t.Function /* empty */ = e.ExpectedResult;
 }
 
-/* Given a call with arguments, requiring reading from a file, and a datum from the file, determine whether the call is to be executed */
+/*
+  Given a call with arguments, requiring reading from a file, and a datum from
+  the file, determine whether the call is to be executed
+*/
 ContinueIfNotEOF {
   (e.Function) e.Data 0 = /* No action */;
   (e.Function) e.Data = <UnwrapCalls (e.Function)>;

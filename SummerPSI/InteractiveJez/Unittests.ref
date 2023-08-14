@@ -794,11 +794,11 @@ TestSet-BlockComp {
           ((Var 'Y') ('A' 1) ('B' 0) (Var 'X'))
         )
         (
-          (OR (not empty (Var 'Y')))
-          (OR (not ('A' 0) ends (Var 'X')))
-          (OR (not ('B' 0) starts (Var 'X')))
-          (OR (not ('C' 1) ends (Var 'X')) (not ('A' 1) starts (Var 'X')))
-          (OR (not ('C' 0) ends (Var 'Y')) (not ('A' 0) starts (Var 'X')))
+          (OR (not empty (Var 'X')))
+          (OR (not ('C' 0) ends (Var 'X')))
+          (OR (not ('A' 0) starts (Var 'Y')))
+          (OR (not ('B' 0) ends (Var 'Y')) (not ('C' 1) starts (Var 'X')))
+          (OR (not ('C' 1) ends (Var 'Y')) (not ('A' 1) starts (Var 'X')))
         )
         (
           (('A' 1) is (('A' 0) (i1 1) (const 0)))
@@ -1187,135 +1187,114 @@ Run-BlockComp {
     
   (4 e.Input)
     , <BlockComp e.Input> : {
-      /* X = C1^i, Y = C1^(j+1) is impossible */
-      /* X = C1^i, Y = C1^j Y C1^k is impossible */
       e.L1
-      /* X = X, Y = C1^(i+1) */
+      /* X = C1^i X, Y = empty */
       (
         ('F' 1) i4
         (
           (
             AreEqual
-            ((Var 'X') ('D' 1))
-            (('E' 1) ('A' 1) ('B' 0) (Var 'X'))
+            (('D' 1) (Var 'X') ('C' 1))
+            (('A' 1) ('B' 0) ('E' 1) (Var 'X'))
           )
           (
             (OR (not empty (Var 'X')))
-            (OR (not ('A' 0) ends (Var 'X')))
-            (OR (not ('C' 1) ends (Var 'X')))
-            (OR (not ('A' 0) starts (Var 'X')))
-            (OR (not ('B' 0) starts (Var 'X')))
+            (OR (not ('C' 0) ends (Var 'X')))
+            (OR (not ('C' 1) starts (Var 'X')))
           )
           (
             (('A' 1) is (('A' 0) (i1 1) (const 0)))
             (('B' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
             (('C' 1) is (('A' 1) (const 1)) (('B' 1) (const 1)))
-            (('D' 1) is (('C' 1) (i2 1) (const 2)))
-            (('E' 1) is (('C' 1) (i3 1) (const 1)))
+            (('D' 1) is (('C' 1) (i2 1) (const 0)))
+            (('E' 1) is (('C' 1) (i3 1) (const 0)))
           )
         )
       )
       e.R1
         , e.L1 e.R1
         : e.L2
-          /* X = X, Y = C1^i Y C1^j */
+          /* X = C1^i X, Y = Y */
           (
-            ('H' 1) i6
+            ('F' 1) i4
             (
               (
                 AreEqual
-                ((Var 'X') ('D' 1) (Var 'Y') ('E' 1))
-                (('F' 1) (Var 'Y') ('G' 1) ('A' 1) ('B' 0) (Var 'X'))
+                (('D' 1) (Var 'X') (Var 'Y') ('C' 1))
+                ((Var 'Y') ('A' 1) ('B' 0) ('E' 1) (Var 'X'))
               )
               (
                 (OR (not empty (Var 'X')))
                 (OR (not empty (Var 'Y')))
-                (OR (not ('A' 0) ends (Var 'X')))
-                (OR (not ('C' 1) ends (Var 'X')))
+                (OR (not ('C' 0) ends (Var 'X')))
                 (OR (not ('C' 1) ends (Var 'Y')))
-                (OR (not ('A' 0) starts (Var 'X')))
-                (OR (not ('B' 0) starts (Var 'X')))
-                (OR (not ('C' 1) starts (Var 'Y')))
+                (OR (not ('C' 1) starts (Var 'X')))
+                (OR (not ('A' 0) starts (Var 'Y')))
               )
               (
                 (('A' 1) is (('A' 0) (i1 1) (const 0)))
                 (('B' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
                 (('C' 1) is (('A' 1) (const 1)) (('B' 1) (const 1)))
                 (('D' 1) is (('C' 1) (i2 1) (const 0)))
-                (('E' 1) is (('C' 1) (i3 1) (const 1)))
-                (('F' 1) is (('C' 1) (i4 1) (const 0)))
-                (('G' 1) is (('C' 1) (i5 1) (const 0)))
+                (('E' 1) is (('C' 1) (i3 1) (const 0)))
               )
             )
           )
           e.R2
         , e.L2 e.R2
         : e.L3
-          /* X = C1^i X, Y = C1^(j+1) is impossible */
-          /* X = C1^i X, Y = C1^j Y C1^k is impossible */
-          /* X = X C1^i, Y = C1^(j+1): */
+          /* Y = e */
           (
-            ('G' 1) i6
+            ('D' 1) i2
             (
               (
                 AreEqual
-                ((Var 'X') ('D' 1))
-                (('E' 1) ('A' 1) ('B' 0) (Var 'X') ('F' 1))
+                ((Var 'X') ('C' 1))
+                (('A' 1) ('B' 0) (Var 'X'))
               )
               (
                 (OR (not empty (Var 'X')))
-                (OR (not ('C' 1) ends (Var 'X')))
-                (OR (not ('A' 0) starts (Var 'X')))
-                (OR (not ('B' 0) starts (Var 'X')))
+                (OR (not ('C' 0) ends (Var 'X')))
+                (OR (not ('A' 1) starts (Var 'X')))
               )
               (
                 (('A' 1) is (('A' 0) (i1 1) (const 0)))
                 (('B' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
                 (('C' 1) is (('A' 1) (const 1)) (('B' 1) (const 1)))
-                (('D' 1) is (('C' 1) (i2 1) (i3 1) (const 2)))
-                (('E' 1) is (('C' 1) (i4 1) (const 1)))
-                (('F' 1) is (('C' 1) (i5 1) (const 0)))
               )
             )
           )
           e.R3
         , e.L3 e.R3
-        : /* X = X C1^i, Y = C1^j Y C1^k */
+        : /* Y = Y C1^i */
           (
-            ('I' 1) i8
+            ('F' 1) i4
             (
               (
                 AreEqual
-                ((Var 'X') ('D' 1) (Var 'Y') ('E' 1))
-                (('F' 1) (Var 'Y') ('G' 1) ('A' 1) ('B' 0) (Var 'X') ('H' 1))
+                ((Var 'X') (Var 'Y') ('D' 1))
+                ((Var 'Y') ('E' 1) ('A' 1) ('B' 0) (Var 'X'))
               )
               (
                 (OR (not empty (Var 'X')))
                 (OR (not empty (Var 'Y')))
-                (OR (not ('C' 1) ends (Var 'X')))
+                (OR (not ('C' 0) ends (Var 'X')))
                 (OR (not ('C' 1) ends (Var 'Y')))
-                (OR (not ('A' 0) starts (Var 'X')))
-                (OR (not ('B' 0) starts (Var 'X')))
-                (OR (not ('C' 1) starts (Var 'Y')))
+                (OR (not ('A' 1) starts (Var 'X')))
+                (OR (not ('A' 0) starts (Var 'Y')))
               )
               (
                 (('A' 1) is (('A' 0) (i1 1) (const 0)))
                 (('B' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
                 (('C' 1) is (('A' 1) (const 1)) (('B' 1) (const 1)))
-                (('D' 1) is (('C' 1) (i2 1) (i3 1) (const 0)))
-                (('E' 1) is (('C' 1) (i4 1) (const 1)))
-                (('F' 1) is (('C' 1) (i5 1) (const 0)))
-                (('G' 1) is (('C' 1) (i6 1) (const 0)))
-                (('H' 1) is (('C' 1) (i7 1) (const 0)))
+                (('D' 1) is (('C' 1) (i2 1) (const 1)))
+                (('E' 1) is (('C' 1) (i3 1) (const 0)))
               )
             )
           )
-          /* X = C1^i X C1^j, Y = C1^(k+1) is impossible */
-          /* X = C1^i X C1^j, Y = C1^k Y C1^l is impossible */
         = True;
 
-      e.Other, <Prout 'BlockComp-4: ' e.Other> : /* empty */
-        = False;
+      e.Other = False;
     };
 }
 

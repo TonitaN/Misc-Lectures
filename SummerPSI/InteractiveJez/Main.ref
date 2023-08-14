@@ -14,7 +14,7 @@
   (norm)al
   (repl)ace
   (restr)iction
-  (subst)itution
+  (subst)itute
   (var)iable
 */
 
@@ -34,19 +34,18 @@
   t.Restr ::= t.PrefixRestr | t.SuffixRestr | t.EmptyRestr
   t.PrefixRestr ::= (not t.Const starts t.Var)
   t.SuffixRestr ::= (not t.Const ends t.Var)
-  t.EmptinessRestr ::= (not empty t.Var)
+  t.EmptyRestr ::= (not empty t.Var)
 
   t.Cond ::= t.PairCond | t.PairCond
   t.PairCond ::= (t.Const is (t.Const (const 1)) (t.Const (const 1)))
   t.BlockCond ::= (t.Const is (t.Const t.Exp* (const s.NUMBER)))
   t.Exp ::= (s.WORD s.NUMBER)
 
-  t.PairOption ::= ((e.Substs) (e.Constrs))
-  t.BlockOption ::= ((e.Substs) (e.Constrs) (e.ExcludedConstrs))
+  t.Option ::= t.PairOption | t.BlockOption
+  t.PairOption ::= ((e.Substs) (e.AddedConstrs))
+  t.BlockOption ::= ((e.Substs) (e.AddedConstrs) (e.ExcludedConstrs))
 
   t.Subst  ::= (assign (e.ANY) (e.ANY))
-
-  s.RestrMode ::= starts | ends | empty
 */
 
 /*
@@ -128,8 +127,8 @@ SubtractSets {
 }
 
 /*
-  A variable is called non-empty if there is a restriction to its emptiness.
-  Otherwise, the variable is called empty.
+  A variable is called non-empty if there is a restriction to its
+  non-emptiness. Otherwise, the variable is called empty.
 
   <GetNonEmptyVars e.Constrs> == e.Vars
 */
@@ -363,8 +362,8 @@ ReplaceRepeatedConds {
 
 /*
   An equation is called normal if it has no equal prefixes of suffixes,
-  redundant constraints or conditions. In normal equation all constraints
-  are sorted.
+  weak restrictions, redundant constraints or conditions. In normal equation
+  all constraints are sorted.
 
   <NormalizeEq t.Eq> == t.NormalEq
 */
@@ -390,22 +389,6 @@ NormalizeEq {
       > : (e.UnsortedConstrs)
     , <QuickSort IsLess-Constr e.UnsortedConstrs> : e.NormConstrs
     = ((AreEqual (e.NormLHS) (e.NormRHS)) (e.NormConstrs) (e.NormConds));
-}
-
-/*
-  <RemoveWeakRestrs (e.Conds) (e.Constrs)>
-    == (e.NewConstrs)
-*/
-RemoveWeakRestrs {
-  (e.Conds) (e.Constrs)
-    , e.Constrs : {
-      e.L (OR (not t.Const s.Mode t.Var)) e.R
-        , e.L e.R : e.L1 (OR (not t.SomeConst s.Mode t.Var)) e.R1
-        , <IsElemInSet t.SomeConst (<GetElems s.Mode t.Const (e.Conds)>)> : True
-        = <RemoveWeakRestrs (e.Conds) (e.L e.R)>;
-
-      e.Other = (e.Constrs);
-    };
 }
 
 /*
@@ -445,9 +428,7 @@ Take {
     first, last or block element of some other constant;
   - the condition has the pair type, all constants in its right half are
     missing from the equation and they are not left halfs of some conditions.
-*/
-
-/*
+    
   <RemoveRedundantConds (e.Consts) (e.Const) (e.ProcessedConds)>
     == e.ProcessedConds
 */
@@ -743,6 +724,22 @@ GetCond {
 }
 
 /*
+  <RemoveWeakRestrs (e.Conds) (e.Constrs)>
+    == (e.NewConstrs)
+*/
+RemoveWeakRestrs {
+  (e.Conds) (e.Constrs)
+    , e.Constrs : {
+      e.L (OR (not t.Const s.Mode t.Var)) e.R
+        , e.L e.R : e.L1 (OR (not t.SomeConst s.Mode t.Var)) e.R1
+        , <IsElemInSet t.SomeConst (<GetElems s.Mode t.Const (e.Conds)>)> : True
+        = <RemoveWeakRestrs (e.Conds) (e.L e.R)>;
+
+      e.Other = (e.Constrs);
+    };
+}
+
+/*
   <PairComp t.Const t.Const1 t.Const2 t.Eq>
     == t.NewConst (e.Eqs)
 */
@@ -771,10 +768,6 @@ LatinCapitalChars {
 /*
   <HandleEmptySubst t.Const t.Const1 t.Const2 t.Eq>
     == e.Eqs
-
-  If an (essentially) empty substitution is possible, recursively calls itself
-  with an applied and not applied substitution equations. Otherwise, transfers
-  control to the `HandleNonEmptySubsts` function.
 */
 HandleEmptySubsts {
   t.Const t.Const1 t.Const2 t.Eq
@@ -971,8 +964,6 @@ GenSubstDenial {
 }
 
 /*
-  Finds and applies essentially non-empty substitutions to the equation. 
-  
   <HandleNonEmptySubsts t.Const t.Const1 t.Const2 t.Eq>
     == e.Eqs 
 */
@@ -1012,14 +1003,14 @@ HandleNonEmptySubsts {
 }
 
 /*
-  Returns essentially non-empty substitutions for the given equation half.
-  There are no impossible substitutions among returned ones.
-  
   <GetNonEmptySubsts
     t.Const1 t.Const2 (e.Constrs) (e.Conds) (e.Elems)
     (e.ElementarySubsts) (e.CompositeSubsts)
   >
     == e.Substs
+    
+  Returns essentially non-empty substitutions for the given equation half.
+  There are no impossible substitutions among returned ones.
 */
 GetNonEmptySubsts {
   t.Const1 t.Const2 (e.Constrs) (e.Conds) (e.Elems)
@@ -1123,28 +1114,31 @@ GetNonEmptySubsts {
 }
 
 /*
-  <SelectConstrs (e.Constrs) t.Var s.RestrMode>
+  <SelectConstrs (e.Constrs) t.Var s.Mode>
     == e.NewConstrs
+
+  s.Mode ::= ends | starts | empty
 */
 SelectConstrs {
-  (e.Constrs) t.Var s.RestrMode
+  (e.Constrs) t.Var s.Mode
     , e.Constrs : {
       /* case s.Mode ::= starts | ends */
-      e.L (OR (not t.RestrConst s.RestrMode t.Var)) e.R
-        = (OR (not t.RestrConst s.RestrMode t.Var))
-          <SelectConstrs (e.R) t.Var s.RestrMode>;
+      e.L (OR (not t.RestrConst s.Mode t.Var)) e.R
+        = (OR (not t.RestrConst s.Mode t.Var))
+          <SelectConstrs (e.R) t.Var s.Mode>;
           
       /* case s.Mode ::= empty */
-      e.L (OR (not s.RestrMode t.Var)) e.R
-        = (OR (not s.RestrMode t.Var));
+      e.L (OR (not s.Mode t.Var)) e.R
+        = (OR (not s.Mode t.Var));
 
       e.Other = /* empty */;
     };
 }
 
 /*
-  With respect to a given constant A, a restriction X != BX is called dependent
-  if B belongs to the First(A) set. Otherwise, the restriction is independent.
+  With respect to a given constant A, a restriction X != BX is called
+  dependent if B belongs to the First(A) set. Otherwise, the restriction
+  is independent.
 
   <IsDependentConstr (e.Conds) t.Const t.Constr>
     == True
@@ -1158,12 +1152,14 @@ IsDependentConstr {
 }
 
 /*
-  <GetElems s.RestrMode t.Const (e.Conds)>
+  <GetElems s.Mode t.Const (e.Conds)>
     == e.Consts
+
+  s.Mode ::= ends | starts
 */
 GetElems {
-  s.RestrMode t.Const (e.Conds)
-    , s.RestrMode : {
+  s.Mode t.Const (e.Conds)
+    , s.Mode : {
       starts = <GetFirst t.Const (e.Conds)>;
       
       ends = <GetLast t.Const (e.Conds)>;
@@ -1227,7 +1223,7 @@ GenOptionSets {
 }
 
 /*
-  For the equation, we call an essential elementary substitution "special"
+  For the equation, we call an essential elementary substitution special
   if it is present in some essential composite substitution.
 
   <GetSpecialSubsts t.CompositeSubst (e.ElementarySubsts)>
@@ -1499,12 +1495,9 @@ TriviallyPerformConstrs {
 ForceDependentConstrs {
   (e.Conds) (e.ProcessedConstrs) t.FoldedSubst (e.Constrs)
     , t.FoldedSubst : {
-      (e.Modes t.Var t.Const)
+      (s.Mode t.Var t.Const)
         , e.Constrs : e.L (OR e.L1 (not t.RestrConst s.Mode t.Var) e.R1) e.R
         , e.L1 e.R1 : t.Restr
-        , <IsElemInSet
-            s.Mode (e.Modes)
-          > : True
         , <IsElemInSet
             t.RestrConst (t.Const <GetElems s.Mode t.Const (e.Conds)>)
           > : True
@@ -1519,29 +1512,13 @@ ForceDependentConstrs {
 /*
   <FoldSubst t.Subst>
     == (s.RestrMode t.Var t.Const)
-    == (starts ends t.Var t.Const)
 */
 FoldSubst {
   (assign (t.Var) (e.NewValue))
     , e.NewValue : {
-      t.Var t.BlockOrConst
-        , t.BlockOrConst : {
-          (t.Const Index (const s.Number)) = (ends t.Var t.Const);
-          
-          t.Const = (ends t.Var t.Const);
-        };
+      t.Var t.Const = (ends t.Var t.Const);
 
-      t.BlockOrConst t.Var
-        , t.BlockOrConst : {
-          (t.Const Index (const s.Number)) = (starts t.Var t.Const);
-
-          t.Const = (starts t.Var t.Const);
-        };
-      
-      (t.Const Index (const s.Number)) t.Var (t.Const Index (const s.Number))
-        = (starts ends t.Var t.Const);
-        
-      (t.Const Index (const s.Number)) = (starts ends t.Var t.Const);
+      t.Const t.Var = (starts t.Var t.Const);
       
       /* empty */ = (empty t.Var);
     };
@@ -1557,11 +1534,9 @@ CheckOptionConsistency {
     , e.Substs : {
       t.Subst e.RestSubsts
         , <FoldSubst t.Subst> : {
-          (e.Modes t.Var t.Const)
-            , <MapCall
-                Curry
-                (SelectConstrs (e.Constrs) t.Var)
-                e.Modes
+          (s.Mode t.Var t.Const)
+            , <SelectConstrs
+                (e.Constrs) t.Var s.Mode
               > : e.PossiblyControversialConstrs
             , <MapCall-Till
                 (False)
@@ -1582,7 +1557,6 @@ CheckOptionConsistency {
     };
 }
 
-
 /*
   <ModifyPairOption (e.Conds) (e.ProcessedSubsts) t.PairOption?>
     == t.NewPairOption
@@ -1592,7 +1566,6 @@ ModifyPairOption {
   (e.Conds) (e.ProcessedSubsts) ((e.Substs) (e.Constrs))
     , e.Substs : {
       t.Subst e.RestSubsts
-        /* empty and block substs are guaranteed not to be here */
         , <FoldSubst t.Subst> : (s.Mode t.Var t.Const)
         , <MapCall
             Curry
@@ -1638,8 +1611,58 @@ ApplyPairOption {
 $ENTRY BlockComp {
   t.BlockConst t.Const s.Index t.Eq
     , t.Eq : ((AreEqual (e.LHS) (e.RHS)) (e.Constrs) (e.Conds))
+    , <GetUniqueValues
+        Flat
+        <SeparateConstrs
+          (e.Conds) t.BlockConst (e.Constrs)
+        >
+      > : e.ConstrsSets
+    = <MapCall
+        Placeholder NewConstrs
+        (BlockComp-Main
+          t.BlockConst t.Const s.Index
+          ((AreEqual (e.LHS) (e.RHS)) NewConstrs (e.Conds))
+        )
+        e.ConstrsSets
+      >;
+}
+
+/*
+  <SeparateConstrs (e.Conds) t.BlockConst (e.Constrs)>
+    == (e.NewConstrs)+
+*/
+SeparateConstrs {
+  (e.Conds) t.BlockConst (e.Constrs)
+    , e.Constrs : {
+      e.L (OR t.SuffixRestr t.PrefixRestr) e.R
+        , t.SuffixRestr : (not t.SuffixConst ends t.Var1)
+        , t.PrefixRestr : (not t.PrefixConst starts t.Var2)
+        , <IsElemInSet
+            t.SuffixConst (t.BlockConst <GetLast t.BlockConst (e.Conds)>)
+          > : True
+        , <IsElemInSet
+            t.PrefixConst (t.BlockConst <GetFirst t.BlockConst (e.Conds)>)
+          > : True
+        = <SeparateConstrs
+            (e.Conds) t.BlockConst (e.L (OR t.SuffixRestr) e.R)
+          >
+          <SeparateConstrs
+            (e.Conds) t.BlockConst (e.L (OR t.PrefixRestr) e.R)
+          >;
+
+      e.Other = (e.Constrs);
+    };
+}
+
+/*
+  <BlockComp-Main t.BlockConst t.Const s.Index t.Eq>
+    == (t.NewConst t.NewIndex t.NewEq)+
+*/
+BlockComp-Main {
+  t.BlockConst t.Const s.Index t.Eq
+    , t.Eq : ((AreEqual (e.LHS) (e.RHS)) (e.Constrs) (e.Conds))
     , <MapCompose
-        (<MapCall Curry (Wrap GetVars) (e.LHS) (e.RHS)>) (/* empty */)
+        ((GetVars (e.LHS)) (GetVars (e.RHS))) (/* empty */ )
       > : (e.EqVars)
     , <MapCall
         Curry
@@ -2157,30 +2180,16 @@ NormalizeBlockOption {
         (
           <MapCall
             Curry
-            (Wrap ForceDependentConstrs (e.Conds) (/* empty */))
-            <MapCall Plain FoldSubst e.Substs>
-          >
-        )
-        <SubtractSets (e.Constrs) (e.ExcludedConstrs)>
-      > : (e.ForcedConstrs)
-    , <CheckOptionConsistency
-        (e.Conds) (/* empty */) ((e.Substs) (e.ForcedConstrs))
-      > : ((e.Substs) (e.ForcedConstrs))
-    , <MapCompose
-        (
-          <MapCall
-            Curry
             (Wrap CleanUpConstrs)
             e.Substs
           >
         )
         <TriviallyPerformConstrs
-          (e.Conds) (/* empty */) (e.ForcedConstrs e.AddedConstrs)
+          (e.Conds) (/* empty */)
+          <SubtractSets (e.Constrs e.AddedConstrs) (e.ExcludedConstrs)>
         >
       > : (e.NewConstrs)
-      = ((e.Substs) (e.NewConstrs));
-
-  e.Other = /* empty */;
+    = ((e.Substs) (e.NewConstrs));
 }
 
 /*
