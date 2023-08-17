@@ -49,7 +49,10 @@
 */
 
 /*
-  <Pick s.NUMBER e.Eqs> == t.Eq
+  <Pick s.NUMBER e.Eqs>
+    == Success
+    == NotMinimal
+    == t.Eq
 */
 $ENTRY Pick {
   s.Number t.Eq e.RestEqs
@@ -80,7 +83,17 @@ $ENTRY Pick {
               (/* no consts */) = NotMinimal;
 
               (e.SomeConsts)
-                = ((AreEqual (e.NewLHS) (e.NewRHS)) (e.Constrs) (e.Conds)); 
+                , <MapCompose
+                    (
+                      <MapCall
+                        Curry
+                        (Wrap CleanUpConstrs)
+                        e.Substs
+                      >
+                    )
+                    (e.Constrs)
+                  > : (e.NewConstrs)
+                = ((AreEqual (e.NewLHS) (e.NewRHS)) (e.NewConstrs) (e.Conds)); 
             };
         };
 
@@ -484,74 +497,15 @@ RemoveRedundantConds {
 RemoveRedundantRestrs {
   (e.Consts) (e.Conds) (e.ProcessedConstrs) (e.Constrs)
     , e.Constrs : {
-      t.Constr e.RestConstrs
-        , t.Constr : {
-          (OR (not empty t.Var)) /* skipping empty constraints */
-            = <RemoveRedundantRestrs
-                (e.Consts) (e.Conds) (e.ProcessedConstrs t.Constr)
-                (e.RestConstrs)
-              >;
-              
-          (OR t.Restr1 e.AnotherRestr)
-            , <IsRestrRedundant
-                t.Restr1 (e.Consts) (e.Conds)
-              > : {
-              True
-                , e.AnotherRestr : {
-                  /* empty */ /* removing the trivial constraint */
-                    = <RemoveRedundantRestrs
-                        (e.Consts) (e.Conds) (e.ProcessedConstrs)
-                        (e.RestConstrs)
-                      >;
+      e.L (OR e.L1 (not t.Const s.Action t.Var) e.R1) e.R
+        , <IsRestrRedundant
+            (not t.Const s.Action t.Var) (e.Consts) (e.Conds)
+          > : True
+        = <RemoveRedundantRestrs
+            (e.Consts) (e.Conds) (e.ProcessedConstrs e.L) (e.R)
+          >;
 
-                  t.Restr2
-                    , <IsRestrRedundant
-                        t.Restr2 (e.Consts) (e.Conds)
-                      > : {
-                      True /* removing the non-trivial constraint */
-                        = <RemoveRedundantRestrs
-                            (e.Consts) (e.Conds) (e.ProcessedConstrs)
-                            (e.RestConstrs)
-                          >;
-                      
-                      False /* removing the first restriction */
-                        = <RemoveRedundantRestrs
-                            (e.Consts) (e.Conds)
-                            (e.ProcessedConstrs (OR t.Restr2)) (e.RestConstrs)
-                          >;
-                    };
-                };
-
-              False
-                , e.AnotherRestr : {
-                  /* empty */ /* saving the trivial constraint */
-                    = <RemoveRedundantRestrs
-                        (e.Consts) (e.Conds) (e.ProcessedConstrs t.Constr)
-                        (e.RestConstrs)
-                      >;
-
-                  t.Restr2
-                    , <IsRestrRedundant
-                        t.Restr2 (e.Consts) (e.Conds)
-                      > : {
-                      True /* removing the second restriction */
-                        = <RemoveRedundantRestrs
-                            (e.Consts) (e.Conds)
-                            (e.ProcessedConstrs (OR t.Restr1)) (e.RestConstrs)
-                          >;
-
-                      False /* saving the non-trivial constraint */
-                        = <RemoveRedundantRestrs
-                            (e.Consts) (e.Conds) (e.ProcessedConstrs t.Constr)
-                            (e.RestConstrs)
-                          >;
-                    };
-                };
-            };
-        
-        };
-        
-      /* empty */ = (e.ProcessedConstrs);
+      e.Other = (e.ProcessedConstrs e.Constrs);
     };
 }
 
@@ -818,22 +772,10 @@ CleanUpConstrs {
 CleanUpConstrs-Aux {
   t.Var (e.Constrs)
     , e.Constrs : {
-      (OR e.L (not t.Const1 s.Action1 t.Var) e.R) e.RestConstrs
-        , e.L e.R : {
-          /* empty */ /* removing the trivial constr */
-            = <CleanUpConstrs-Aux t.Var (e.RestConstrs)>;
+      e.L (OR e.L1 (not t.Const s.Action t.Var) e.R1) e.R
+        = e.L <CleanUpConstrs-Aux t.Var (e.R)>;
 
-          (not t.Const2 s.Action2 t.Var) /* removing the non-trivial constr */
-            = <CleanUpConstrs-Aux t.Var (e.RestConstrs)>;
-            
-          t.Restr /* saving another restriction */
-            = (OR t.Restr) <CleanUpConstrs-Aux t.Var (e.RestConstrs)>;
-        };
-
-      t.Constr e.RestConstrs
-        = t.Constr <CleanUpConstrs-Aux t.Var (e.RestConstrs)>;
-
-      /* empty */ = /* empty */;
+      e.Other = e.Constrs;
     };
 }
 
