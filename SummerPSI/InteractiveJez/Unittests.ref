@@ -1,51 +1,35 @@
 *$INLINE HigherOrder;
 
-$EXTERN FormPair, Zip, BelongsTo, Arrange, Take;
+$EXTERN Pick, SubstIndex, PairComp, BlockComp;
 
 $ENTRY Go {
   = <Prout
       <MapCall
-        Curry
-        (Flip <TestSet-Pick>)
-        <MapCall Curry (FormPair RunPick) 1 2 3 4>
+        Curry (Flip <TestSet-Pick>)
+        <MapCall Curry (FormPair Run-Pick) 1 2 3 4>
       >
-    >
-
+    > 
     <Prout
-      <UnwrapCalls
-        <Zip
-          (<MapCall
-            Curry
-            (FormPair RunSubstIndices)
-            (
-              1
-              (SubstIndex i1 ((i2 2) (const 2)))
-            )
-            (
-              2
-              (SubstIndex i4 ((i1 3) (const 1)))
-              (SubstIndex i1 ((i2 2) (i3 1) (const 0)))
-            )
-            (
-              3
-              (SubstIndex i4 ((i1 3) (const 1)))
-              (SubstIndex i1 ((i2 2) (i3 1) (const 0)))
-            )
-            (
-              4
-              (SubstIndex i4 ((i1 3) (const 1)))
-              (SubstIndex i1 ((i2 2) (i3 1) (const 0)))
-            )
-          >)
-          (<TestSet-SubstIndex>)
-        >
-      >
+      <MapCall Plain Run-SubstIndex <TestSet-SubstIndex>>
+    >
+    <Prout
+      <MapCall Plain Run-PairComp   <TestSet-PairComp>>
+    >
+    <Prout
+      <MapCall Plain Run-BlockComp  <TestSet-BlockComp>>
     >;
 }
 
+/*
+  <TestSet-Pick> == e.Eqs
+*/
 TestSet-Pick {
   = (
-      (AreEqual ((Var 'X') ('A' 0)) ((Var 'Y') ('B' 0) (Var 'Y')))
+      (
+        AreEqual
+        ((Var 'X') ('A' 0))
+        ((Var 'Y') ('B' 0) (Var 'Y'))
+      )
       (/* No constraints */)
       (/* No index eqs */)
     )
@@ -67,459 +51,1250 @@ TestSet-Pick {
         ((Var 'X'))
         ((Var 'Y'))
       )
-      ((OR (not empty (Var 'X'))))
+      (
+        (OR (not empty (Var 'X')))
+      )
       (/* No index eqs */)
-    )
-    (
-      (AreEqual ((Var 'X') ('A' 0)) (('A' 0) (Var 'Y')))
-      ((OR (not ('A' 0) ends (Var 'X'))))
-      (/* No index eqs */)
-    );
-}
-
-TestSet-SubstIndex {
-  = (
-      (AreEqual (('A' 2)) (('A' 1) (Var 'X') ('A' 1)))
-      ((OR (not empty (Var 'X'))))
-      (
-        (('A' 1) is (('A' 0) (i1 1) (const 0)))
-        (('A' 2) is (('A' 0) (i2 2) (const 2)))
-      )
-    )
-    (
-      (AreEqual (('A' 3) (Var 'Y') ('A' 3)) (('A' 2) (Var 'X') ('A' 1)))
-      (/* No constraints */)
-      (
-        (('A' 1) is (('A' 0) (i1 3) (const 1)))
-        (('A' 2) is (('A' 0) (i2 6) (i3 3) (const 1)))
-        (('A' 3) is (('A' 0) (i4 1) (const 0)))
-      )
-    )
-    (
-      (AreEqual (('A' 3) (Var 'Y')('A' 1)(Var 'Y')) (('A' 2) (Var 'X')))
-      (/* No constraints */)
-      (
-        (('A' 1) is (('A' 0) (i1 3) (const 1)))
-        (('A' 2) is (('A' 0) (i2 5) (i3 3) (const 1)))
-        (('A' 3) is (('A' 0) (i4 1) (const 0)))
-      )
     )
     (
       (
         AreEqual
-        (('A' 3) ('B' 0) (Var 'X') ('A' 3) (Var 'Y'))
-        (('A' 2) ('B' 0) (Var 'X') (Var 'Z') ('A' 2))
+        ((Var 'X') ('A' 0))
+        (('A' 0) (Var 'Y'))
       )
-      (/* No constraints */)
       (
-        (('A' 1) is (('A' 0) (i1 3) (const 1)))
-        (('A' 2) is (('A' 0) (i2 6) (i3 3) (const 1)))
-        (('A' 3) is (('A' 0) (i4 1) (const 0)))
+        (OR (not ('A' 0) ends (Var 'X')))
+      )
+      (/* No index eqs */)
+    );
+}
+
+/*
+  <Run-Pick s.SeqNumber e.Eqs>
+    == True
+    == False
+*/
+Run-Pick {
+  1 e.Eqs
+    , <Pick 1 e.Eqs> : {
+      (e.Eq) = True;
+
+      e.Other = False;
+    };
+
+  2 e.Eqs
+    , <Pick 2 e.Eqs> : {
+      (e.Eq) = True;
+
+      e.Other = False;
+    };
+
+  3 e.Eqs
+    , <Pick 3 e.Eqs> : {
+      NotMinimal = True;
+
+      e.Other = False;
+    };
+
+  4 e.Eqs
+    , <Pick 4 e.Eqs> : {
+      Success = True;
+
+      e.Other = False;
+    };
+}
+
+/*
+  <TestSet-SubstIndex> == (s.SeqNumber e.Substs t.Eq)*
+*/
+TestSet-SubstIndex {
+  = (
+      1
+      (SubstIndex i1 ((i2 2) (const 2)))
+      (
+        (
+          AreEqual
+          (('A' 2))
+          (('A' 1) (Var 'X') ('A' 1))
+        )
+        (
+          (OR (not empty (Var 'X')))
+        )
+        (
+          (('A' 1) is (('A' 0) (i1 1) (const 0)))
+          (('A' 2) is (('A' 0) (i2 2) (const 2)))
+        )
+      )
+    )
+    (
+      2
+      (SubstIndex i4 ((i1 3) (const 1)))
+      (SubstIndex i1 ((i2 2) (i3 1) (const 0)))
+      (
+        (
+          AreEqual
+          (('A' 3) (Var 'Y') ('A' 3))
+          (('A' 2) (Var 'X') ('A' 1))
+        )
+        (/* No constraints */)
+        (
+          (('A' 1) is (('A' 0) (i1 3) (const 1)))
+          (('A' 2) is (('A' 0) (i2 6) (i3 3) (const 1)))
+          (('A' 3) is (('A' 0) (i4 1) (const 0)))
+        )
+      )
+    )
+    (
+      3
+      (SubstIndex i4 ((i1 3) (const 1)))
+      (SubstIndex i1 ((i2 2) (i3 1) (const 0)))
+      (
+        (
+          AreEqual
+          (('A' 3) (Var 'Y')('A' 1)(Var 'Y'))
+          (('A' 2) (Var 'X'))
+        )
+        (/* No constraints */)
+        (
+          (('A' 1) is (('A' 0) (i1 3) (const 1)))
+          (('A' 2) is (('A' 0) (i2 5) (i3 3) (const 1)))
+          (('A' 3) is (('A' 0) (i4 1) (const 0)))
+        )
+      )
+    )
+    (
+      4
+      (SubstIndex i4 ((i1 3) (const 1)))
+      (SubstIndex i1 ((i2 2) (i3 1) (const 0)))
+      (
+        (
+          AreEqual
+          (('A' 3) ('B' 0) (Var 'X') ('A' 3) (Var 'Y'))
+          (('A' 2) ('B' 0) (Var 'X') (Var 'Z') ('A' 2))
+        )
+        (/* No constraints */)
+        (
+          (('A' 1) is (('A' 0) (i1 3) (const 1)))
+          (('A' 2) is (('A' 0) (i2 6) (i3 3) (const 1)))
+          (('A' 3) is (('A' 0) (i4 1) (const 0)))
+        )
       )
     );
 }
 
-RunPick {
-  1 e.Eqs
-    , <Pick 1 e.Eqs> : {
-        (e.Eq) = True;
-        e.Other = False;
-      };
-
-  2 e.Eqs
-    , <Pick 2 e.Eqs> : {
-        (e.Eq) = True;
-        e.Other = False;
-      };
-
-  3 e.Eqs
-    , <Pick 3 e.Eqs> : {
-        NotMinimal = True;
-        e.Other = False;
-      };
-
-  4 e.Eqs
-    , <Pick 4 e.Eqs> : {
-        Success = True;
-        e.Other = False;
-      };
-}
-
-RunSubstIndices {
-  (1 e.Substs) t.EqData
-    , <MapCompose (e.Substs) t.EqData> : {
-        /* This unit test allows the implementation to choose freely
-          whether to prune equal constants from left or from right. */
-        (
-          (AreEqual (/* No terms */) (e.W1 (Var 'X') e.W2))
-          ((OR (not empty (Var 'X'))))
-          ((('A' s.Ind) is (('A' 0) (i2 2) (const 2))))
-        ), e.W1 e.W2 : ('A' s.Ind) = True;
-
-        e.Z = False;
-      };
-
-  (2 e.Substs) t.EqData
-    , <MapCompose (e.Substs) t.EqData> : {
-        (
-          (AreEqual ((Var 'Y')) ((Var 'X')))
-          (/* EMPTY */)
-          (/* EMPTY */) /* All the dependencies collapsed. */
-        ) = True;
-        
-        e.Z = False;
-      };
-
-  (3 e.Substs) t.EqData
-    , <MapCompose (e.Substs) t.EqData> : {
-        (
-          (
-            AreEqual
-            (('A' s.Ind) (Var 'Y')('A' s.Ind) (Var 'Y'))
-            (('A' 2) (Var 'X'))
-          )
-          (/* EMPTY */)
-          /* The implementation can preserve either ('A' 1)
-             or ('A' 3) - no choice is forced. */
-          (e.IndEq1 (('A' 2) is (('A' 0) (i2 5) (i3 3) (const 1))) e.IndEq2)
-        ), e.IndEq1 e.IndEq2
-          : (('A' s.Ind) is (('A' 0) (i2 6) (i3 3) (const 1))) = True;
-
-        e.Z = False;
-      };
-
-  (4 e.Substs) t.EqData
-    , <MapCompose (e.Substs) t.EqData> : {
-        (
-          /* The equal prefixes are pruned forward up to non-equal parts. */
-          (AreEqual (('A' s.Ind) (Var 'Y')) ((Var 'Z') ('A' s.Ind)))
-          (/* EMPTY */)
-          ((('A' s.Ind) is (('A' 0) (i2 6) (i3 3) (const 1))))
-        ) = True;
-
-        e.Z = False;
-      };
-}
-
-Pick {
-  1 ((AreEqual t.LHS t.RHS) t.Constraints t.IndexEqs) e.RestEqs
-    , <SubtractSets
-        (<GetUniqueValues <MapCall Plain GetVars t.LHS t.RHS>>)
-        (<GetNonEmptyVars t.Constraints>)
-      > : (e.VarsToSubst)
-    , <MapCall
-        Curry
-        (Subst (<MapCall Revert (GenSubst (/* to EMPTY */)) e.VarsToSubst>))
-        t.LHS t.RHS
-      > : {
-      t.EqHalf t.EqHalf = Success;
-
-      t.NewLHS t.NewRHS
-        , <MapCall Plain GetConsts t.NewLHS t.NewRHS> : {
-          /* No consts were found */ = NotMinimal;
-
-          e.SomeConsts
-            = ((AreEqual t.NewLHS t.NewRHS) t.Constraints t.IndexEqs); 
-        };
-    };
-
-  s.Number t.Eq e.RestEqs = <Pick <Sub s.Number 1> e.RestEqs>;
-
-  e.Other = <Prout 'Pick: Invalid input ' e.Other>;
-}
-
-/* Non-recursive substitution. */
-Subst {
-  (e.Substs) (e.ApplyTo)
-    , e.Substs : {
-      t.Subst e.RestSubsts
-        = <Subst (e.RestSubsts) (<Subst-Aux t.Subst e.ApplyTo>)>;
-
-      /* No more substs */ = (e.ApplyTo);
-    };
-
-  e.Other = <Prout 'Subst: Invalid input ' e.Other>;
-}
-
-Subst-Aux {
-  t.Subst e.ApplyTo
-    , t.Subst : (assign t.Old (e.New))
-    , e.ApplyTo : {
-      e.U1 t.Old e.U2 = e.U1 e.New <Subst-Aux t.Subst e.U2>;
-
-      e.Other = e.Other;
-    };
-
-  e.Other = <Prout 'Subst-Aux: Invalid input ' e.Other>;
-}
-
-GenSubst {
-  t.Old t.New = (assign t.Old t.New);
-  
-  e.Other = <Prout 'GenSubst: Invalid input ' e.Other>;
-}
-
-/* Accepts equation's constraints */
-GetNonEmptyVars {
-  ((OR e.Disjuncts) e.RestConjuncts) 
-    = <GetNonEmptyVars-Aux e.Disjuncts> <GetNonEmptyVars (e.RestConjuncts)>;
-
-  (/* No more conjuncts */) = /* EMPTY */;
-
-  e.Other = <Prout 'GetNonEmptyVars: Invalid input ' e.Other>;
-}
-
-GetNonEmptyVars-Aux {
-  t.Disjunct e.RestDisjuncts
-  , t.Disjunct : {
-    /* If a conjunct can contain only one disjunct with a constraint on
-       non-emptiness of a variable, the right half of the next sentence
-       can be simplified to `(Var s.X)`. */
-    (not empty (Var s.X)) = (Var s.X) <GetNonEmptyVars-Aux e.RestDisjuncts>;
-
-    e.Other = <GetNonEmptyVars-Aux e.RestDisjuncts>;
-  };
-
-  /* No more disjuncts */ = /* EMPTY */;
-
-  e.Other = <Prout 'GetNonEmptyVars-Aux: Invalid input ' e.Other>;
-}
-
-GetVars {
-  (t.Comp e.RestComps)
-    , t.Comp : {
-      (Var s.Name) = t.Comp <GetVars (e.RestComps)>;
-
-      (s.Name s.Number) = <GetVars (e.RestComps)>; /* Ignore consts. */
-
-      e.Other = <Prout 'GetVars: Invalid component ' e.Other>;
-    };
-
-  (/* No more comps */) = /* EMPTY */;
-
-  e.Other = <Prout 'GetVars: Invalid input ' e.Other>;
-}
-
-GetConsts {
-  (t.Comp e.RestComps)
-    , t.Comp : {
-      (Var s.Name) = <GetConsts (e.RestComps)>; /* Ignore vars. */
-
-      (s.Name s.Number) = t.Comp <GetConsts (e.RestComps)>;
-      
-      e.Other = <Prout 'GetConsts: Invalid component ' e.Other>;
-    };
-
-  (/* No more comps */) = /* EMPTY */;
-
-  e.Other = <Prout 'GetConsts: Invalid input ' e.Other>;
-}
-
-GetUniqueValues {
-  e.U1 t.X e.U2 t.X e.U3 = <GetUniqueValues e.U1 t.X e.U2 e.U3>;
-  
-  e.AlreadyUnique = e.AlreadyUnique;
-}
-
-
-SubtractSets {
-  (e.U1 t.CommonElement e.U2) (e.V1 t.CommonElement e.V2)
-    = <SubtractSets (e.U1 e.U2) (e.V1 e.V2)>;
-
-  /* No more common elements. Returning reduced set. */
-  t.Reduced t.Subtracted = t.Reduced;
-
-  e.Other = <Prout 'SubtractSets: Invalid input ' e.Other>;
-}
-
 /*
-  <SubstIndex s.Index (e.Subst) (e.Eq) == (e.SubstEq)
-*/
-SubstIndex {
-  s.Index
-  (e.Multiset)
-  ((AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.IndexEqs))
-    , <MapCall
-        Curry
-        (SubstToIndexEq (s.Index (e.Multiset)))
-        e.IndexEqs
-      > : e.SubstIndexEqs
-    , <TrimEq
-        Right
-        (e.SubstIndexEqs)
-        <TrimEq Left (e.SubstIndexEqs) (e.LHS) (e.RHS)>
-      > : (e.TrimmedLHS) (e.TrimmedRHS)
-    , <MapCall
-        Curry
-        (CheckIndexEqToCollapse (<GetUniqueValues
-          <GetConsts (e.TrimmedLHS)> <GetConsts (e.TrimmedRHS)>
-        >))
-        e.SubstIndexEqs
-      > : e.InvolvedIndexEqs
-    , <ReplaceRepeatedIndexEqs
-        (e.InvolvedIndexEqs)
-        (/* No substitutions at start */)
-      > : (e.UniqueIndexEqs) (e.Substs)
-    , <MapCall
-        Curry
-        (Subst (e.Substs))
-        (e.TrimmedLHS) (e.TrimmedRHS)
-      > : (e.SubstLHS) (e.SubstRHS)
-    = ((AreEqual (e.SubstLHS) (e.SubstRHS)) (e.Constraints) (e.UniqueIndexEqs));
-  
-  e.Other = <Prout 'SubstIndex: Invalid input ' e.Other>;
-}
-
-/*
-  <SubstToIndexEq (s.Index (e.Multiset)) (e.IndexEq)> == (e.SubstIndexEq)
-*/
-SubstToIndexEq {
-  (s.Index (e.Multiset)) ((s.Name s.Number) is (e.RHS))
-    = (
-        (s.Name s.Number)
-        is
-        (<SumUpComps /* TODO: lexicographic sort */
-          <MapCall Curry (SubstToComp (s.Index (e.Multiset))) e.RHS>
-        >)
-      );
-    
-  e.Other = <Prout 'SubstToIndexEq: Invalid input ' e.Other>;
-}
-
-/*
-  <SubstToComp (s.Index (e.Multiset)) (e.Comp)> == (e.SubstComp)
-*/
-SubstToComp {
-  (s.Index (e.Multiset)) (e.Comp)
-    , e.Comp : {
-      s.Index s.Number = <MapCall Curry (MulComp s.Number) e.Multiset>;
-
-      s.AnotherIndex s.Number = (e.Comp);
-
-      e.Other = <Prout 'SubstToComp: Invalid component ' e.Other>;
-    };
-    
-  e.Other = <Prout 'SubstToComp: Invalid input ' e.Other>;
-}
-
-/*
-  <MulComp s.Multiplier (e.Comp)> == (e.MulComp)
-*/
-MulComp {
-  s.Multiplier (s.Index s.Number) = (s.Index <Mul s.Multiplier s.Number>);
-  
-  e.Other = <Prout 'MulComp: Invalid input ' e.Other>;
-}
-
-/*
-  <SumUpComps e.Comps> == e.SummedUpComps
-*/
-SumUpComps {
-  e.U1 (s.Index s.Number1) e.U2 (s.Index s.Number2) e.U3
-    = e.U1 e.U2 (s.Index <Add s.Number1 s.Number2>) <SumUpComps e.U3>;
-    
-  e.SummedUpComps = e.SummedUpComps;
-}
-
-/*
-  <TrimEq s.Mode (e.IndexEqs) (e.LHS) (e.RHS)> == (e.TrimmedLHS) (e.TrimmedRHS)
-  
-  s.Mode := Left | Right
-*/
-TrimEq {
-  s.Mode (e.IndexEqs) (e.LHS) (e.RHS)
-    , <MapCall Curry (Take s.Mode) (e.LHS) (e.RHS)> : {
-      /* Both equation parts are not empty: */
-      ((e.Comp1) e.RestComps1) ((e.Comp2) e.RestComps2)
-        , <AreCompsEqual (e.Comp1) (e.Comp2) (e.IndexEqs)> : {
-          True = <TrimEq s.Mode (e.IndexEqs) (e.RestComps1) (e.RestComps2)>;
-
-          False = (e.LHS) (e.RHS);
-        };
-
-      e.Other = (e.LHS) (e.RHS);
-    };
-  
-  e.Other = <Prout 'TrimEq: Invalid input ' e.Other>;
-}
-
-/*
-  <AreCompsEqual (e.Comp1) (e.Comp2) (e.IndexEqs)>
+  <Run-SubstIndex (s.SeqNumber s.Substs t.Eq)>
     == True
     == False
 */
-AreCompsEqual {
-  (e.Comp1) (e.Comp2) (e.IndexEqs)
-    , (e.Comp1) (e.Comp2) : {
-      (s.Type s.Value) (s.Type s.Value) = True;
+Run-SubstIndex {
+  (1 e.Substs t.Eq)
+    , <MapCompose (e.Substs) t.Eq> : {
+      /* This unit test allows the implementation to choose freely
+         whether to prune equal constants from left or from right. */
+      (
+        (
+          AreEqual
+          (/* No terms */)
+          (e.W1 (Var 'X') e.W2)
+        )
+        (
+          (OR (not empty (Var 'X')))
+        )
+        (
+          (('A' s.Ind) is (('A' 0) (i2 2) (const 2)))
+        )
+      ) , e.W1 e.W2 : ('A' s.Ind) = True;
 
-      (Var s.Value1) (Var s.Value2) = False;
+      e.Z = False;
+    };
 
-      (s.Type s.Value1) (s.Type s.Value2)
-        , <MapCall Curry (GetIndexEq (e.IndexEqs)) (e.Comp1) (e.Comp2)> : {
-          ((e.Comp1) is (e.RHS)) ((e.Comp2) is (e.RHS)) = True;
-              
-          e.DifferentIndexEqs = False;
-        };
+  (2 e.Substs t.Eq)
+    , <MapCompose (e.Substs) t.Eq> : {
+      (
+        (
+          AreEqual
+          ((Var 'Y'))
+          ((Var 'X'))
+        )
+        (/* EMPTY */)
+        (/* EMPTY */) /* All the dependencies collapsed. */
+      ) = True;
         
-      (s.Type1 s.Value1) (s.Type2 s.Value2) = False;
-
-      e.Other = <Prout 'AreCompsEqual: Invalid components ' e.Other>;
+      e.Z = False;
     };
 
-  e.Other = <Prout 'AreCompsEqual: Invalid input ' e.Other>;
+  (3 e.Substs t.Eq)
+    , <MapCompose (e.Substs) t.Eq> : {
+      /* The implementation can preserve either ('A' 1)
+         or ('A' 3) - no choice is forced. */
+      (
+        (
+          AreEqual
+          (('A' s.Ind) (Var 'Y')('A' s.Ind) (Var 'Y'))
+          (('A' 2) (Var 'X'))
+        )
+        (/* EMPTY */)
+        (
+          e.IndEq1
+          (('A' 2) is (('A' 0) (i2 5) (i3 3) (const 1)))
+          e.IndEq2
+        )
+      ) , e.IndEq1 e.IndEq2
+        : (('A' s.Ind) is (('A' 0) (i2 6) (i3 3) (const 1)))
+        = True;
+
+      e.Z = False;
+    };
+
+  (4 e.Substs t.Eq)
+    , <MapCompose (e.Substs) t.Eq> : {
+      (
+        /* The equal prefixes are pruned forward up to non-equal parts. */
+        (
+          AreEqual
+          (('A' s.Ind) (Var 'Y'))
+          ((Var 'Z') ('A' s.Ind))
+        )
+        (/* EMPTY */)
+        (
+          (('A' s.Ind) is (('A' 0) (i2 6) (i3 3) (const 1)))
+        )
+      ) = True;
+
+      e.Z = False;
+    };
 }
 
 /*
-  <GetIndexEq (e.IndexEqs) (e.Comp)>
-    == (e.IndexEq)
-    == ε
+  <TestSet-PairComp> == (s.SeqNumber t.Const t.PairConst1 t.PairConst2 t.Eq)*
 */
-GetIndexEq {
-  ((e.IndexEq) e.RestIndexEqs) (e.Comp)
-    , e.IndexEq : {
-      (e.Comp) is (e.RHS) = (e.IndexEq);
-
-      e.AnotherIndexEq = <GetIndexEq (e.RestIndexEqs) (e.Comp)>;
-    };
-
-  /* Abnormal case */
-  (/* No more index equations */) (e.Comp) = /* EMPTY */;
+TestSet-PairComp {
+  = (
+      1
+      ('A' 1)
+      ('B' 0) ('A' 0)
+      (
+        (
+          AreEqual
+          ((Var 'X') ('B' 0) (Var 'Y') ('A' 0))
+          ((Var 'Y') (Var 'Y') ('B' 0) ('A' 0) (Var 'X'))
+        )
+        (
+          (OR (not empty (Var 'X')))
+        )
+        (/* No index equations */)
+      )
+    )
+    (
+      2
+      ('A' 1)
+      ('A' 0) ('B' 0)
+      (
+        (
+          AreEqual
+          ((Var 'X') ('A' 0) ('B' 0) (Var 'Y'))
+          ((Var 'Y') ('B' 0) ('A' 0) (Var 'X'))
+        )
+        (
+          (OR (not empty (Var 'Y')))
+        )
+        (/* No index equations */)
+      )
+    )
+    (
+      3
+      ('A' 1)
+      ('A' 0) ('B' 0)
+      (
+        (
+          AreEqual
+          (('B' 0) (Var 'X') (Var 'Y') ('A' 0))
+          ((Var 'X') ('B' 0) (Var 'Z') (Var 'Y'))
+        )
+        (/* No constraints */)
+        (/* No index equations */)
+      )
+    )
+    (
+      4
+      ('B' 1)
+      ('A' 1) ('B' 0)
+      (
+        (
+          AreEqual
+          (('A' 1) ('B' 0) ('C' 0) (Var 'X') ('B' 0))
+          ((Var 'Y') (Var 'Z') ('B' 0) ('A' 1) (Var 'X'))
+        )
+        (
+          (OR (not empty (Var 'Z')))
+          (OR (not ('C' 0) ends (Var 'Y')))
+          (OR (not ('A' 1) ends (Var 'X')) (not ('B' 0) starts (Var 'X')))
+        )
+        (
+          (('A' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
+        )
+      )
+    );
 }
 
 /*
-  <CheckIndexEqToCollapse (e.Consts) (e.IndexEq)>
-    == (e.IndexEq)
-    == ε
+  <Run-PairComp (s.SeqNumber t.Const t.PairConst1 t.PairConst2 t.Eq)>
+    == True
+    == False
 */
-CheckIndexEqToCollapse {
-  (e.U1 (e.Comp) e.U2) ((e.Comp) is (e.RHS)) = ((e.Comp) is (e.RHS));
+Run-PairComp {
+  (1 e.Input)
+    , <PairComp e.Input> : {
+      ('B' 1) (e.NewEqs)
+        , e.NewEqs
+        : e.L1
+          (
+            (
+              AreEqual
+              ((Var 'X') ('A' 1) (Var 'Y') ('A' 1))
+              (('A' 0) (Var 'Y') ('A' 1) (Var 'Y') ('B' 0) ('A' 1) (Var 'X'))
+            )
+            (
+              (OR (not empty (Var 'X')))
+            )
+            (
+              (('A' 1) is (('B' 0) (const 1)) (('A' 0) (const 1)))
+            )
+          )
+          e.R1
+        , e.L1 e.R1
+        : e.L2
+          (
+            (
+              AreEqual
+              ((Var 'X') ('B' 0) (Var 'Y') ('A' 1))
+              ((Var 'Y') ('B' 0) (Var 'Y') ('B' 0) ('A' 1) (Var 'X'))
+            )
+            (
+              (OR (not empty (Var 'X')))
+              (OR (not ('A' 0) starts (Var 'Y')))
+            )
+            (
+              (('A' 1) is (('B' 0) (const 1)) (('A' 0) (const 1)))
+            )
+          )
+          e.R2
+        , e.L2 e.R2
+        : e.L3
+          (
+            (
+              AreEqual
+              ((Var 'X') ('A' 1) (Var 'Y') ('A' 0))
+              (('A' 0) (Var 'Y') ('A' 0) (Var 'Y') ('A' 1) (Var 'X'))
+            )
+            (
+              (OR (not empty (Var 'X')))
+              (OR (not ('B' 0) ends (Var 'Y')))
+            )
+            (
+              (('A' 1) is (('B' 0) (const 1)) (('A' 0) (const 1)))
+            )
+          )
+          e.R3
+        , e.L3 e.R3
+        : e.L4
+          (
+            (
+              AreEqual
+              ((Var 'X') ('B' 0) (Var 'Y') ('A' 0))
+              ((Var 'Y') (Var 'Y') ('A' 1) (Var 'X'))
+            )
+            (
+              (OR (not empty (Var 'X')))
+              (OR (not empty (Var 'Y')))
+              (OR (not ('B' 0) ends (Var 'Y')))
+              (OR (not ('A' 0) starts (Var 'Y')))
+            )
+            (
+              (('A' 1) is (('B' 0) (const 1)) (('A' 0) (const 1)))
+            )
+          )
+          e.R4
+        , e.L4 e.R4
+        : e.L5
+          (
+            (
+              AreEqual
+              ((Var 'X') ('A' 1))
+              (('A' 1) (Var 'X'))
+            )
+            (
+              (OR (not empty (Var 'X')))
+            )
+            (/* No Conditions */)
+          )
+          e.R5
+        = True;
+
+        e.Other = False;
+    };
+
+  (2 e.Input)
+    , <PairComp e.Input> : {
+      ('B' 1) (e.NewEqs)
+        , e.NewEqs
+        : e.L1
+          (
+            (
+              AreEqual
+              (('B' 0) (Var 'X') ('A' 1) (Var 'Y') ('A' 0))
+              ((Var 'Y') ('A' 1) ('A' 1) (Var 'X'))
+            )
+            (/* No constraints */)
+            (
+              (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+            )
+          )
+          e.R1
+        , e.L1 e.R1
+        : e.L2
+          (
+            (
+              AreEqual
+              ((Var 'X') ('A' 1) (Var 'Y') ('A' 0))
+              ((Var 'Y') ('A' 1) ('A' 0) (Var 'X'))
+            )
+            (
+              (OR (not ('B' 0) starts (Var 'X')))
+            )
+            (
+              (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+            )
+          )
+          e.R2
+        , e.L2 e.R2
+        : e.L3
+          (
+            (
+              AreEqual
+              (('B' 0) (Var 'X') ('A' 1) (Var 'Y'))
+              ((Var 'Y') ('B' 0) ('A' 1) (Var 'X'))
+            )
+            (
+              (OR (not empty (Var 'Y')))
+              (OR (not ('A' 0) ends (Var 'Y')))
+            )
+            (
+              (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+            )
+          )
+          e.R3
+        , e.L3 e.R3
+        : e.L4
+          (
+            (
+              AreEqual
+              ((Var 'X') ('A' 1) (Var 'Y'))
+              ((Var 'Y') ('B' 0) ('A' 0) (Var 'X'))
+            )
+            (
+              (OR (not empty (Var 'Y')))
+              (OR (not ('A' 0) ends (Var 'Y')))
+              (OR (not ('B' 0) starts (Var 'X')))
+            )
+            (
+              (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+            )
+          )
+          e.R4
+        = True;
+
+        e.Other = False;
+    };
+
+  (3 e.Input)
+    , <PairComp e.Input> : {
+      ('B' 1) (e.NewEqs)
+        , e.NewEqs
+        : e.L1
+          (
+            (
+              AreEqual
+              (('B' 0) (Var 'X') ('A' 1) (Var 'Y') ('A' 0))
+              ((Var 'X') ('A' 1) (Var 'Z') ('A' 1) (Var 'Y'))
+            )
+            (/* No constraints */)
+            (
+              (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+            )
+          )
+          e.R1
+        , e.L1 e.R1
+        : e.L2
+          (
+            (
+              AreEqual
+              (('B' 0) (Var 'X') ('A' 1) (Var 'Y') ('A' 0))
+              ((Var 'X') ('A' 1) (Var 'Z') ('B' 0) (Var 'Y'))
+            )
+            (
+              (OR (not ('A' 0) ends (Var 'Z')))
+            )
+            (
+              (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+            )
+          )
+          e.R2
+        , e.L2 e.R2
+        : e.L3
+          (
+            (
+              AreEqual
+              (('B' 0) (Var 'X') ('A' 0) (Var 'Y') ('A' 0))
+              ((Var 'X') ('A' 1) (Var 'Z') (Var 'Y'))
+            )
+            (
+              (OR (not ('B' 0) starts (Var 'Y')))
+            )
+            (
+              (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+            )
+          )
+          e.R3
+        , e.L3 e.R3
+        : e.L4
+          (
+            (
+              AreEqual
+              (('B' 0) (Var 'X') ('B' 0) (Var 'Y') ('A' 0))
+              ((Var 'X') ('B' 0) (Var 'Z') ('A' 1) (Var 'Y'))
+            )
+            (
+              (OR (not ('A' 0) ends (Var 'X')))
+            )
+            (
+              (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+            )
+          )
+          e.R4
+        , e.L4 e.R4
+        : e.L5
+          (
+            (
+              AreEqual
+              (('B' 0) (Var 'X') (Var 'Y') ('A' 0))
+              ((Var 'X') ('B' 0) (Var 'Z') (Var 'Y'))
+            )
+            (
+              (OR (not ('A' 0) ends (Var 'X')))
+              (OR (not ('A' 0) ends (Var 'Z')) (not ('B' 0) starts (Var 'Y')))
+            )
+            (/* No index equations */)
+          )
+          e.R5
+        = True;
+
+      e.Other, <Prout e.Other> : = False;
+    };
+
+  (4 e.Input)
+    , <PairComp e.Input> : {
+      ('C' 1) (e.NewEqs)
+        , e.NewEqs
+        : e.L1
+          (
+            /* X = A1 X, Z = Z A1, X = B0 X - impossible */
+            /* X = A1 X, Z = Z A1, X != B0 X */
+            (
+              AreEqual
+              (('B' 1) ('C' 0) (Var 'X') ('B' 1))
+              ((Var 'Y') (Var 'Z') ('B' 1) ('A' 1) (Var 'X') ('A' 1))
+            )
+            (
+              (OR (not ('C' 0) ends (Var 'Y')))
+              (OR (not ('B' 0) starts (Var 'X')))
+            )
+            (
+              (('A' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
+              (('B' 1) is (('A' 1) (const 1)) (('B' 0) (const 1)))
+            )
+          )
+          e.R1
+        , e.L1 e.R1
+        : e.L2
+          (
+            /* X = A1 X, Z != Z A1, X = B0 X - impossible */
+            /* X = A1 X, Z != Z A1, X != B0 X */
+            (
+              AreEqual
+              (('B' 1) ('C' 0) (Var 'X') ('B' 1))
+              ((Var 'Y') (Var 'Z') ('B' 0) ('A' 1) (Var 'X') ('A' 1))
+            )
+            (
+              (OR (not empty (Var 'Z')))
+              (OR (not ('C' 0) ends (Var 'Y')))
+              (OR (not ('A' 1) ends (Var 'Z')))
+              (OR (not ('B' 0) starts (Var 'X')))
+            )
+            (
+              (('A' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
+              (('B' 1) is (('A' 1) (const 1)) (('B' 0) (const 1)))
+            )
+          )
+          e.R2
+        , e.L2 e.R2
+        : e.L3
+          (
+            /* X != A1 X, Z = Z A1, X = B0 X */
+            (
+              AreEqual
+              (('B' 1) ('C' 0) ('B' 0) (Var 'X') ('B' 0))
+              ((Var 'Y') (Var 'Z') ('B' 1) ('B' 1) (Var 'X'))
+            )
+            (
+              (OR (not ('A' 1) ends (Var 'X')))
+              (OR (not ('C' 0) ends (Var 'Y')))
+            )
+            (
+              (('A' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
+              (('B' 1) is (('A' 1) (const 1)) (('B' 0) (const 1)))
+            )
+          )
+          e.R3
+        , e.L3 e.R3
+        : e.L4
+          (
+            /* X != A1 X, Z = Z A1, X != B0 X */
+            (
+              AreEqual
+              (('B' 1) ('C' 0) (Var 'X') ('B' 0))
+              ((Var 'Y') (Var 'Z') ('B' 1) ('A' 1) (Var 'X'))
+            )
+            (
+              (OR (not ('A' 1) ends (Var 'X')))
+              (OR (not ('C' 0) ends (Var 'Y')))
+              (OR (not ('B' 0) starts (Var 'X')))
+            )
+            (
+              (('A' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
+              (('B' 1) is (('A' 1) (const 1)) (('B' 0) (const 1)))
+            )
+          )
+          e.R4
+        , e.L4 e.R4
+        : e.L5
+          (
+            /* X != A1 X, Z != Z A1, X = B0 X */
+            (
+              AreEqual
+              (('B' 1) ('C' 0) ('B' 0) (Var 'X') ('B' 0))
+              ((Var 'Y') (Var 'Z') ('B' 0) ('B' 1) (Var 'X'))
+            )
+            (
+              (OR (not empty (Var 'Z')))
+              (OR (not ('A' 1) ends (Var 'X')))
+              (OR (not ('C' 0) ends (Var 'Y')))
+              (OR (not ('A' 1) ends (Var 'Z')))
+            )
+            (
+              (('A' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
+              (('B' 1) is (('A' 1) (const 1)) (('B' 0) (const 1)))
+            )
+          )
+          e.R5
+        , e.L5 e.R5
+        : e.L6
+          (
+            /* X != A1 X, Z != Z A1, X != B0 X */
+            (
+              AreEqual
+              (('B' 1) ('C' 0) (Var 'X') ('B' 0))
+              ((Var 'Y') (Var 'Z') ('B' 0) ('A' 1) (Var 'X'))
+            )
+            (
+              (OR (not empty (Var 'Z')))
+              (OR (not ('A' 1) ends (Var 'X')))
+              (OR (not ('C' 0) ends (Var 'Y')))
+              (OR (not ('A' 1) ends (Var 'Z')))
+              (OR (not ('B' 0) starts (Var 'X')))
+            )
+            (
+              (('A' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
+              (('B' 1) is (('A' 1) (const 1)) (('B' 0) (const 1)))
+            )
+          )
+          e.R6
+        = True;
+
+        e.Other = False;
+    };
+}
+
+/*
+  <TestSet-BlockComp> == (s.SeqNumber t.BlockConst t.Const t.Index t.Eq)*
+*/
+TestSet-BlockComp {
+  = (
+      1
+      ('A' 0)
+      ('A' 1) i1
+      (
+        (
+          AreEqual
+          ((Var 'X') ('A' 0) ('A' 0))
+          (('B' 0) (Var 'Y'))
+        )
+        (/* No constraints */)
+        (/* No conditions */)
+      )
+    )
+    (
+      2
+      ('B' 0)
+      ('E' 1) i5
+      (
+        (
+          AreEqual
+          ((Var 'X'))
+          (('B' 0) (Var 'Y'))
+        )
+        (
+          (OR (not empty (Var 'X')))
+          (OR (not empty (Var 'Y')))
+        )
+        (/* no conditions */)
+      )
+    )
+    (
+      3 
+      ('A' 1)
+      ('B' 1) i1
+      (
+        (
+          AreEqual
+          (('A' 1) (Var 'X') (Var 'Y') ('B' 0))
+          ((Var 'X') ('C' 0) ('A' 1) (Var 'Z'))
+        )
+        (
+          (OR (not empty (Var 'Y')))
+          (OR (not empty (Var 'Z')))
+          (OR (not ('C' 0) ends (Var 'X')))
+          (OR (not ('B' 0) ends (Var 'Y')))
+          (OR (not ('A' 1) starts (Var 'X')))
+        )
+        (
+          (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+        )
+      )
+    )
+    (
+      4 
+      ('C' 1)
+      ('D' 1) i2
+      (
+        (
+          AreEqual
+          ((Var 'X') (Var 'Y') ('C' 1))
+          ((Var 'Y') ('A' 1) ('B' 0) (Var 'X'))
+        )
+        (
+          (OR (not empty (Var 'X')))
+          (OR (not ('C' 0) ends (Var 'X')))
+          (OR (not ('A' 0) starts (Var 'Y')))
+          (OR (not ('B' 0) ends (Var 'Y')) (not ('C' 1) starts (Var 'X')))
+          (OR (not ('C' 1) ends (Var 'Y')) (not ('A' 1) starts (Var 'X')))
+        )
+        (
+          (('A' 1) is (('A' 0) (i1 1) (const 0)))
+          (('B' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
+          (('C' 1) is (('A' 1) (const 1)) (('B' 1) (const 1)))
+        )
+      )
+    );
+}
+
+/*
+  <Run-BlockComp (s.SeqNumber t.BlockConst t.Const t.Index t.Eq)>
+    == True
+    == False
+*/
+Run-BlockComp {
+  (1 e.Input)
+    , <BlockComp e.Input> : {
+      e.L1
+      (
+        ('C' 1) i3
+        (
+          (
+            AreEqual
+            (('A' 1))
+            (('B' 0) ('B' 1))
+          )
+          (/* no constraints */)
+          (
+            (('A' 1) is (('A' 0) (i1 1) (const 2)))
+            (('B' 1) is (('A' 0) (i2 1) (const 0)))
+          )
+        )
+      )
+      e.R1
+        , e.L1 e.R1
+        : e.L2
+          (
+            ('D' 1) i4
+            (
+              (
+                AreEqual
+                (('A' 1))
+                (('B' 0) ('B' 1) (Var 'Y') ('C' 1))
+              )
+              (
+                (OR (not empty (Var 'Y')))
+                (OR (not ('A' 0) ends (Var 'Y')))
+                (OR (not ('A' 0) starts (Var 'Y')))
+              )
+              (
+                (('A' 1) is (('A' 0) (i1 1) (const 2)))
+                (('B' 1) is (('A' 0) (i2 1) (const 0)))
+                (('C' 1) is (('A' 0) (i3 1) (const 0)))
+              )
+            )
+          )
+          e.R2
+        , e.L2 e.R2
+        : e.L3
+          (
+            ('D' 1) i4
+            (
+              (
+                AreEqual
+                (('A' 1) (Var 'X') ('B' 1))
+                (('B' 0) ('C' 1))
+              )
+              (
+                (OR (not empty (Var 'X')))
+                (OR (not ('A' 0) ends (Var 'X')))
+                (OR (not ('A' 0) starts (Var 'X')))
+              )
+              (
+                (('A' 1) is (('A' 0) (i1 1) (const 0)))
+                (('B' 1) is (('A' 0) (i2 1) (const 2)))
+                (('C' 1) is (('A' 0) (i3 1) (const 0)))
+              )
+            )
+          )
+          e.R3
+        , e.L3 e.R3
+        : e.L4
+          (
+            ('E' 1) i5
+            (
+              (
+                AreEqual
+                (('A' 1) (Var 'X') ('B' 1))
+                (('B' 0) ('C' 1) (Var 'Y') ('D' 1))
+              )
+              (
+                (OR (not empty (Var 'X')))
+                (OR (not empty (Var 'Y')))
+                (OR (not ('A' 0) ends (Var 'X')))
+                (OR (not ('A' 0) ends (Var 'Y')))
+                (OR (not ('A' 0) starts (Var 'X')))
+                (OR (not ('A' 0) starts (Var 'Y')))
+              )
+              (
+                (('A' 1) is (('A' 0) (i1 1) (const 0)))
+                (('B' 1) is (('A' 0) (i2 1) (const 2)))
+                (('C' 1) is (('A' 0) (i3 1) (const 0)))
+                (('D' 1) is (('A' 0) (i4 1) (const 0)))
+              )
+            )
+          )
+          e.R4
+        = True;
+
+      e.Other = False;
+    };
+
+  (2 e.Input)
+    , <BlockComp e.Input> : {
+      e.L1
+      (
+        ('G' 1) i7
+        (
+          (
+            AreEqual
+            (('E' 1))
+            (('F' 1))
+          )
+          (/* no constraints */)
+          (
+            (('E' 1) is (('B' 0) (i5 1) (const 1)))
+            (('F' 1) is (('B' 0) (i6 1) (const 2)))
+          )
+        )
+      )
+      e.R1
+        , e.L1 e.R1
+        : e.L2
+          (
+            ('H' 1) i8
+            (
+              (
+                AreEqual
+                (('E' 1))
+                (('F' 1) (Var 'Y') ('G' 1))
+              )
+              (
+                (OR (not empty (Var 'Y')))
+                (OR (not ('B' 0) ends (Var 'Y')))
+                (OR (not ('B' 0) starts (Var 'Y')))
+              )
+              (
+                (('E' 1) is (('B' 0) (i5 1) (const 1)))
+                (('F' 1) is (('B' 0) (i6 1) (const 1)))
+                (('G' 1) is (('B' 0) (i7 1) (const 0)))
+              )
+            )
+          )
+          e.R2
+        , e.L2 e.R2
+        : e.L3
+          (
+            ('H' 1) i8
+            (
+              (
+                AreEqual
+                (('E' 1) (Var 'X') ('F' 1))
+                (('G' 1))
+              )
+              (
+                (OR (not empty (Var 'X')))
+                (OR (not ('B' 0) ends (Var 'X')))
+                (OR (not ('B' 0) starts (Var 'X')))
+              )
+              (
+                (('E' 1) is (('B' 0) (i5 1) (const 0)))
+                (('F' 1) is (('B' 0) (i6 1) (const 0)))
+                (('G' 1) is (('B' 0) (i7 1) (const 2)))
+              )
+            )
+          )
+          e.R3
+        , e.L3 e.R3
+        : e.L4
+          (
+            ('I' 1) i9
+            (
+              (
+                AreEqual
+                (('E' 1) (Var 'X') ('F' 1))
+                (('G' 1) (Var 'Y') ('H' 1))
+              )
+              (
+                (OR (not empty (Var 'X')))
+                (OR (not empty (Var 'Y')))
+                (OR (not ('B' 0) ends (Var 'X')))
+                (OR (not ('B' 0) ends (Var 'Y')))
+                (OR (not ('B' 0) starts (Var 'X')))
+                (OR (not ('B' 0) starts (Var 'Y')))
+              )
+              (
+                (('E' 1) is (('B' 0) (i5 1) (const 0)))
+                (('F' 1) is (('B' 0) (i6 1) (const 0)))
+                (('G' 1) is (('B' 0) (i7 1) (const 1)))
+                (('H' 1) is (('B' 0) (i8 1) (const 0)))
+              )
+            )
+          )
+          e.R4
+        = True;
+
+      e.Other = False;
+    };
     
-  (e.Consts) (e.NotInvolvedIndexEq) = /* EMPTY */;
+  (3 e.Input)
+    , <BlockComp e.Input> : {
+      e.L1
+      /* X = empty, Y = A1^i Y, Z = A1^(j+1) */
+      (
+        ('D' 1) i3
+        (
+          (
+            AreEqual
+            (('B' 1) (Var 'Y') ('B' 0))
+            (('C' 0) ('C' 1))
+          )
+          (
+            (OR (not empty (Var 'Y')))
+            (OR (not ('B' 0) ends (Var 'Y')))
+            (OR (not ('A' 1) starts (Var 'Y')))
+          )
+          (
+            (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+            (('B' 1) is (('A' 1) (i1 1) (const 1)))
+            (('C' 1) is (('A' 1) (i2 1) (const 2)))
+          )
+        )
+      )
+      e.R1
+        , e.L1 e.R1
+        : e.L2
+          /* X = empty, Y = A1^i Y, Z = A1^j Z A1^k */
+          (
+            ('E' 1) i4
+            (
+              (
+                AreEqual
+                (('B' 1) (Var 'Y') ('B' 0))
+                (('C' 0) ('C' 1) (Var 'Z') ('D' 1))
+              )
+              (
+                (OR (not empty (Var 'Y')))
+                (OR (not empty (Var 'Z')))
+                (OR (not ('B' 0) ends (Var 'Y')))
+                (OR (not ('A' 1) ends (Var 'Z')))
+                (OR (not ('A' 1) starts (Var 'Y')))
+                (OR (not ('A' 1) starts (Var 'Z')))
+              )
+              (
+                (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+                (('B' 1) is (('A' 1) (i1 1) (const 1)))
+                (('C' 1) is (('A' 1) (i2 1) (const 1)))
+                (('D' 1) is (('A' 1) (i3 1) (const 0)))
+              )
+            )
+          )
+          e.R2
+        , e.L2 e.R2
+        : e.L3
+          /* X = X, Y = A1^i Y, Z = A1^(j+1) */
+          (
+            ('D' 1) i3
+            (
+              (
+                AreEqual
+                (('A' 1) (Var 'X') ('B' 1) (Var 'Y') ('B' 0))
+                ((Var 'X') ('C' 0) ('C' 1))
+              )
+              (
+                (OR (not empty (Var 'X')))
+                (OR (not empty (Var 'Y')))
+                (OR (not ('C' 0) ends (Var 'X')))
+                (OR (not ('A' 1) ends (Var 'X')))
+                (OR (not ('B' 0) ends (Var 'Y')))
+                (OR (not ('A' 1) starts (Var 'X')))
+                (OR (not ('A' 1) starts (Var 'Y')))
+              )
+              (
+                (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+                (('B' 1) is (('A' 1) (i1 1) (const 0)))
+                (('C' 1) is (('A' 1) (i2 1) (const 2)))
+              )
+            )
+          )
+          e.R3
+        , e.L3 e.R3
+        : e.L4
+          /* X = X, Y = A1^i Y, Z = A1^j Z A1^k) */
+          (
+            ('E' 1) i4
+            (
+              (
+                AreEqual
+                (('A' 1) (Var 'X') ('B' 1) (Var 'Y') ('B' 0))
+                ((Var 'X') ('C' 0) ('C' 1) (Var 'Z') ('D' 1))
+              )
+              (
+                (OR (not empty (Var 'X')))
+                (OR (not empty (Var 'Y')))
+                (OR (not empty (Var 'Z')))
+                (OR (not ('C' 0) ends (Var 'X')))
+                (OR (not ('A' 1) ends (Var 'X')))
+                (OR (not ('B' 0) ends (Var 'Y')))
+                (OR (not ('A' 1) ends (Var 'Z')))
+                (OR (not ('A' 1) starts (Var 'X')))
+                (OR (not ('A' 1) starts (Var 'Y')))
+                (OR (not ('A' 1) starts (Var 'Z')))
+              )
+              (
+                (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+                (('B' 1) is (('A' 1) (i1 1) (const 0)))
+                (('C' 1) is (('A' 1) (i2 1) (const 1)))
+                (('D' 1) is (('A' 1) (i3 1) (const 0)))
+              )
+            )
+          )
+          e.R4
+        , e.L4 e.R4
+        : e.L5
+          /* X = X A1^i, Y = A1^j Y, Z = A1^(k+1) */
+          (
+            ('E' 1) i5
+            (
+              (
+                AreEqual
+                (('A' 1) (Var 'X') ('B' 1) (Var 'Y') ('B' 0))
+                ((Var 'X') ('C' 1) ('C' 0) ('D' 1))
+              )
+              (
+                (OR (not empty (Var 'X')))
+                (OR (not empty (Var 'Y')))
+                (OR (not ('A' 1) ends (Var 'X')))
+                (OR (not ('B' 0) ends (Var 'Y')))
+                (OR (not ('A' 1) starts (Var 'X')))
+                (OR (not ('A' 1) starts (Var 'Y')))
+              )
+              (
+                (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+                (('B' 1) is (('A' 1) (i1 1) (i2 1) (const 0)))
+                (('C' 1) is (('A' 1) (i3 1) (const 0)))
+                (('D' 1) is (('A' 1) (i4 1) (const 2)))
+              )
+            )
+          )
+          e.R5
+        , e.L5 e.R5
+        : /* X = X A1^i, Y = A1^j Y, Z = A1^k Z A1^l */
+          (
+            ('F' 1) i6
+            (
+              (
+                AreEqual
+                (('A' 1) (Var 'X') ('B' 1) (Var 'Y') ('B' 0))
+                ((Var 'X') ('C' 1) ('C' 0) ('D' 1) (Var 'Z') ('E' 1))
+              )
+              (
+                (OR (not empty (Var 'X')))
+                (OR (not empty (Var 'Y')))
+                (OR (not empty (Var 'Z')))
+                (OR (not ('A' 1) ends (Var 'X')))
+                (OR (not ('B' 0) ends (Var 'Y')))
+                (OR (not ('A' 1) ends (Var 'Z')))
+                (OR (not ('A' 1) starts (Var 'X')))
+                (OR (not ('A' 1) starts (Var 'Y')))
+                (OR (not ('A' 1) starts (Var 'Z')))
+              )
+              (
+                (('A' 1) is (('A' 0) (const 1)) (('B' 0) (const 1)))
+                (('B' 1) is (('A' 1) (i1 1) (i2 1) (const 0)))
+                (('C' 1) is (('A' 1) (i3 1) (const 0)))
+                (('D' 1) is (('A' 1) (i4 1) (const 1)))
+                (('E' 1) is (('A' 1) (i5 1) (const 0)))
+              )
+            )
+          )
+        = True;
 
-  e.Other = <Prout 'CheckIndexEqToCollapse: Invalid input ' e.Other>;
-}
+      e.Other = False;
+    };
+    
+  (4 e.Input)
+    , <BlockComp e.Input> : {
+      e.L1
+      /* X = C1^i X, Y = empty */
+      (
+        ('F' 1) i4
+        (
+          (
+            AreEqual
+            (('D' 1) (Var 'X') ('C' 1))
+            (('A' 1) ('B' 0) ('E' 1) (Var 'X'))
+          )
+          (
+            (OR (not empty (Var 'X')))
+            (OR (not ('C' 0) ends (Var 'X')))
+            (OR (not ('C' 1) starts (Var 'X')))
+          )
+          (
+            (('A' 1) is (('A' 0) (i1 1) (const 0)))
+            (('B' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
+            (('C' 1) is (('A' 1) (const 1)) (('B' 1) (const 1)))
+            (('D' 1) is (('C' 1) (i2 1) (const 0)))
+            (('E' 1) is (('C' 1) (i3 1) (const 0)))
+          )
+        )
+      )
+      e.R1
+        , e.L1 e.R1
+        : e.L2
+          /* X = C1^i X, Y = Y */
+          (
+            ('F' 1) i4
+            (
+              (
+                AreEqual
+                (('D' 1) (Var 'X') (Var 'Y') ('C' 1))
+                ((Var 'Y') ('A' 1) ('B' 0) ('E' 1) (Var 'X'))
+              )
+              (
+                (OR (not empty (Var 'X')))
+                (OR (not empty (Var 'Y')))
+                (OR (not ('C' 0) ends (Var 'X')))
+                (OR (not ('C' 1) ends (Var 'Y')))
+                (OR (not ('C' 1) starts (Var 'X')))
+                (OR (not ('A' 0) starts (Var 'Y')))
+              )
+              (
+                (('A' 1) is (('A' 0) (i1 1) (const 0)))
+                (('B' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
+                (('C' 1) is (('A' 1) (const 1)) (('B' 1) (const 1)))
+                (('D' 1) is (('C' 1) (i2 1) (const 0)))
+                (('E' 1) is (('C' 1) (i3 1) (const 0)))
+              )
+            )
+          )
+          e.R2
+        , e.L2 e.R2
+        : e.L3
+          /* Y = e */
+          (
+            ('D' 1) i2
+            (
+              (
+                AreEqual
+                ((Var 'X') ('C' 1))
+                (('A' 1) ('B' 0) (Var 'X'))
+              )
+              (
+                (OR (not empty (Var 'X')))
+                (OR (not ('C' 0) ends (Var 'X')))
+                (OR (not ('A' 1) starts (Var 'X')))
+              )
+              (
+                (('A' 1) is (('A' 0) (i1 1) (const 0)))
+                (('B' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
+                (('C' 1) is (('A' 1) (const 1)) (('B' 1) (const 1)))
+              )
+            )
+          )
+          e.R3
+        , e.L3 e.R3
+        : /* Y = Y C1^i */
+          (
+            ('F' 1) i4
+            (
+              (
+                AreEqual
+                ((Var 'X') (Var 'Y') ('D' 1))
+                ((Var 'Y') ('E' 1) ('A' 1) ('B' 0) (Var 'X'))
+              )
+              (
+                (OR (not empty (Var 'X')))
+                (OR (not empty (Var 'Y')))
+                (OR (not ('C' 0) ends (Var 'X')))
+                (OR (not ('C' 1) ends (Var 'Y')))
+                (OR (not ('A' 1) starts (Var 'X')))
+                (OR (not ('A' 0) starts (Var 'Y')))
+              )
+              (
+                (('A' 1) is (('A' 0) (i1 1) (const 0)))
+                (('B' 1) is (('B' 0) (const 1)) (('C' 0) (const 1)))
+                (('C' 1) is (('A' 1) (const 1)) (('B' 1) (const 1)))
+                (('D' 1) is (('C' 1) (i2 1) (const 1)))
+                (('E' 1) is (('C' 1) (i3 1) (const 0)))
+              )
+            )
+          )
+        = True;
 
-/*
-  <ReplaceRepeatedIndexEqs (e.IndexEqs) (e.Substs)>
-    == (e.ReplacedIndexEqs) (e.Substs)
-*/
-ReplaceRepeatedIndexEqs {
-  (
-    e.U1
-    ((e.Comp1) is (e.RHS))
-    e.U2
-    ((e.Comp2) is (e.RHS))
-    e.U3
-  )
-  (e.Substs) 
-    = <ReplaceRepeatedIndexEqs
-        (e.U1 ((e.Comp1) is (e.RHS)) e.U2 e.U3)
-        (<GenSubst (e.Comp2) ((e.Comp1))> e.Substs)
-      >;
-      
-  (e.UniqueIndexEqs) (e.Substs) = (e.UniqueIndexEqs) (e.Substs);
-  
-  e.Other = <Prout 'ReplaceRepeatedIndexEqs: Invalid input ' e.Other>;
+      e.Other = False;
+    };
 }
 

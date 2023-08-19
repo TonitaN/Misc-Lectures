@@ -1,0 +1,89 @@
+/*
+  Throws `Recognition Impossible` if the lists have not equal lengths.
+*/
+Zip {
+  (t.X e.X) (t.Y e.Y) = (t.X t.Y) <Zip (e.X) (e.Y)>;
+    
+  (/* empty */) (/* empty */) = /* empty */;
+}
+
+$ENTRY FormPair {
+  t.First t.Second = (t.First t.Second);
+}
+
+Trim {
+  e.X ' ' e.Y = e.X <Trim e.Y>;
+  
+  e.Z = e.Z;
+}
+
+Arrange {
+  Normal (e.1) (e.2) = e.1 e.2;
+  
+  Inverse (e.1) (e.2) = e.2 e.1;
+}
+
+Unwrap {
+  (e.Preamble) (e.Preamble e.Val) = e.Val;
+  
+  (e.Preamble) e.Preamble e.Val = e.Val;
+  
+  (e.Preamble) e.Val = e.Val;
+}
+
+/*
+  There is another function named 'Wrap' in Main.ref
+*/
+Wrap {
+  Plain s.Order (e.Preamble) e.Val
+    = <Arrange s.Order (e.Preamble) (e.Val)>;
+    
+  Inner s.Order (e.Preamble) e.Val
+    = (<Arrange s.Order (e.Preamble) (e.Val)>);
+    
+  Combined s.Order (e.Preamble) e.Val
+    = <Arrange s.Order (e.Preamble) ((e.Val))>;
+}
+
+StructParens {
+  e.Arg = <ExtractRealParens Plain e.Arg>; 
+}
+
+ExtractRealParens {
+  Plain e.x'('e.y')'e.z
+    , e.y : {
+      e.y1'('e.y2
+        , <ExtractRealParens Left () e.y2> : {
+          (/* empty */) e.v2
+            = <ExtractRealParens Plain e.x '(' e.y1 (e.v2) e.z>;
+    
+          (e.v1 '(') e.v2
+            = <ExtractRealParens Plain e.x '(' e.y1 '(' e.v1 (e.v2) e.z>;
+        };
+  
+      e.other = <ExtractRealParens Plain e.x (e.y) e.z>;
+    };
+
+  Left (e.drop) e.y
+    , e.y : {
+      e.y1 '(' e.y2
+        = <ExtractRealParens Left (e.drop e.y1 '(') e.y2>;
+
+      e.z = (e.drop) e.y;
+    };
+  
+  Plain e.Rest = e.Rest;
+}
+
+/*
+  <ChooseMax s.Val1 s.Val2> == s.MaxVal
+*/
+ChooseMax {
+  s.Val1 s.Val2
+    , <Compare s.Val1 s.Val2> : {
+      '+' = s.Val1;
+      
+      s.Any = s.Val2;
+    };
+}
+
