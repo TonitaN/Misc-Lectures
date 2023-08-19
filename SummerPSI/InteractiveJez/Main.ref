@@ -1,9 +1,12 @@
 *$INLINE HigherOrder;
 
+$EXTERN Zip;
+
 /*
   ABBREVIATIONS.
 
   (elem)ent
+  (ent)ity
   (eq)uation
   (exp)onent
   (comp)ression
@@ -534,105 +537,95 @@ IsRestrRedundant {
   <IsLess-Constr t.Constr1 t.Constr2>
     == True
     == False
-
-  Comparator for lexicographic sort of constraints.
 */
 IsLess-Constr {
   t.Constr1 t.Constr2
-    , t.Constr1 : {
-      (OR (not empty t.Var1))
-        , t.Constr2 : {
-          (OR (not empty t.Var2))
-            , <CompareVars t.Var1 t.Var2> : '+' = False;
-
-          e.Other = True;
-        };
-
-      (OR (not t.Const1 ends t.Var1))
-        , t.Constr2 : {
-          (OR (not empty t.Var2)) = False;
-
-          (OR (not t.Const2 ends t.Var2))
-            , <CompareVars t.Var1 t.Var2> : {
-              '-' = True;
-              
-              '+' = False;
-              
-              '0', <CompareConsts t.Const1 t.Const2> : {
-                  '-' = True;
-
-                  s.Other = False;
-                };
-            };
-
-          e.Other = True;
-        };
-        
-      (OR (not t.Const1 starts t.Var1))
-        , t.Constr2 : {
-          (OR (not empty t.Var2)) = False;
-
-          (OR (not t.Const2 ends t.Var2)) = False;
-
-          (OR (not t.Const2 starts t.Var2))
-            , <CompareVars t.Var1 t.Var2> : {
-              '-' = True;
-              
-              '+' = False;
-            
-              '0', <CompareConsts t.Const1 t.Const2> : {
-                  '-' = True;
-
-                  s.Other = False;
-                };
-            };
-
-          e.Other = True;
-        };
-        
-      (OR (not t.Const1 ends t.Var1) (not t.Const2 starts t.Var2))
-        , t.Constr2 : {
-          (OR (not empty t.Var3)) = False;
-
-          (OR (not t.Const3 ends t.Var3)) = False;
-
-          (OR (not t.Const3 starts t.Var3)) = False;
-
-          (OR (not t.Const3 ends t.Var3) (not t.Const4 starts t.Var4))
-            , <CompareVars t.Var1 t.Var3> : {
-              '-' = True;
-
-              '+' = False;
-              
-              '0', <CompareConsts t.Const1 t.Const3> : {
-                  '-' = True;
-
-                  '+' = False;
-
-                  '0', <CompareVars t.Var2 t.Var4> : {
-                      '-' = True;
-
-                      '+' = False;
-
-                      '0', <CompareConsts t.Const2 t.Const4> : {
-                          '-' = True;
-
-                          s.Other = False;
-                        };
-                    };
-                };
-            };
-        };
+    , <Zip
+        <MapCall
+          Plain Fold-Constr t.Constr1 t.Constr2
+        >
+      > : e.FoldedConstrs
+    , <MapCall-Till
+        ('0')
+        Plain Compare-FoldedConstrs e.FoldedConstrs
+      > : {
+      '-' = True;
+      
+      s.Other = False; /* s.Other ::= '+' | '0' */
     };
 }
 
 /*
-  <CompareConsts t.Const1 t.Const2>
+  <Fold-Constr t.Constr>
+    == ((empty) (t.Var) () () ())
+    == (({ends | starts}) (t.Var) (t.Const) () ())
+    == ((union) (t.Var1) (t.Const1) (t.Var2) (t.Const2))
+*/
+Fold-Constr {
+  (OR (not empty t.Var))
+    = ((empty) (t.Var) (/* empty */) (/* empty */) (/* empty */));
+
+  (OR (not t.Const s.Action t.Var)) /* s.Action ::= ends | starts */
+    = ((s.Action) (t.Var) (t.Const) (/* empty */) (/* empty */));
+
+  (OR (not t.Const1 ends t.Var1) (not t.Const2 starts t.Var2))
+    = ((union) (t.Var1) (t.Const1) (t.Var2) (t.Const2));
+}
+
+/*
+  <Compare-FoldedConstrs ((t.Ent1?) (t.Ent2?))>
+    == '-'
+    == '0'
+    == '+'
+
+  t.Ent ::= s.Type | t.Var | t.Const
+  s.Type ::= empty | ends | starts | union
+*/
+Compare-FoldedConstrs {
+  ((/* empty */) (/* empty */)) = '0'; /* shouldn't be performed */
+  
+  ((/* empty */) (t.Ent)) = '-';
+  
+  ((t.Ent) (/* empty */)) = '+';
+
+  ((s.Type1) (s.Type2))
+    = <Compare-Strings (<Explode s.Type1>) (<Explode s.Type2>)>;
+
+  (((Var s.X)) ((Var s.Y)))
+    = <Compare-Vars (Var s.X) (Var s.Y)>;
+
+  (((s.Char1 s.Numb1)) ((s.Char2 s.Numb2)))
+    = <Compare-Consts (s.Char1 s.Numb1) (s.Char2 s.Numb2)>;
+}
+
+/*
+  <Compare-Strings (e.Str1) (e.Str2)>
     == '-'
     == '0'
     == '+'
 */
-CompareConsts {
+Compare-Strings {
+  (/* empty */) (/* empty */) = '0';
+  
+  (/* empty */) (e.Str) = '-';
+  
+  (e.Str) (/* empty */) = '+';
+  
+  (s.Char1 e.RestChars1) (s.Char2 e.RestChars2)
+    , <Compare <Ord s.Char1> <Ord s.Char2>> : {
+      '0' = <Compare-Strings (e.RestChars1) (e.RestChars2)>;
+
+      s.Other = s.Other; /* s.Other ::= '-' | '+' */
+    };
+}
+
+/*
+  <Compare-Consts t.Const1 t.Const2>
+    == '-'
+    == '0'
+    == '+'
+*/
+Compare-Consts {
   (s.Char1 s.Num1) (s.Char2 s.Num2)
     , <Compare s.Num1 s.Num2> : {
       '0' = <Compare <Ord s.Char1> <Ord s.Char2>>;
@@ -642,12 +635,12 @@ CompareConsts {
 }
 
 /*
-  <CompareVars t.Var1 t.Var2>
+  <Compare-Vars t.Var1 t.Var2>
     == '-'
     == '0'
     == '+'
 */
-CompareVars {
+Compare-Vars {
   (Var s.Char1) (Var s.Char2) = <Compare <Ord s.Char1> <Ord s.Char2>>;
 }
 
@@ -1364,7 +1357,7 @@ NormalizePairOption {
         (e.Substs) (e.Constrs e.AddedConstrs)
       > : (e.UniqueSubsts) (e.UniqueConstrs)
     , <MapCall
-        Plain FoldSubst e.UniqueSubsts
+        Plain Fold-Subst e.UniqueSubsts
       > : e.FoldedSubsts
     , <MapCompose
         (
@@ -1452,10 +1445,10 @@ ForceDependentConstrs {
 }
 
 /*
-  <FoldSubst t.Subst>
+  <Fold-Subst t.Subst>
     == (s.RestrMode t.Var t.Const)
 */
-FoldSubst {
+Fold-Subst {
   (assign (t.Var) (e.NewValue))
     , e.NewValue : {
       t.Var t.Const = (ends t.Var t.Const);
@@ -1475,7 +1468,7 @@ CheckOptionConsistency {
   (e.Conds) (e.ProcessedSubsts) ((e.Substs) (e.Constrs))
     , e.Substs : {
       t.Subst e.RestSubsts
-        , <FoldSubst t.Subst> : {
+        , <Fold-Subst t.Subst> : {
           (s.Mode t.Var t.Const)
             , <SelectConstrs
                 (e.Constrs) t.Var s.Mode
@@ -1508,7 +1501,7 @@ ModifyPairOption {
   (e.Conds) (e.ProcessedSubsts) ((e.Substs) (e.Constrs))
     , e.Substs : {
       t.Subst e.RestSubsts
-        , <FoldSubst t.Subst> : (s.Mode t.Var t.Const)
+        , <Fold-Subst t.Subst> : (s.Mode t.Var t.Const)
         , <MapCall
             Curry
             (SelectConstrs (e.Constrs) t.Var)
@@ -1585,6 +1578,10 @@ SeparateConstrs {
         , <IsElemInSet
             t.PrefixConst (t.BlockConst <GetFirst t.BlockConst (e.Conds)>)
           > : True
+        , <Prout
+            'An exceptional situation: found a non-trivial constraint with '
+            'both dependent restrictions ' (OR t.SuffixRestr t.PrefixRestr)
+          > : /* empty */
         = <SeparateConstrs
             (e.Conds) t.BlockConst (e.L (OR t.SuffixRestr) e.R)
           >
@@ -2255,5 +2252,25 @@ GetNewIndex {
     , <Explode s.OldIndex> : s.Char s.FirstDigit e.Digits
     , <Symb <Add <Numb s.FirstDigit e.Digits> 1>> : e.NewNumber
     = <Implode s.Char e.NewNumber>;
+}
+
+/*
+  <RecSubst t.Old t.New e.Expr> == e.NewExpr
+*/
+$ENTRY RecSubst {
+  t.Old t.New e.Expr
+    , e.Expr : {
+      t.Old e.RestExpr
+        = t.New <RecSubst t.Old t.New e.RestExpr>;
+
+      (e.InnerExpr) e.RestExpr
+        = (<RecSubst t.Old t.New e.InnerExpr>)
+          <RecSubst t.Old t.New e.RestExpr>;
+
+      s.Symb e.RestExpr
+        = s.Symb <RecSubst t.Old t.New e.RestExpr>;
+
+      /* empty */ = /* empty */;
+    };
 }
 

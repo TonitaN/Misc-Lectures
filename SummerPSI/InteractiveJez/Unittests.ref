@@ -1,6 +1,6 @@
 *$INLINE HigherOrder;
 
-$EXTERN Pick, SubstIndex, PairComp, BlockComp;
+$EXTERN Pick, SubstIndex, PairComp, BlockComp, RecSubst;
 
 $ENTRY Go {
   = <Prout
@@ -590,7 +590,7 @@ Run-PairComp {
           e.R5
         = True;
 
-      e.Other, <Prout e.Other> : = False;
+      e.Other = False;
     };
 
   (4 e.Input)
