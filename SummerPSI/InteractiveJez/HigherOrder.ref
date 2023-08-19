@@ -51,26 +51,6 @@ MapCall {
 }
 
 /*
-  <RecSubst t.Old t.New e.Expr> == e.NewExpr
-*/
-RecSubst {
-  t.Old t.New e.Expr
-    , e.Expr : {
-      t.Old e.RestExpr
-        = t.New <RecSubst t.Old t.New e.RestExpr>;
-
-      (e.InnerExpr) e.RestExpr
-        = (<RecSubst t.Old t.New e.InnerExpr>)
-          <RecSubst t.Old t.New e.RestExpr>;
-
-      s.Symb e.RestExpr
-        = s.Symb <RecSubst t.Old t.New e.RestExpr>;
-
-      /* empty */ = /* empty */;
-    };
-}
-
-/*
   Given a set of pairs (f1 x1) ... (fn xn), where fi is the function
   identifier, "unfreezes" fi: <f1 x1> ... <fn xn>
 */

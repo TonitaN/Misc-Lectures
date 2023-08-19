@@ -1,7 +1,7 @@
 /*
   Throws `Recognition Impossible` if the lists have not equal lengths.
 */
-Zip {
+$ENTRY Zip {
   (t.X e.X) (t.Y e.Y) = (t.X t.Y) <Zip (e.X) (e.Y)>;
     
   (/* empty */) (/* empty */) = /* empty */;
