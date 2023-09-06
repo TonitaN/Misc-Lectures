@@ -1,3 +1,25 @@
+
+/*
+  <RecSubst t.Old t.New e.Expr> == e.NewExpr
+*/
+$ENTRY RecSubst {
+  t.Old t.New e.Expr
+    , e.Expr : {
+      t.Old e.RestExpr
+        = t.New <RecSubst t.Old t.New e.RestExpr>;
+
+      (e.InnerExpr) e.RestExpr
+        = (<RecSubst t.Old t.New e.InnerExpr>)
+          <RecSubst t.Old t.New e.RestExpr>;
+
+      s.Symb e.RestExpr
+        = s.Symb <RecSubst t.Old t.New e.RestExpr>;
+
+      /* empty */ = /* empty */;
+    };
+}
+
+
 /*
   Throws `Recognition Impossible` if the lists have not equal lengths.
 */
@@ -11,7 +33,7 @@ $ENTRY FormPair {
   t.First t.Second = (t.First t.Second);
 }
 
-Trim {
+$ENTRY Trim {
   e.X ' ' e.Y = e.X <Trim e.Y>;
   
   e.Z = e.Z;
@@ -23,7 +45,7 @@ Arrange {
   Inverse (e.1) (e.2) = e.2 e.1;
 }
 
-Unwrap {
+$ENTRY Unwrap {
   (e.Preamble) (e.Preamble e.Val) = e.Val;
   
   (e.Preamble) e.Preamble e.Val = e.Val;
@@ -34,7 +56,7 @@ Unwrap {
 /*
   There is another function named 'Wrap' in Main.ref
 */
-Wrap {
+$ENTRY Wrap {
   Plain s.Order (e.Preamble) e.Val
     = <Arrange s.Order (e.Preamble) (e.Val)>;
     
@@ -45,7 +67,7 @@ Wrap {
     = <Arrange s.Order (e.Preamble) ((e.Val))>;
 }
 
-StructParens {
+$ENTRY StructParens {
   e.Arg = <ExtractRealParens Plain e.Arg>; 
 }
 
@@ -78,7 +100,7 @@ ExtractRealParens {
 /*
   <ChooseMax s.Val1 s.Val2> == s.MaxVal
 */
-ChooseMax {
+$ENTRY ChooseMax {
   s.Val1 s.Val2
     , <Compare s.Val1 s.Val2> : {
       '+' = s.Val1;

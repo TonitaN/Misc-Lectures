@@ -1,6 +1,22 @@
 
 \tikzstyle{equation}=[rectangle, draw opacity=0.8,rounded corners,thick,draw=black!75,top color=blue!10, bottom color=white,minimum size=5mm, font =\footnotesize]
 \tikzstyle{eqset}=[draw,cloud,dotted,opacity=0.9]
+\tikzstyle{failequation}=[rectangle split,rectangle split parts=2,
+    rounded corners,
+    thick,
+    draw=black!50,
+    draw opacity=0.8,
+    minimum size=5mm, font =\footnotesize
+    ,append after command={\pgfextra
+        \fill[left color=red!35!gray, right color=red!55!gray]
+    (\tikzlastnode.one west) 
+    [rounded corners] |- (\tikzlastnode.north) -| (\tikzlastnode.one east) 
+    [sharp corners]   |- (\tikzlastnode.one split) -| cycle;
+        \fill[top color=gray!15, bottom color=white]
+    (\tikzlastnode.two west) 
+    [rounded corners] |- (\tikzlastnode.south) -| (\tikzlastnode.two east)  
+    [sharp corners]   |- (\tikzlastnode.one split) -| cycle;
+                                    \endpgfextra}]
 \tikzstyle{fullequation}=[rectangle split,rectangle split parts=2,
     rounded corners,
     thick,

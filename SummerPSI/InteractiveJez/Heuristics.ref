@@ -1,0 +1,100 @@
+*$INLINE HigherOrder;
+
+$EXTERN RecSubst;
+
+$ENTRY CounterCheck {
+ (e.Data)
+ , e.Data : (AreEqual (e.LHS) (e.RHS)) e.OtherData
+ , <Asymmetric (Var All) (e.LHS)(e.RHS)> :(e.LHS1)(e.RHS1)
+ , e.LHS1 e.RHS1 :
+    {  e.S (Var e.Any) e.S2 = True;
+       e.NoVars
+     , <RemDups e.LHS1 e.RHS1> : e.LetterSet
+     , <MapCall-Till (False) Revert (CheckContradiction (e.LHS1)(e.RHS1)) e.LetterSet> :
+      { False = (e.Data Contradiction);
+        True = (e.Data);
+       }; 
+     };
+}
+
+$ENTRY FailOnEmptiness {
+ (e.Data)
+ , e.Data :
+ { (AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Substs)
+ , <RemDups <MapCall Revert (RetrieveProblemRestr (e.LHS)(e.RHS)(e.Constraints)) Start End>> : e.NullVars
+ , <Recursive-Map Revert (Asymmetric) ((e.LHS)(e.RHS)) e.NullVars> : (e.NewLHS)(e.NewRHS)
+ , <CheckTrivialConsistency (e.NewLHS)(e.NewRHS)> :
+ { True = (e.Data);
+   False = (e.Data Contradiction);
+ }; 
+   e.AlreadyContradiction = (e.Data);
+  };
+}
+
+RetrieveProblemRestr {
+ Start (t.X e.LHS)(t.Y e.RHS)(e.Constraints)
+ , e.Constraints : 
+ { e.Constr1 (not t.Y starts t.X) e.Constr2
+  = t.X <RetrieveProblemRestr Start (e.LHS)(t.Y e.RHS) e.Constraints>;
+   e.Constr1 (not t.X starts t.Y) e.Constr2
+  = t.Y <RetrieveProblemRestr Start (t.X e.LHS)(e.RHS) e.Constraints>;
+  e.NotContradictory = /* EMPTY SET */;
+ };
+ End (e.LHS t.X)(e.RHS t.Y)(e.Constraints)
+ , e.Constraints : 
+ { e.Constr1 (not t.Y ends t.X) e.Constr2
+  = t.X <RetrieveProblemRestr End (e.LHS)(e.RHS t.Y) e.Constraints>;
+   e.Constr1 (not t.X ends t.Y) e.Constr2
+  = t.Y <RetrieveProblemRestr End (e.LHS t.X)(e.RHS) e.Constraints>;
+  e.NotContradictory = /* EMPTY SET */;
+ };
+}
+
+RemDups {
+  e.A1 t.L e.A2 t.L e.A3 = e.A1 <RemDups t.L e.A2 e.A3>;
+  e.Checked = e.Checked;
+}
+
+CheckContradiction {
+  t.Letter (e.LHS)(e.RHS)
+  , <Asymmetric t.Letter (e.LHS)(e.RHS)> : (e.LHS1)(e.RHS1)
+  , e.LHS1 e.RHS1 :
+  { e.S t.Letter e.S2 = False;
+    e.Any = True;
+  }; 
+}
+
+Asymmetric {
+ (t.term All) (e.L1 (t.term e.AnyName) e.L2)(e.R1 (t.term e.AnyName) e.R2)
+   = <Asymmetric (t.term All) (e.L1 e.L2)(e.R1 e.R2)>;
+ t.term (e.L1 t.term e.L2) (e.R1 t.term e.R2) = <Asymmetric t.term (e.L1 e.L2)(e.R1 e.R2)>;
+ t.ToSubtract (e.LeftSet)(e.RightSet) = (e.LeftSet)(e.RightSet);
+}
+
+CheckTrivialConsistency {
+ (t.X e.L)(t.X e.R) = <CheckTrivialConsistency (e.L)(e.R)>;
+ (e.L t.X)(e.R t.X) = <CheckTrivialConsistency (e.L)(e.R)>;
+ (e.L0)(e.R0)
+ , e.L0 : 
+ {t.X e.L
+ , e.R0 : 
+ {t.Y e.R 
+ , <MapCall-Till (True) Plain IsVariable t.X t.Y> :
+ { False = False;
+   True  
+ , e.L0 : e.L2 t.X1
+ , e.R0 : e.R2 t.Y1
+   = <MapCall-Till (True) Plain IsVariable t.X1 t.Y1>; 
+ };
+ /* EMPTY */
+  = <MapCall-Till (False) Plain IsVariable e.L0>;
+ };
+ /* EMPTY */
+  = <MapCall-Till (False) Plain IsVariable e.R0>;
+ };
+}
+
+IsVariable {
+ (Var e.X) = True;
+ t.Rest = False;
+}

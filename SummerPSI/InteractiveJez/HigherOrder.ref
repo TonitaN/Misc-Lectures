@@ -132,3 +132,13 @@ MapCall-Compose {
     };
 }
 
+Recursive-Map {
+  Normal (e.Call) (e.CompArgs) t.Elem e.Elems
+        , <Mu e.Call e.CompArgs t.Elem> : e.NewCompArgs
+        = <Recursive-Map Normal (e.Call) (e.NewCompArgs) e.Elems>;
+  Revert (e.Call) (e.CompArgs) t.Elem e.Elems
+        , <Mu e.Call t.Elem e.CompArgs> : e.NewCompArgs
+        = <Recursive-Map Revert (e.Call) (e.NewCompArgs) e.Elems>;
+  s.Any (e.Call)(e.Arg)   /* empty */ = e.Arg;
+}
+

@@ -19,7 +19,7 @@ Input grammar for visualization
 
 *$INLINE HigherOrder;
 
-$EXTERN Trim,StructParens,ChooseMax;
+$EXTERN Trim,StructParens,ChooseMax,RecSubst,Unwrap,Wrap;
 
 $ENTRY Go {
  , <Arg 1> : e.FileName
@@ -52,8 +52,14 @@ PrintPostfix {
  = <Putout 2 '\\input{postfix.tex}'>;
 }
 
+SurrConsts {
+ e.1'(const)'e.2 = e.1('const')<SurrConsts e.2>;
+ e.1'const'e.2 = e.1('const')<SurrConsts e.2>;
+ e.z = e.z;
+}
+
 PrepareData {
-   (e.Stored) = <StructParens e.Stored><PrepareData ()<Get 1>>;
+   (e.Stored) = <StructParens <SurrConsts e.Stored>><PrepareData ()<Get 1>>;
    (e.Stored) e.Data = <ContinueIfNotEOF (MapCompose ((Get) (PrepareData (e.Stored <Trim e.Data>))) 1) e.Data>;
 }
 
@@ -145,19 +151,20 @@ VisualiseEqs {
 }
 
 VisualiseNode {
-  s.Chosen s.Level s.Sibling t.Equation (e.NegConds) (e.IndEqs)
+  s.Chosen s.Level s.Sibling t.Equation (e.NegConds) (e.IndEqs) e.Comment
   , <GetEqParameters t.Equation (e.NegConds)(e.IndEqs)> : s.Width s.Height
   , <Br 'LocalGain='0> : e.Trash
   , <VisualiseConds s.Width e.NegConds> : e.VisConds
   , <VisualiseEqs s.Width e.IndEqs> : e.VisEqs
   , <Dg 'LocalGain'> : s.Gain
     = <StoreLevelData (s.Level s.Width <Sub s.Height s.Gain>)>
-      'child {node ('<Symb s.Level>'B'<Symb s.Sibling>') ['<EquationFormat s.Chosen s.Sibling>']{\\nodepart{one}$'<VisualiseEquation t.Equation>
+      'child {node ('<Symb s.Level>'B'<Symb s.Sibling>') ['<EquationFormat s.Chosen s.Sibling e.Comment>']{\\nodepart{one}$'<VisualiseEquation t.Equation>
                                               '$\\nodepart{two}$\\begin{array}{l}'e.VisConds'\\\\'e.VisEqs'\\end{array}$}'
                                                               'edge from parent [draw opacity = 0]\n';
 }
 
 EquationFormat {
+ s.Chosen s.Something 'Contradiction' = 'failequation';
  s.Chosen s.Chosen = 'chosenequation';
  s.Chosen s.Other = 'fullequation';
 }
