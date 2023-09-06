@@ -1,0 +1,28 @@
+*$INLINE HigherOrder;
+
+$EXTERN Pick, BlockComp, PairComp, RecSubst;
+
+$EXTERN CounterCheck;
+
+$ENTRY Go {, <Equation1> : t.Eq
+           , PairComp : t.Call
+           , ('C' 1)('A' 0)('B' 0) : t.LetterWas e.Args
+           , <Mu t.Call t.LetterWas e.Args t.Eq> : t.Letter (e.Set)
+           , <MapCall Plain FailOnEmptiness <MapCall Plain CounterCheck e.Set>> : e.NewSet
+           , <Pick 3 e.NewSet> : t.NewEq
+           , <Mu t.Call t.Letter ('A' 0)('C' 1) t.NewEq> : t.LastLetter (e.ResultSet)
+           , <MapCall Plain FailOnEmptiness <MapCall Plain CounterCheck e.ResultSet>> : e.SetToPrint
+         = <Open 'w' 1 'exec.seq'><Putout 1 t.Eq><Putout 1><Putout 1 '('t.Call' 'e.Args')'><Putout 1>
+                <Putout 1  ('Set 'e.NewSet)><Putout 1><Putout 1 '(Pick 3)'><Putout 1><Putout 1 t.NewEq>
+                <Putout 1><Putout 1 '('t.Call' '('A' 0)('C' 1)')'><Putout 1>
+                <Putout 1 ('Set 'e.SetToPrint)>
+                <Putout 1><Close 1>;}
+
+Equation1 {
+  = ((AreEqual
+                   ((Var 'z')(Var 'z')(Var 'x')(Var 'x')(Var 'y')('A' 0)('B' 0)(Var 'y'))
+                   ((Var 'x')(Var 'x')(Var 'y')('B' 0)('A' 0)(Var 'y')(Var 'z')(Var 'z')) 
+                   )
+              ( ) ( ));
+}
+
