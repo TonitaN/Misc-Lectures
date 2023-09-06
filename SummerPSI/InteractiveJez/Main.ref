@@ -1,6 +1,6 @@
 *$INLINE HigherOrder;
 
-$EXTERN Zip;
+$EXTERN Zip, RecSubst;
 
 /*
   ABBREVIATIONS.
@@ -96,7 +96,7 @@ $ENTRY Pick {
                     )
                     (e.Constrs)
                   > : (e.NewConstrs)
-                = ((AreEqual (e.NewLHS) (e.NewRHS)) (e.NewConstrs) (e.Conds)); 
+                = ((AreEqual (e.LHS) (e.RHS)) (e.NewConstrs) (e.Conds)); 
             };
         };
 
@@ -2252,25 +2252,5 @@ GetNewIndex {
     , <Explode s.OldIndex> : s.Char s.FirstDigit e.Digits
     , <Symb <Add <Numb s.FirstDigit e.Digits> 1>> : e.NewNumber
     = <Implode s.Char e.NewNumber>;
-}
-
-/*
-  <RecSubst t.Old t.New e.Expr> == e.NewExpr
-*/
-$ENTRY RecSubst {
-  t.Old t.New e.Expr
-    , e.Expr : {
-      t.Old e.RestExpr
-        = t.New <RecSubst t.Old t.New e.RestExpr>;
-
-      (e.InnerExpr) e.RestExpr
-        = (<RecSubst t.Old t.New e.InnerExpr>)
-          <RecSubst t.Old t.New e.RestExpr>;
-
-      s.Symb e.RestExpr
-        = s.Symb <RecSubst t.Old t.New e.RestExpr>;
-
-      /* empty */ = /* empty */;
-    };
 }
 
