@@ -10,7 +10,8 @@ $ENTRY CounterCheck {
     {  e.S (Var e.Any) e.S2 = True;
        e.NoVars
      , <RemDups e.LHS1 e.RHS1> : e.LetterSet
-     , <MapCall-Till (False) Revert (CheckContradiction (e.LHS1)(e.RHS1)) e.LetterSet> :
+     , <Prout e.LetterSet> : e.Trash
+     , <MapCall-Till (True) Revert (CheckContradiction (e.LHS1)(e.RHS1)) e.LetterSet> :
       { False = (e.Data Contradiction);
         True = (e.Data);
        }; 
@@ -22,7 +23,7 @@ $ENTRY FailOnEmptiness {
  , e.Data :
  { (AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Substs)
  , <RemDups <MapCall Revert (RetrieveProblemRestr (e.LHS)(e.RHS)(e.Constraints)) Start End>> : e.NullVars
- , <Recursive-Map Revert (Asymmetric) ((e.LHS)(e.RHS)) e.NullVars> : (e.NewLHS)(e.NewRHS)
+ , <Recursive-Map Revert (Nullify) ((e.LHS)(e.RHS)) e.NullVars> : (e.NewLHS)(e.NewRHS)
  , <CheckTrivialConsistency (e.NewLHS)(e.NewRHS)> :
  { True = (e.Data);
    False = (e.Data Contradiction);
@@ -34,18 +35,18 @@ $ENTRY FailOnEmptiness {
 RetrieveProblemRestr {
  Start (t.X e.LHS)(t.Y e.RHS)(e.Constraints)
  , e.Constraints : 
- { e.Constr1 (not t.Y starts t.X) e.Constr2
-  = t.X <RetrieveProblemRestr Start (e.LHS)(t.Y e.RHS) e.Constraints>;
-   e.Constr1 (not t.X starts t.Y) e.Constr2
-  = t.Y <RetrieveProblemRestr Start (t.X e.LHS)(e.RHS) e.Constraints>;
+ { e.Constr1 (OR (not t.Y starts t.X)) e.Constr2
+  = t.X <RetrieveProblemRestr Start (e.LHS)(t.Y e.RHS)(e.Constraints)>;
+   e.Constr1 (OR (not t.X starts t.Y)) e.Constr2
+  = t.Y <RetrieveProblemRestr Start (t.X e.LHS)(e.RHS)(e.Constraints)>;
   e.NotContradictory = /* EMPTY SET */;
  };
  End (e.LHS t.X)(e.RHS t.Y)(e.Constraints)
  , e.Constraints : 
- { e.Constr1 (not t.Y ends t.X) e.Constr2
-  = t.X <RetrieveProblemRestr End (e.LHS)(e.RHS t.Y) e.Constraints>;
-   e.Constr1 (not t.X ends t.Y) e.Constr2
-  = t.Y <RetrieveProblemRestr End (e.LHS t.X)(e.RHS) e.Constraints>;
+ { e.Constr1 (OR (not t.Y ends t.X)) e.Constr2
+  = t.X <RetrieveProblemRestr End (e.LHS)(e.RHS t.Y)(e.Constraints)>;
+   e.Constr1 (OR (not t.X ends t.Y)) e.Constr2
+  = t.Y <RetrieveProblemRestr End (e.LHS t.X)(e.RHS)(e.Constraints)>;
   e.NotContradictory = /* EMPTY SET */;
  };
 }
@@ -58,10 +59,18 @@ RemDups {
 CheckContradiction {
   t.Letter (e.LHS)(e.RHS)
   , <Asymmetric t.Letter (e.LHS)(e.RHS)> : (e.LHS1)(e.RHS1)
+  , <Prout t.Letter (e.LHS1)(e.RHS1)> : e.Trash
   , e.LHS1 e.RHS1 :
   { e.S t.Letter e.S2 = False;
     e.Any = True;
   }; 
+}
+
+Nullify {
+ t.Var (e.X t.Var e.X2)(e.Y) = <Nullify t.Var (e.X e.X2)(e.Y)>;
+ t.Var (e.Y)(e.X t.Var e.X2) = <Nullify t.Var (e.Y)(e.X e.X2)>;
+ t.Var e.Eq = e.Eq;
+
 }
 
 Asymmetric {
@@ -79,18 +88,18 @@ CheckTrivialConsistency {
  {t.X e.L
  , e.R0 : 
  {t.Y e.R 
- , <MapCall-Till (True) Plain IsVariable t.X t.Y> :
+ , <MapCall-Till (False) Plain IsVariable t.X t.Y> :
  { False = False;
    True  
  , e.L0 : e.L2 t.X1
  , e.R0 : e.R2 t.Y1
-   = <MapCall-Till (True) Plain IsVariable t.X1 t.Y1>; 
+   = <MapCall-Till (False) Plain IsVariable t.X1 t.Y1>; 
  };
  /* EMPTY */
-  = <MapCall-Till (False) Plain IsVariable e.L0>;
+  = <MapCall-Till (True) Plain IsVariable e.L0>;
  };
  /* EMPTY */
-  = <MapCall-Till (False) Plain IsVariable e.R0>;
+  = <MapCall-Till (True) Plain IsVariable e.R0>;
  };
 }
 
