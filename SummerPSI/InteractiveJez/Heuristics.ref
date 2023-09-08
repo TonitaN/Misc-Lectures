@@ -10,7 +10,6 @@ $ENTRY CounterCheck {
     {  e.S (Var e.Any) e.S2 = True;
        e.NoVars
      , <RemDups e.LHS1 e.RHS1> : e.LetterSet
-     , <Prout e.LetterSet> : e.Trash
      , <MapCall-Till (True) Revert (CheckContradiction (e.LHS1)(e.RHS1)) e.LetterSet> :
       { False = (e.Data Contradiction);
         True = (e.Data);

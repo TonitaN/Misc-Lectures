@@ -1,0 +1,6 @@
+((AreEqual ((A0 )(B0 )(Var W)(Var U))((Var W)(Var U)(B0 )(A0 )))()())
+
+(PairComp  (A0 )(B0 ))
+
+(Set ((AreEqual ((C1 )(Var W))((Var W)(C1 )))()())((AreEqual ((C1 )(Var W))((Var W)(B0 )(A0 )))((OR (not (A0 )ends (Var W))))(((C1 )is ((A0 )(const 1 ))((B0 )(const 1 ))))Contradiction )((AreEqual ((C1 )(Var W)(C1 )(Var U))((Var W)(C1 )(Var U)(C1 )))()())((AreEqual ((C1 )(Var W)(C1 )(Var U))((Var W)(C1 )(Var U)(B0 )(A0 )))((OR (not (A0 )ends (Var U))))(((C1 )is ((A0 )(const 1 ))((B0 )(const 1 ))))Contradiction )((AreEqual ((C1 )(Var W)(Var U))((Var W)(Var U)(C1 )))()())((AreEqual ((C1 )(Var W)(Var U))((Var W)(Var U)(B0 )(A0 )))((OR (not empty (Var U)))(OR (not (A0 )ends (Var U)))(OR (not (A0 )ends (Var W))(not (B0 )starts (Var U))))(((C1 )is ((A0 )(const 1 ))((B0 )(const 1 ))))Contradiction ))
+

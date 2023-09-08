@@ -1,0 +1,18 @@
+\input{preamble.tex}
+\begin{tikzpicture}[
+level 0/.style = {sibling distance = 14em,level distance = 4em},
+level 0/.style = {sibling distance = 14em,level distance = 3em},
+level 1/.style = {sibling distance = 6em,level distance = 5em},
+level 2/.style = {sibling distance = 19em,level distance = 10em},
+]
+
+\input{styles.tex}
+\node (0B1) [chosenequation]{\nodepart{one}$A_{0}B_{0}A_{0}B_{0}\mathbf{w}\mathbf{w} = \mathbf{w}\mathbf{w}B_{0}B_{0}A_{0}A_{0}$\nodepart{two}$\begin{array}{l}\mathrm{No\;constraints}\\\mathrm{No\;conditions}\\\end{array}$}
+child {node [action]{$\begin{array}{c}\mathtt{BlockComp}\\A_{0}\end{array}$} edge from parent [draw opacity = 0]
+child {node (2B1) [failequation]{\nodepart{one}$A_{0}B_{0}A_{0}B_{0}A_{1} = B_{1}B_{0}B_{0}C_{1}$\nodepart{two}$\begin{array}{l}\mathrm{No\;constraints}\\A_{1}:=A_{0}^{i_{1}+i_{2}}\;B_{1}:=A_{0}^{i_{3}+i_{4}}\\C_{1}:=A_{0}^{2}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node (2B2) [failequation]{\nodepart{one}$A_{0}B_{0}A_{0}B_{0}A_{1}\mathbf{w}B_{1}\mathbf{w}C_{1} = D_{1}\mathbf{w}E_{1}\mathbf{w}F_{1}B_{0}B_{0}G_{1}$\nodepart{two}$\begin{array}{l}\mathbf{w}\neq\varepsilon\\\mathbf{w}\neq{}\mathbf{w_{P}}A_{0}\\\mathbf{w}\neq{}A_{0}\mathbf{w_{S}}\\A_{1}:=A_{0}^{i_{1}}\;B_{1}:=A_{0}^{i_{2}+i_{3}}\;C_{1}:=A_{0}^{i_{4}}\\D_{1}:=A_{0}^{i_{5}}\;E_{1}:=A_{0}^{i_{6}+i_{7}}\;F_{1}:=A_{0}^{i_{8}}\\G_{1}:=A_{0}^{2}\end{array}$}edge from parent [draw opacity = 0]
+}
+child {node [eqset,inner sep=-1em,cloud puffs=40,aspect=3,fit=(2B1)(2B2)] {}
+};};
+\input{postfix.tex}

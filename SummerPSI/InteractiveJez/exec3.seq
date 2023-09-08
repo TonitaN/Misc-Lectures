@@ -1,0 +1,6 @@
+((AreEqual ((A0 )(Var W)(Var W))((Var W)(Var W)(A0 )))()())
+
+(BlockComp  (A0 ))
+
+(Set ((AreEqual ((A1 ))((B1 )))()(((A1 )is ((A0 )(i1 1 )(i2 1 )(const 1 )))((B1 )is ((A0 )(i3 1 )(i4 1 )(const 1 ))))Contradiction )((AreEqual ((A1 )(Var W)(B1 )(Var W)(C1 ))((D1 )(Var W)(E1 )(Var W)(F1 )))((OR (not empty (Var W)))(OR (not (A0 )ends (Var W)))(OR (not (A0 )starts (Var W))))(((A1 )is ((A0 )(i1 1 )(const 1 )))((B1 )is ((A0 )(i2 1 )(i3 1 )(const 0 )))((C1 )is ((A0 )(i4 1 )(const 0 )))((D1 )is ((A0 )(i5 1 )(const 0 )))((E1 )is ((A0 )(i6 1 )(i7 1 )(const 0 )))((F1 )is ((A0 )(i8 1 )(const 1 ))))Contradiction ))
+

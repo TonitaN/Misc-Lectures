@@ -5,23 +5,54 @@ $EXTERN Pick, BlockComp, PairComp, RecSubst;
 $EXTERN CounterCheck;
 
 $ENTRY Go {, <Equation1> : t.Eq
+           , <Equation2> : t.EqN
+           , <Equation3> : t.EqN2
            , PairComp : t.Call
-           , ('C' 1)('B' 0)('A' 0) : t.LetterWas e.Args
+           , BlockComp : t.Call2
+           , ('C' 1)('A' 0)('B' 0) : t.LetterWas e.Args
+           , ('A' 0)('A' 1) i1  : e.BArgs t.LetterWasB t.Ind
+           , <ClearIndices <Mu t.Call2 e.BArgs t.LetterWasB t.Ind t.EqN2>> : e.SetN2
+           , <MapCall Plain FailOnEmptiness <MapCall Plain CounterCheck e.SetN2>> : e.NewSetN2
            , <Mu t.Call t.LetterWas e.Args t.Eq> : t.Letter (e.Set)
+           , <Mu t.Call t.LetterWas e.Args t.EqN> : t.LetterN (e.SetN)
            , <MapCall Plain FailOnEmptiness <MapCall Plain CounterCheck e.Set>> : e.NewSet
-           , <Pick 3 e.NewSet> : t.NewEq
+           , <MapCall Plain FailOnEmptiness <MapCall Plain CounterCheck e.SetN>> : e.NewSetN
+           /*, <Pick 3 e.NewSet> : t.NewEq
            , <Mu t.Call t.Letter ('C' 1)('A' 0) t.NewEq> : t.LastLetter (e.ResultSet)
-           , <MapCall Plain FailOnEmptiness <MapCall Plain CounterCheck e.ResultSet>> : e.SetToPrint
+           , <MapCall Plain FailOnEmptiness <MapCall Plain CounterCheck e.ResultSet>> : e.SetToPrint  */
          = <Open 'w' 1 'exec.seq'><Putout 1 t.Eq><Putout 1><Putout 1 '('t.Call' 'e.Args')'><Putout 1>
-                <Putout 1  ('Set 'e.NewSet)><Putout 1><Putout 1 '(Pick 3)'><Putout 1><Putout 1 t.NewEq>
+                <Putout 1  ('Set 'e.NewSet)><Putout 1>/*<Putout 1 '(Pick 3)'><Putout 1><Putout 1 t.NewEq>
                 <Putout 1><Putout 1 '('t.Call' '('C' 1)('A' 0)')'><Putout 1>
                 <Putout 1 ('Set 'e.SetToPrint)>
-                <Putout 1><Close 1>;}
+                <Putout 1>*/<Close 1><Open 'w' 1 'exec2.seq'><Putout 1 t.EqN><Putout 1>
+                <Putout 1 '('t.Call' 'e.Args')'><Putout 1><Putout 1  ('Set 'e.NewSetN)><Putout 1><Close 1>
+		<Open 'w' 1 'exec3.seq'><Putout 1 t.EqN2><Putout 1>
+                <Putout 1 '('t.Call2' 'e.BArgs')'><Putout 1><Putout 1  ('Set 'e.NewSetN2)><Putout 1><Close 1>;}
+
+Equation2 {
+  = ((AreEqual
+                   (('A' 0)('B' 0)(Var 'W')(Var 'U'))
+                   ((Var 'W')(Var 'U')('B' 0)('A' 0)) 
+                   )
+              ( ) ( ));
+}
+Equation3 {
+  = ((AreEqual
+                   (('A' 0)(Var 'W')(Var 'W'))
+                   ((Var 'W')(Var 'W')('A' 0)) 
+                   )
+              ( ) ( ));
+}
+
+ClearIndices {
+ (t.1 t.2 e.EqData) e.Rest = e.EqData<ClearIndices e.Rest>;
+  = ;
+}
 
 Equation1 {
   = ((AreEqual
-                   ((Var 'z')(Var 'z')(Var 'x')(Var 'x')(Var 'y')('A' 0)('B' 0)(Var 'y'))
-                   ((Var 'x')(Var 'x')(Var 'y')('B' 0)('A' 0)(Var 'y')(Var 'z')(Var 'z')) 
+                   ((Var 'Z')(Var 'Z')(Var 'X')(Var 'X')(Var 'Y')('A' 0)('B' 0)(Var 'Y'))
+                   ((Var 'X')(Var 'X')(Var 'Y')('B' 0)('A' 0)(Var 'Y')(Var 'Z')(Var 'Z')) 
                    )
               ( ) ( ));
 }
