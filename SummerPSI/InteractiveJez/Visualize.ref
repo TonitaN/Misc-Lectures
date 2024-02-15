@@ -58,9 +58,14 @@ SurrConsts {
  e.z = e.z;
 }
 
+SurrIs {
+ e.1'(i'e.Ind' 'e.Pow' )'e.2 = e.1(('i'e.Ind)e.Pow)<SurrIs e.2>;
+ e.z = e.z;
+}
+
 PrepareData {
    (e.Stored) = <StructParens <SurrConsts e.Stored>><PrepareData ()<Get 1>>;
-   (e.Stored) e.Data = <ContinueIfNotEOF (MapCompose ((Get) (PrepareData (e.Stored <Trim e.Data>))) 1) e.Data>;
+   (e.Stored) e.Data = <ContinueIfNotEOF (MapCompose ((Get) (PrepareData (e.Stored <Trim <SurrIs e.Data>>))) 1) e.Data>;
 }
 
 Visualise {
