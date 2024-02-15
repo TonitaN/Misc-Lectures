@@ -109,3 +109,12 @@ $ENTRY ChooseMax {
     };
 }
 
+$ENTRY ITE {
+ True (e.Then) (e.Else) = e.Then;
+ False (e.Then) (e.Else) = e.Else;
+}
+
+$ENTRY LogOr {
+ e.X True e.Y = True;
+ e.Z = False;
+}
