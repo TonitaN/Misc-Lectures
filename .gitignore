@@ -2,6 +2,9 @@
 *_INLINED.*
 *.log
 *.aux
+*.pdf
+*.smt2
+*.smt
 *.gz
 *.pygtex
 *.pygstyle
