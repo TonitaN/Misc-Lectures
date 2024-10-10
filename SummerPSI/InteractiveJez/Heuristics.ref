@@ -1,13 +1,13 @@
 *$INLINE HigherOrder;
 
-$EXTERN RecSubst;
+$EXTERN RecSubst,RemDups,IsVariable;
 
 $ENTRY CounterCheck {
  (e.Data)
  , e.Data : (AreEqual (e.LHS) (e.RHS)) e.OtherData
  , <Asymmetric (Var All) (e.LHS)(e.RHS)> :(e.LHS1)(e.RHS1)
  , e.LHS1 e.RHS1 :
-    {  e.S (Var e.Any) e.S2 = True;
+    {  e.S (Var e.Any) e.S2 = True; /* We assume that existence of a variable prevents contradiction (very weak condition) */
        e.NoVars
      , <RemDups e.LHS1 e.RHS1> : e.LetterSet
      , <MapCall-Till (True) Revert (CheckContradiction (e.LHS1)(e.RHS1)) e.LetterSet> :
@@ -50,17 +50,12 @@ RetrieveProblemRestr {
  };
 }
 
-RemDups {
-  e.A1 t.L e.A2 t.L e.A3 = e.A1 <RemDups t.L e.A2 e.A3>;
-  e.Checked = e.Checked;
-}
-
 CheckContradiction {
   t.Letter (e.LHS)(e.RHS)
   , <Asymmetric t.Letter (e.LHS)(e.RHS)> : (e.LHS1)(e.RHS1)
   , <Prout t.Letter (e.LHS1)(e.RHS1)> : e.Trash
   , e.LHS1 e.RHS1 :
-  { e.S t.Letter e.S2 = False;
+  { e.S t.Letter e.S2 = False; /* Given an unbalanced letter, it yields a contradiction */
     e.Any = True;
   }; 
 }
@@ -72,6 +67,7 @@ Nullify {
 
 }
 
+/* Subtracts equal terms of the given sort from both sides of equation */
 Asymmetric {
  (t.term All) (e.L1 (t.term e.AnyName) e.L2)(e.R1 (t.term e.AnyName) e.R2)
    = <Asymmetric (t.term All) (e.L1 e.L2)(e.R1 e.R2)>;
@@ -79,6 +75,7 @@ Asymmetric {
  t.ToSubtract (e.LeftSet)(e.RightSet) = (e.LeftSet)(e.RightSet);
 }
 
+/* Checks whether the two parts of the equation do not start with distinct constants */
 CheckTrivialConsistency {
  (t.X e.L)(t.X e.R) = <CheckTrivialConsistency (e.L)(e.R)>;
  (e.L t.X)(e.R t.X) = <CheckTrivialConsistency (e.L)(e.R)>;
@@ -100,9 +97,4 @@ CheckTrivialConsistency {
  /* EMPTY */
   = <MapCall-Till (True) Plain IsVariable e.R0>;
  };
-}
-
-IsVariable {
- (Var e.X) = True;
- t.Rest = False;
 }

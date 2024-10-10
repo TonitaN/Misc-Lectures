@@ -53,6 +53,17 @@ $ENTRY Unwrap {
   (e.Preamble) e.Val = e.Val;
 }
 
+$ENTRY RemDups {
+  e.A1 t.L e.A2 t.L e.A3 = e.A1 <RemDups t.L e.A2 e.A3>;
+  e.Checked = e.Checked;
+}
+
+
+$ENTRY IsVariable {
+ (Var e.X) = True;
+ t.Rest = False;
+}
+
 /*
   There is another function named 'Wrap' in Main.ref
 */
