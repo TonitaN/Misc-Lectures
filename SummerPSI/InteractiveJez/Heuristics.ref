@@ -21,9 +21,9 @@ $ENTRY FailOnEmptiness {
  (e.Data)
  , e.Data :
  { (AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Substs)
- , <RemDups <MapCall Revert (RetrieveProblemRestr (e.LHS)(e.RHS)(e.Constraints)) Start End>> : e.NullVars
- , <Recursive-Map Revert (Nullify) ((e.LHS)(e.RHS)) e.NullVars> : (e.NewLHS)(e.NewRHS)
- , <CheckTrivialConsistency (e.NewLHS)(e.NewRHS)> :
+ , <RemDups <MapCall Revert (RetrieveProblemRestr (e.LHS)(e.RHS)(e.Constraints)) Start End Symmetric>> : e.NullVars
+ , <NullifyBase e.NullVars (e.LHS)(e.RHS)> : e.NewEqs
+ , <MapCall-Till (True) Plain CheckTrivialConsistency e.NewEqs> :
  { True = (e.Data);
    False = (e.Data Contradiction);
  }; 
@@ -48,6 +48,16 @@ RetrieveProblemRestr {
   = t.Y <RetrieveProblemRestr End (e.LHS t.X)(e.RHS)(e.Constraints)>;
   e.NotContradictory = /* EMPTY SET */;
  };
+ Symmetric (t.X1 e.LHS1)(t.Y1 e.RHS1)(e.Constraints)
+	, t.X1 e.LHS1 : e.LHS0 t.X2
+	, t.Y1 e.RHS1 : e.RHS0 t.Y2
+   e.Constraints :
+    {   e.C1 (OR (not t.X1 starts t.Y1)(not t.X2 ends t.Y2)) = (OR t.Y1 t.Y2); /* Slightly weaker heuristics: no recursion, in order to avoid backtracking */
+	e.C1 (OR (not t.Y1 starts t.X1)(not t.X2 ends t.Y2)) = (OR t.X1 t.Y2); 
+	e.C1 (OR (not t.X1 starts t.Y1)(not t.Y2 ends t.X2)) = (OR t.Y1 t.X2); 
+	e.C1 (OR (not t.Y1 starts t.X1)(not t.Y2 ends t.X2)) = (OR t.X1 t.X2); 
+	e.NotContradictory = /* EMPTY SET */;
+    };
 }
 
 CheckContradiction {
@@ -60,9 +70,21 @@ CheckContradiction {
   }; 
 }
 
+SuppressCommonStrings {
+ (t.X e.LHS)(t.X e.RHS) = <SuppressCommonStrings (e.LHS)(e.RHS)>;
+ (e.LHS t.X)(e.RHS t.X) = <SuppressCommonStrings (e.LHS)(e.RHS)>;
+ (e.LHS)(e.RHS) = (e.LHS)(e.RHS);
+}
+
+NullifyBase {
+ e.Vars (OR t.Var1 t.Var2)(e.LHS)(e.RHS)
+	 = <Recursive-Map Revert (Nullify) ((e.LHS)(e.RHS)) e.Vars t.Var1>
+	   <Recursive-Map Revert (Nullify) ((e.LHS)(e.RHS)) e.Vars t.Var2>;
+}
+
 Nullify {
- t.Var (e.X t.Var e.X2)(e.Y) = <Nullify t.Var (e.X e.X2)(e.Y)>;
- t.Var (e.Y)(e.X t.Var e.X2) = <Nullify t.Var (e.Y)(e.X e.X2)>;
+ t.Var ((e.X t.Var e.X2)(e.Y)) = <Nullify t.Var ((e.X e.X2)(e.Y))>;
+ t.Var ((e.Y)(e.X t.Var e.X2)) = <Nullify t.Var ((e.Y)(e.X e.X2))>;
  t.Var e.Eq = e.Eq;
 
 }
@@ -75,10 +97,15 @@ Asymmetric {
  t.ToSubtract (e.LeftSet)(e.RightSet) = (e.LeftSet)(e.RightSet);
 }
 
-/* Checks whether the two parts of the equation do not start with distinct constants */
 CheckTrivialConsistency {
- (t.X e.L)(t.X e.R) = <CheckTrivialConsistency (e.L)(e.R)>;
- (e.L t.X)(e.R t.X) = <CheckTrivialConsistency (e.L)(e.R)>;
+ (e.LHS)(e.RHS) 
+	= <CheckTrivialConsistencyAux 
+		<SuppressCommonStrings (e.LHS)(e.RHS)>
+	  >;
+}
+
+/* Checks whether the two parts of the equation do not start with distinct constants */
+CheckTrivialConsistencyAux {
  (e.L0)(e.R0)
  , e.L0 : 
  {t.X e.L
@@ -98,3 +125,4 @@ CheckTrivialConsistency {
   = <MapCall-Till (True) Plain IsVariable e.R0>;
  };
 }
+
