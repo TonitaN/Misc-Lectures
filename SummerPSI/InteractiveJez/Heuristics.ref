@@ -1,6 +1,6 @@
 *$INLINE HigherOrder;
 
-$EXTERN RecSubst,RemDups,IsVariable;
+$EXTERN RecSubst,RemDups,IsVariable,ITE;
 
 $ENTRY CounterCheck {
  (e.Data)
@@ -22,10 +22,13 @@ $ENTRY FailOnEmptiness {
  , e.Data :
  { (AreEqual (e.LHS) (e.RHS)) (e.Constraints) (e.Substs)
  , <RemDups <MapCall Revert (RetrieveProblemRestr (e.LHS)(e.RHS)(e.Constraints)) Start End Symmetric>> : e.NullVars
- , <NullifyBase e.NullVars (e.LHS)(e.RHS)> : e.NewEqs
+ , <NullifyBase e.NullVars (e.LHS)(e.RHS)(e.Constraints)> : 
+ {/* EMPTY */ = (e.Data Contradiction);
+   e.NewEqs
  , <MapCall-Till (True) Plain CheckTrivialConsistency e.NewEqs> :
  { True = (e.Data);
    False = (e.Data Contradiction);
+ };
  }; 
    e.AlreadyContradiction = (e.Data);
   };
@@ -51,11 +54,19 @@ RetrieveProblemRestr {
  Symmetric (t.X1 e.LHS1)(t.Y1 e.RHS1)(e.Constraints)
 	, t.X1 e.LHS1 : e.LHS0 t.X2
 	, t.Y1 e.RHS1 : e.RHS0 t.Y2
-   e.Constraints :
-    {   e.C1 (OR (not t.X1 starts t.Y1)(not t.X2 ends t.Y2)) = (OR t.Y1 t.Y2); /* Slightly weaker heuristics: no recursion, in order to avoid backtracking */
-	e.C1 (OR (not t.Y1 starts t.X1)(not t.X2 ends t.Y2)) = (OR t.X1 t.Y2); 
-	e.C1 (OR (not t.X1 starts t.Y1)(not t.Y2 ends t.X2)) = (OR t.Y1 t.X2); 
-	e.C1 (OR (not t.Y1 starts t.X1)(not t.Y2 ends t.X2)) = (OR t.X1 t.X2); 
+   , e.Constraints :  	/* Slightly weaker heuristics: no recursion in branching, in order to avoid backtracking */
+    {   e.C1 (OR (not t.X1 starts t.Y1)(not t.X2 ends t.Y2))
+		 = (OR (t.Y1 <RetrieveProblemRestr Start (t.X1 e.LHS1)(e.RHS1)(e.Constraints)>) 
+			(t.Y2 <RetrieveProblemRestr End (t.X1 e.LHS1)(e.RHS0)(e.Constraints)>)); 
+	e.C1 (OR (not t.Y1 starts t.X1)(not t.X2 ends t.Y2))
+		 = (OR (t.X1 <RetrieveProblemRestr Start (e.LHS1)(t.Y1 e.RHS1)(e.Constraints)>) 
+			(t.Y2 <RetrieveProblemRestr End (t.X1 e.LHS1)(e.RHS0)(e.Constraints)>)); 
+	e.C1 (OR (not t.X1 starts t.Y1)(not t.Y2 ends t.X2))
+		 = (OR (t.Y1 <RetrieveProblemRestr Start (t.X1 e.LHS1)(e.RHS1)(e.Constraints)>) 
+		       (t.X2 <RetrieveProblemRestr End (e.LHS0)(e.RHS0 t.Y2)(e.Constraints)>)); 
+	e.C1 (OR (not t.Y1 starts t.X1)(not t.Y2 ends t.X2))
+		 = (OR (t.X1 <RetrieveProblemRestr Start (e.LHS1)(t.Y1 e.RHS1)(e.Constraints)>) 
+			(t.X2 <RetrieveProblemRestr End (e.LHS0)(e.RHS0 t.Y2)(e.Constraints)>)); 
 	e.NotContradictory = /* EMPTY SET */;
     };
 }
@@ -77,15 +88,22 @@ SuppressCommonStrings {
 }
 
 NullifyBase {
- e.Vars (OR t.Var1 t.Var2)(e.LHS)(e.RHS)
-	 = <Recursive-Map Revert (Nullify) ((e.LHS)(e.RHS)) e.Vars t.Var1>
-	   <Recursive-Map Revert (Nullify) ((e.LHS)(e.RHS)) e.Vars t.Var2>;
+ e.Vars (OR (e.Var1) (e.Var2))(e.LHS)(e.RHS)(e.Constraints)
+	 = <ITE <Nempty e.Vars e.Var1 (e.Constraints)> (/*EMPTY*/) (<Recursive-Map Revert (Nullify) (((e.LHS)(e.RHS))) e.Vars e.Var1>)>
+	   <ITE <Nempty e.Vars e.Var1 (e.Constraints)> (/*EMPTY*/) (<Recursive-Map Revert (Nullify) (((e.LHS)(e.RHS))) e.Vars e.Var2>)>;
+ e.Vars (e.LHS)(e.RHS)(e.Constraints)
+	 = <ITE <Nempty e.Vars (e.Constraints)> (/*EMPTY*/) (<Recursive-Map Revert (Nullify) (((e.LHS)(e.RHS))) e.Vars>)>;
+}
+
+Nempty {
+ e.V1 t.Var e.V2 (e.C1 (OR (not empty t.Var)) e.C2) = True;
+ e.Z = False;
 }
 
 Nullify {
  t.Var ((e.X t.Var e.X2)(e.Y)) = <Nullify t.Var ((e.X e.X2)(e.Y))>;
  t.Var ((e.Y)(e.X t.Var e.X2)) = <Nullify t.Var ((e.Y)(e.X e.X2))>;
- t.Var e.Eq = e.Eq;
+ t.Var (e.Eq) = (e.Eq);
 
 }
 
@@ -98,7 +116,7 @@ Asymmetric {
 }
 
 CheckTrivialConsistency {
- (e.LHS)(e.RHS) 
+ ((e.LHS)(e.RHS)) 
 	= <CheckTrivialConsistencyAux 
 		<SuppressCommonStrings (e.LHS)(e.RHS)>
 	  >;
