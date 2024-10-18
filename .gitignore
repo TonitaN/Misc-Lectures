@@ -5,6 +5,10 @@
 *.pdf
 *.smt2
 *.smt
+*.seq
+TestE*.*
+*.exe
+graph_*.tex
 *.gz
 *.pygtex
 *.pygstyle
