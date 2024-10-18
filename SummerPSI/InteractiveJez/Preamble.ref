@@ -9,14 +9,24 @@ $ENTRY Go {, <Equation> : e.Raw, ((AreEqual e.Raw)()()) : t.Eq
            , ('C' 1)<PairData> : t.LetterWas e.Args
            , <Mu t.Call t.LetterWas e.Args t.Eq> : t.Letter (e.Set)
            , <MapCall Plain FailOnEmptiness <MapCall Plain CounterCheck e.Set>> : e.NewSet
-         = <Open 'w' 1 'execNNN.seq'><Putout 1 t.Eq><Putout 1><Putout 1 '('t.Call' 'e.Args')'><Putout 1>
-                <Putout 1  ('Set 'e.NewSet)><Putout 1 'Total variables: '<TotalVars Start e.Raw>><Putout 1 <Resume 0 0 e.NewSet>><Putout 1>;
+         = <Open 'a' 4 'table.md'><Open 'w' 1 'execNNN.seq'><Putout 1 t.Eq><Putout 1><Putout 1 '('t.Call' 'e.Args')'><Putout 1>
+                <Putout 1  ('Set 'e.NewSet)><Putout 1 <Resume 0 0 e.NewSet (e.Raw)>><Putout 1><Close 4>;
            }
 
 Resume {
-  s.Variants s.Contras = <Putout 1 'Total variants: 's.Variants', total contradictions: 's.Contras>;
-  s.V s.C (e.X Contradiction) e.List = <Resume <Add s.V 1><Add s.C 1> e.List>;
-  s.V s.C (e.X) e.List = <Resume <Add s.V 1> s.C e.List>;
+  s.Variants s.Contras (e.Raw)
+  , <TotalVars Start e.Raw> : s.Vars
+	= <Putout 1 'Total variables: 's.Vars>
+          <Putout 1 'Total variants: 's.Variants', total contradictions: 's.Contras>
+	  <Putout 4 <Tabbed 'NNN'>'|'<Tabbed <Symb s.Vars>>'|'<Tabbed  <Symb s.Variants>>'|'<Tabbed <Symb s.Contras>>'|'>;
+  s.V s.C (e.X Contradiction) e.List (e.Raw)= <Resume <Add s.V 1><Add s.C 1> e.List (e.Raw)>;
+  s.V s.C (e.X) e.List (e.Raw)= <Resume <Add s.V 1> s.C e.List (e.Raw)>;
+}
+
+Tabbed {
+  s.1 = '   's.1' ';
+  s.1 s.2 = '  's.1 s.2' ';
+  s.1 s.2 s.3 = ' 's.1 s.2 s.3' ';
 }
 
 TotalVars {

@@ -69,6 +69,7 @@ RetrieveProblemRestr {
 			(t.X2 <RetrieveProblemRestr End (e.LHS0)(e.RHS0 t.Y2)(e.Constraints)>)); 
 	e.NotContradictory = /* EMPTY SET */;
     };
+  s.Mode e.Any (e.Constraints) = /* EMPTY SET */; /* In case some side of an equation is empty */
 }
 
 CheckContradiction {

@@ -5,8 +5,8 @@ $ENTRY Go
 GenerateAllModels {
    s.Mode s.Max s.Max = ;
    s.Mode s.Num s.Max 
-		, <GenerateEquation s.Mode <Add <Add <RandNum 1 3><RandNum 1 3>><Add <RandNum 0 3><RandNum 0 3>>>
-		 			<Add <Add <RandNum 1 3><RandNum 1 3>><Add <RandNum 0 3><RandNum 0 3>>>> : (e.LHS)(e.RHS)
+		, <GenerateEquation s.Mode <Add <Add <RandNum 1 3><RandNum 1 3>><Add <RandNum 0 1><RandNum 0 1>>>
+		 			<Add <Add <RandNum 1 3><RandNum 1 3>><Add <RandNum 0 1><RandNum 0 1>>>> : (e.LHS)(e.RHS)
      =	<Open 'r' 3 'Preamble.ref'><Open 'w' 2 'TestExec_'<Symb s.Num>'.ref'>
 		<GenerateExecutable ((e.LHS)(e.RHS))(<GeneratePair>) s.Num <Get 3>>
 		<Close 2><Close 3><GenerateAllModels s.Mode <Add s.Num 1> s.Max>; 
