@@ -7,7 +7,7 @@ $ENTRY CounterCheck {
  , e.Data : (AreEqual (e.LHS) (e.RHS)) e.OtherData
  , <Asymmetric (Var All) (e.LHS)(e.RHS)> :(e.LHS1)(e.RHS1)
  , e.LHS1 e.RHS1 :
-    {  e.S (Var e.Any) e.S2 = True; /* We assume that existence of a variable prevents contradiction (very weak condition) */
+    {  e.S (Var e.Any) e.S2 = (e.Data); /* We assume that existence of a variable prevents contradiction (very weak condition) */
        e.NoVars
      , <RemDups e.LHS1 e.RHS1> : e.LetterSet
      , <MapCall-Till (True) Revert (CheckContradiction (e.LHS1)(e.RHS1)) e.LetterSet> :

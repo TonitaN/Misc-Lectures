@@ -1,0 +1,572 @@
+$ENTRY Go
+  {, <Numb <Arg 1>> : s.RefalMode , <Numb <Arg 2>> : s.Max = <GenerateAllModels s.RefalMode 1 <Add s.Max 1>>;
+  }
+
+GenerateAllModels {
+   s.Mode s.Max s.Max = ;
+   s.Mode s.Num s.Max 
+		, <GenerateEquation s.Mode <Add <Add <RandNum 1 3><RandNum 1 3>><Add <RandNum 0 3><RandNum 0 3>>>
+		 			<Add <Add <RandNum 1 3><RandNum 1 3>><Add <RandNum 0 3><RandNum 0 3>>>> : (e.LHS)(e.RHS)
+     =	<Open 'r' 3 'Preamble.ref'><Open 'w' 2 'TestExec_'<Symb s.Num>'.ref'>
+		<GenerateExecutable ((e.LHS)(e.RHS))(<GeneratePair>) s.Num <Get 3>>
+		<Close 2><Close 3><GenerateAllModels s.Mode <Add s.Num 1> s.Max>; 
+}
+
+GenerateExecutable {
+ ((e.LHS)(e.RHS))(e.Pair) s.Num e.1'...'e.2 = <Putout 2 e.1 ><Putout 2 '   '(e.LHS)><Putout 2 '   '(e.RHS) e.2> <GenerateExecutable ()(e.Pair) s.Num <Get 3>>;
+ (e.Equation)(e.Pair) s.Num e.1',,,'e.2 = <Putout 2 e.1 e.Pair e.2> <GenerateExecutable ()() s.Num <Get 3>>;
+ (e.Equation)(e.Pair) s.Num e.1'NNN'e.2 = <Putout 2 e.1 <Symb s.Num> e.2> <GenerateExecutable (e.Equation)(e.Pair) s.Num <Get 3>>;
+ (e.E)(e.P) s.N e.3 0 = <Putout 2 e.3>;
+ (e.E)(e.P) s.N e.3 = <Putout 2 e.3> <GenerateExecutable (e.E)(e.P) s.N <Get 3>>;
+}
+
+GenerateEquation {
+  0 s.Vars s.Consts                                                 /* Asymmetric */
+   , <GenerateVarMulSet 0 <RandNum 2 <Add s.Vars 1>>> : e.Vars
+   , <Prout e.Vars> : e.Trash
+   , <GenerateConstMulSet 0 <RandNum 2 <Add s.Consts 1>>> : e.Consts
+   , <Prout e.Consts> : e.Trash2
+   , <GetListPermutation e.Vars e.Consts> : e.LHS
+   , <GenerateVarMulSet 0 <RandNum 2 <Add s.Vars 1>>> : e.Vars2
+   , <GenerateConstMulSet 0 <RandNum 2 <Add s.Consts 1>>> : e.Consts2
+   , <GetListPermutation e.Vars2 e.Consts2> : e.RHS
+	= <DeleteContras Start (e.LHS)(e.RHS)>;
+  1 s.Vars s.Consts                                                 /* Asymmetric */
+   , <GenerateVarMulSet 0 <RandNum 2 <Add s.Vars 1>>> : e.Vars
+   , <GenerateConstMulSet 0 <RandNum 2 <Add s.Consts 1>>> : e.Consts
+   , <GetListPermutation e.Vars e.Consts> : e.LHS
+   , <GetListPermutation e.Vars e.Consts> : e.RHS
+	= <DeleteContras Start (e.LHS)(e.RHS)>;
+}
+
+DeleteContras {
+ t.Mode ()() = <GenerateEquation 1 8 4>;
+ Start ((Var e.x) e.LHS) (e.RHS) = <DeleteContras End ((Var e.x) e.LHS) (e.RHS)>;
+ Start ( e.LHS) ((Var e.x)e.RHS) = <DeleteContras End ( e.LHS) ((Var e.x)e.RHS)>;
+ Start (t.1 e.x)(t.2 e.y) = <DeleteContras Start (e.x)(e.y)>;
+ End ( e.LHS (Var e.x)) (e.RHS) = ( e.LHS (Var e.x)) (e.RHS);
+ End ( e.LHS) (e.RHS (Var e.x)) = ( e.LHS) (e.RHS (Var e.x));
+ End (e.x t.1)(e.y t.2) = <DeleteContras End (e.x)(e.y)>;
+}
+
+GenerateVarMulSet {
+  s.Max s.Max = ;
+  s.Num s.Max
+  , <RandomListEl <VarAlphabet>> : s.Letter
+	= (Var' '\'s.Letter\')
+          <GenerateVarMulSet <Add s.Num 1> s.Max>;
+}
+
+GenerateConstMulSet {
+  s.Max s.Max = ;
+  s.Num s.Max
+  , <RandomListEl 'bacbabaacadaaccaaabaabaabbbbab'> : s.Letter
+	= (\'s.Letter\'' '0)
+          <GenerateConstMulSet <Add s.Num 1> s.Max>;
+}
+
+GeneratePair {
+ , <RandomListEl 'bacbabaacadaaccaaabaabaabbbbab'> : s.Letter
+ , <RandomListEl 'bacbabaacadaaccaaabaabaabbbbab'> : s.Letter2
+ , s.Letter s.Letter2 : {s.1 s.1 = <GeneratePair>;
+   e.Z = (\'s.Letter\'' '0 )(\'s.Letter2\'' '0); }; 
+}
+
+GetListPermutation {
+ e.List
+ , <ListLen 0 e.List> : s.Len
+   = <Permute 0 <Mul <Add <RandNum 1 s.Len> <RandNum 1 s.Len>> <RandNum 1 3>> e.List>;
+}
+
+Permute {
+ s.Max s.Max e.List = e.List;
+ s.Num s.Max e.List
+ , <ListLen 0 e.List> : s.Len
+ , <RandNum 1 s.Len> : s.Pos1
+ , <RandNum 1 s.Len> : s.Pos2
+   = <Permute <Add s.Num 1> s.Max <Swap 1 <Minim s.Pos1 s.Pos2> <Maxim s.Pos1 s.Pos2> e.List>>;
+}
+
+Swap {
+ 1 s.Pos1 s.Pos1 e.List = e.List;
+ s.Pos1 s.Pos1 s.Pos2 t.Term e.RestList
+   = <SwapAux t.Term ()<Add s.Pos1 1> s.Pos2 e.RestList>;
+ s.Pre s.Pos1 s.Pos2 t.PreTerm e.List = t.PreTerm <Swap <Add s.Pre 1> s.Pos1 s.Pos2 e.List>;
+}
+
+SwapAux {
+ t.Was (e.Pref)s.Pos1 s.Pos1 t.Is e.List = t.Is e.Pref t.Was e.List;
+ t.Was (e.Pref)s.Pos1 s.Pos2 t.Is e.List = <SwapAux t.Was (e.Pref t.Is) <Add s.Pos1 1> s.Pos2 e.List>;
+}
+
+Maxim {
+  s.X s.Y
+  , <Compare s.X s.Y> :
+  { '+' = s.X;
+    s.Other = s.Y;
+    };
+}
+
+Minim {
+  s.X s.Y
+  , <Compare s.X s.Y> :
+  { '-' = s.X;
+    s.Other = s.Y;
+    };
+}
+
+$ENTRY RandNum {
+    s.x 0 = 0;
+    0 = 0;
+    s.x = <Mod <Random 1> s.x>;
+    s.x s.x = s.x;
+    s.x s.y = <Add s.x <Mod <Random 1> <Add <Sub s.y s.x> 1>>>;
+}
+
+VarAlphabet {
+  = 'xxxxxxxxxxxxxxxyyyyyzzzzzqqwwttssvviijj';
+}
+
+GenerateModel  {
+ s.Max s.Max s.Lieb s.StrLenMin s.StrLenMax (e.GivenStrings)(e.Vars)(e.PO) = (e.PO);
+ s.Curr s.Max s.Lieb s.StrLenMin s.StrLenMax (e.GivenStrings)(e.Vars)(e.PO)
+ , <GenerateModelRule (e.PO)(e.Vars)(e.GivenStrings) s.Lieb s.StrLenMin s.StrLenMax> : (e.NewPO) t.Rule
+    = t.Rule
+      <GenerateModel <Add s.Curr 1> s.Max s.Lieb s.StrLenMin s.StrLenMax (e.GivenStrings)(e.Vars)(<Closure ( ) <PurifySet e.PO e.NewPO>>)>;
+}
+
+Closure {
+  e.All
+  , e.All : e.X1 (t.V1 t.V2) e.X2
+  , e.All : e.XX1 (t.V2 t.V3) e.XX2
+  , <Contains (t.V1 t.V2) e.All> : False  = <Closure e.All (t.V1 t.V3)>;
+  e.All = e.All;
+}
+
+Contains {
+  t.1 e.x t.1 e.y = True;
+  e.Z = False;
+}
+
+PurifySet {
+ e.1 t.x e.2 t.x e.3 = <PurifySet e.1 t.x e.2 e.3>;
+ e.z = e.z;
+}
+
+GenerateVariables {
+ s.Max s.Max (e.Vars) = e.Vars;
+ s.Curr s.Max (e.Vars)
+   , <GenNewName (e.Vars)( ) <VarAlphabet>> : e.NewName
+    = <GenerateVariables <Add s.Curr 1> s.Max (e.Vars (Var e.NewName))>;
+}
+
+GenNewName {
+ (e.UsedNames) (e.GenPrefix) e.Alphabet
+  , e.UsedNames :
+  { e.1 (Var e.GenPrefix s.Letter) e.2 = <GenNewName (e.UsedNames)(e.GenPrefix s.Letter) e.Alphabet>;
+    e.Z = e.GenPrefix;
+  };
+}
+
+RandomListEl {
+  e.Alphabet = <GetLetter <RandNum 1 <ListLen 0 e.Alphabet>> e.Alphabet>;
+}
+
+RandPartition {
+  e.String
+  , <Sub <RandNum 1 <ListLen 0 e.String>> 1> : s.Position
+   = <SplitByPos s.Position ( ) e.String>;
+}
+
+SplitByPos {
+ 0 (e.Prefix) e.Suffix = (e.Prefix)e.Suffix;
+ s.Num (e.Prefix) t.Next e.Suffix = <SplitByPos <Sub s.Num 1>(e.Prefix t.Next) e.Suffix>;
+ 
+}
+
+ListLen {
+ s.Len t.Let e.Rest = <ListLen <Add s.Len 1> e.Rest>;
+ s.Len = s.Len;
+}
+
+GetLetter {
+ 1 t.X e.Rest = t.X;
+ s.Num t.X e.Rest = <GetLetter <Sub s.Num 1> e.Rest>;
+}
+
+ChooseAction {
+ 1 = Swap;
+ 2 = Delete;
+ 3 = Insert;
+ 4 = None;
+}
+
+ModelAction {
+ 1 = NotContains;
+ 2 = Contains;
+ 3 = ReplAll;
+ 4 = Concat;
+ 5 = NotContains;
+ 6 = NotContains;
+ 7 = Concat;
+ 8 = Contains;
+}
+
+Liebenshtein {
+ 0 (e.ResultStr)e.Alphabet = e.ResultStr;
+ s.Num (e.ResultStr)e.Alphabet
+ , <ChooseAction <RandNum 1 4>> :
+ { Swap
+   , e.ResultStr : s.1 s.2 e.EE
+   , <RandPartition e.ResultStr> : (e.Prefix) s.Sym s.Rest e.Suffix
+   , <RandPartition s.Rest e.Suffix> : (e.SufPref) s.Sym2 e.SufSuf
+    = <Liebenshtein <Sub s.Num 1> (e.Prefix s.Sym2 e.SufPref s.Sym e.SufSuf) e.Alphabet>;
+    Delete
+    , e.ResultStr : s.1 s.2 e.Rest
+    , <RandPartition e.ResultStr> : (e.Pref) s.Sym e.Suff
+     = <Liebenshtein <Sub s.Num 1> (e.Pref e.Suff) e.Alphabet>;
+     Insert
+     , <RandPartition e.ResultStr> : (e.Pref) e.Suff
+     , <RandomListEl e.Alphabet> : s.Sym
+     = <Liebenshtein <Sub s.Num 1> (e.Pref s.Sym e.Suff) e.Alphabet>;
+     None = <Liebenshtein 0 (e.ResultStr) e.Alphabet>;
+    s.Incompatible = <Liebenshtein s.Num (e.ResultStr) e.Alphabet>; 
+ };
+}
+
+ListDiff {
+  t.El e.1 t.El e.2 = e.1 e.2;
+}
+
+GenInfix {
+  e.String s.Min s.Diff
+ , <RandPartition e.String> : (e.Prefix) e.Suffix
+ , <Compare <ListLen 0 e.Suffix> s.Min> :
+  {'+'
+   , <GetLenPref s.Min e.Suffix> : e.InfPref (e.Rest)
+   , <GetLenPref s.Diff e.Rest> : e.Active (e.Lost)
+   , <RandPartition e.Active> : (e.InfSuff) e.NotInf
+     = e.InfPref e.InfSuff;
+   '0' = e.Suffix;
+   s.Rest = <GenInfix e.String s.Min s.Diff>;
+  };
+}
+
+GetLenPref {
+  0 e.X = (e.X);
+  s.Num = ( );
+  s.Num t.Next e.Rest = t.Next <GetLenPref <Sub s.Num 1> e.Rest>;
+}
+
+GenNonEmpt {
+  e.String s.StrMin s.StrMax
+  , <GenInfix e.String s.StrMin <Add <Sub s.StrMax s.StrMin> 1>> : s.N e.Rest
+   = s.N e.Rest;
+}
+
+StrAlph {
+ = 'ab';
+}
+
+Greater {
+  (s.X) s.Y
+   , <Maxim s.X s.Y> : s.X = True;
+   e.Z = False;
+}
+
+LogAnd {
+  e.x False e.y = False;
+  e.z = True;
+}
+
+LogOr {
+  e.x True e.y = True;
+  e.z = False;
+}
+
+GenerateModelRule {
+ (e.PartOrder)(e.Variables)(e.Strings) s.DiffLieb s.StrMin s.StrMax
+  , <RandomListEl e.Variables> : t.Var
+  , <RandomListEl e.Strings> : (e.String)
+  , <RandomListEl e.Strings> : (e.String2)
+  , <ModelAction <RandNum 1 7>> :
+  {Concat
+   , <Liebenshtein s.DiffLieb (<GenNonEmpt e.String s.StrMin s.StrMax>)<StrAlph>> : e.Fst
+   , <Liebenshtein s.DiffLieb (<GenNonEmpt e.String2 s.StrMin s.StrMax>)<StrAlph>> : e.Snd
+   , <RandomListEl <ListDiff t.Var e.Variables> (String e.Fst) (String e.Snd) None> : t.El2
+   , <RandomListEl <ListDiff t.Var e.Variables> (String e.Fst) (String e.Snd) None None> : t.El3
+   , <RandomListEl <ListDiff t.Var e.Variables> (String e.Fst) (String e.Snd) None None None> : t.El4
+   , <NonTrivial t.El2 t.El3 t.El4> : True
+   , <MatchesPO (e.PartOrder) (t.Var t.El2) (t.Var t.El3) (t.Var t.El4)> : True
+     = (<GenPO t.Var <ProcessConcat t.El2 t.El3 t.El4>>)(Eq t.Var <ProcessConcat t.El2 t.El3 t.El4>);
+   ReplAll
+   , <Liebenshtein s.DiffLieb (<GenNonEmpt e.String s.StrMin s.StrMax>)<StrAlph>> : e.Fst
+   , <Liebenshtein s.DiffLieb (<GenNonEmpt e.String2 s.StrMin s.StrMax>)<StrAlph>> : e.Snd
+   , <RandomListEl <ListDiff t.Var e.Variables>> : t.Var2
+   , <LogOr <LogAnd <Greater (<ListLen 0 e.Fst>) <ListLen 0 e.Snd>><MatchesPO (e.PartOrder) (t.Var t.Var2)>>
+            <LogAnd <Greater (<ListLen 0 e.Snd>) <ListLen 0 e.Fst>><MatchesPO (e.PartOrder) (t.Var2 t.Var)>>> : True
+    = ( )(Eq t.Var (ReplAll t.Var2 (e.Fst) (e.Snd)));
+   s.ContOrNotCont
+   , Contains NotContains : e.CC s.ContOrNotCont e.CCC
+   , <Liebenshtein s.DiffLieb (<GenNonEmpt e.String s.StrMin s.StrMax>)<StrAlph>>  : e.SubString
+      = ( )(s.ContOrNotCont t.Var (e.SubString));   
+   s.Incompatible = <GenerateModelRule (e.PartOrder)(e.Variables)(e.Strings) s.DiffLieb s.StrMin s.StrMax>;
+  };
+}
+
+NonTrivial {
+  e.1 None e.2 = <NonTrivial e.1 e.2>;
+  e.1 (String e.2) (String e.22) e.3 = <NonTrivial e.1 (String e.2 e.22) e.3>;
+  (String e.1) = False;
+   = False;
+   e.Z = True;
+}
+
+MatchesPO {
+  (e.X (t.El1 t.El2) e.XX) e.Y (t.El2 t.El1) e.YY = False;
+  (e.X (t.El1 t.El2) e.XX) (t.El1 (String e.String))(t.El1 (String e.String2)) None = False;
+  (e.X (t.El1 t.El2) e.XX) None (t.El1 (String e.String))None = False;  
+  (e.X (t.El1 t.El2) e.XX) (t.El1 (String e.String)) None None  = False;  
+  (e.X (t.El1 t.El2) e.XX)  None None (t.El1 (String e.String)) = False;  
+  (e.X) e.Y (t.El t.El) e.YY = False;
+  (e.X) e.Y = True;
+}
+
+GenPO {
+  t.Var (Var e.Name) = (t.Var (Var e.Name)) ((Var e.Name) t.Var);
+  t.Var (Concat e.Z (Var e.Name) e.ZZ) = (t.Var (Var e.Name)) <GenPO t.Var (Concat e.Z e.ZZ)>;
+  t.Var e.Rest = ;
+}
+
+ProcessConcat {
+  e.X None e.Y = <ProcessConcat e.X e.Y>;
+   = ();
+  e.X (String e.1)(String e.2) e.Y = <ProcessConcat e.X (String e.1 e.2) e.Y>;
+  (String e.Str) = (e.Str);
+  (Var e.Rest) = (Var e.Rest);
+  e.X (String e.1) e.Y = <ProcessConcat e.X (e.1) e.Y>;
+  e.List = (Concat e.List);
+}
+
+FunCodegen {
+   = ;
+  (ReplAll (e.Str1)(e.Str2)) e.FunList
+        = <Putout 2 'Repl_'e.Str1'_'e.Str2' {'>
+          <Putout 2 '    e.X \''e.Str1'\' e.Y = e.X \''e.Str2'\'<Repl_'e.Str1'_'e.Str2' e.Y>;'>
+          <Putout 2 '    e.Z = e.Z;'>
+          <Putout 2 '}'>
+          <Putout 2>
+          <FunCodegen <DelEl (ReplAll (e.Str1)(e.Str2)) e.FunList>>;
+  (Contains (e.Str)) e.FunList
+        = <Putout 2 'Cont_'e.Str' {'>
+          <Putout 2 '    e.X \''e.Str'\' e.Y = True;'>
+          <Putout 2 '    e.Z = False;'>
+          <Putout 2 '}'>
+          <Putout 2>
+          <FunCodegen <DelEl (Contains (e.Str)) e.FunList>>;
+  (NotContains (e.Str)) e.FunList
+        = <Putout 2 'NCont_'e.Str' {'>
+          <Putout 2 '    e.X \''e.Str'\' e.Y = False;'>
+          <Putout 2 '    e.Z = True;'>
+          <Putout 2 '}'>
+          <Putout 2>
+          <FunCodegen <DelEl (NotContains (e.Str)) e.FunList>>;
+}
+
+DelEl {
+  t.El e.X t.El e.Y = <DelEl t.El e.X e.Y>;
+  t.El e.Z = e.Z;
+}
+
+CommonFunCodegen {
+        = <Putout 2 'IsEqual {'>
+          <Putout 2 '    ( )( ) = True;'>
+          <Putout 2 '    (s.1 e.X)(s.1 e.X2) = <IsEqual (e.X)(e.X2)>;'>
+          <Putout 2 '    (e.X)(e.Y) = False;'>
+          <Putout 2 '}'>
+          <Putout 2>
+          <Putout 2 'LogAnd {'>
+          <Putout 2 '    e.X False e.Y = False;'>
+          <Putout 2 '    e.Z = True;'>
+          <Putout 2 '}'>
+          <Putout 2>;
+}
+
+GenEntryLHS {
+   (Var e.Name) = 'e.'e.Name;
+   (Var e.Name) e.VarList = '(e.'e.Name')'<GenEntryLHS e.VarList>;
+}
+
+RefalCodegen {
+  (e.VarList)(e.Model)
+  , <ExtractFunList e.Model> : e.Functions
+   = <ListSep 0 ( )'$ENTRY Go {'<GenEntryLHS e.VarList>>
+                         <ListSep 0 (' = <LogAnd ')<GenerateConditions <SubstituteEquals FirstStep <SortConditions ()()()()e.Model>>>>
+                         <Putout 2 '}'><Putout 2>
+                         <CommonFunCodegen>
+                         <FunCodegen e.Functions>;
+}
+
+SubstituteEquals {
+ FirstStep e.x1 (Eq t.Var (Concat e.List)) e.x2 (Eq t.Var (Concat e.List2)) e.x3
+ , <Minimal ()()(e.List)(e.List2)> : (e.L1)(e.L2)
+    = <SubstituteEquals FirstStep e.x1 (Eq t.Var (Concat e.L1)) e.x2 (Eq (Concat e.L1)(Concat e.L2)) e.x3>;
+ FirstStep e.x = <SubstituteEquals SecondStep () e.x>;
+ SecondStep (e.Processed) e.x0 (NotContains t.Var (e.String)) e.x1 (Eq t.Var (Concat e.List)) e.x2
+   = <SubstituteEquals SecondStep (e.Processed (NotContains t.Var (e.String))) 
+         e.x0 (NotContains (Concat e.List) (e.String)) e.x1 (Eq t.Var (Concat e.List)) e.x2>;
+ SecondStep (e.Processed) e.x0 (Eq t.Var (Concat e.List)) e.x1 (Contains t.Var (e.String)) e.x2
+   = <SubstituteEquals SecondStep (e.Processed (Contains t.Var (e.String))) 
+       e.x0 (Eq t.Var (Concat e.List)) e.x1 (Contains (Concat e.List) (e.String)) e.x2>;
+ SecondStep (e.Processed) e.x = <SubstituteEquals ThirdStep (e.Processed) e.x>;
+ ThirdStep (e.Datum) e.x0 (NotContains t.Var (e.String)) e.x1 (Eq t.Var (ReplAll e.Rpl)) e.x2
+    = <SubstituteEquals ThirdStep (e.Datum (Eq t.Var (ReplAll e.Rpl))) e.x0 (NotContains (ReplAll e.Rpl) (e.String)) e.x1 e.x2>;
+ ThirdStep (e.Datum) e.x0 (Contains t.Var (e.String)) e.x1 (Eq t.Var (ReplAll e.Rpl)) e.x2
+    = <SubstituteEquals ThirdStep (e.Datum (Eq t.Var (ReplAll e.Rpl))) e.x0 (Contains (ReplAll e.Rpl) (e.String)) e.x1 e.x2>;
+ ThirdStep (e.Datum1 (NotContains t.Var (e.String)) e.Datum2) e.x1 (Eq t.Var (ReplAll e.Rpl)) e.x2
+    = <SubstituteEquals ThirdStep (e.Datum1 (NotContains t.Var (e.String)) e.Datum2 (Eq t.Var (ReplAll e.Rpl))) 
+             (NotContains (ReplAll e.Rpl) (e.String)) e.x1 e.x2>;
+ ThirdStep (e.Datum1 (Contains t.Var (e.String)) e.Datum2) e.x1 (Eq t.Var (ReplAll e.Rpl)) e.x2
+    = <SubstituteEquals ThirdStep (e.Datum1 (Contains t.Var (e.String)) e.Datum2 (Eq t.Var (ReplAll e.Rpl))) 
+             (Contains (ReplAll e.Rpl) (e.String)) e.x1 e.x2>;
+ ThirdStep (e.Datum1 (Eq t.Var (ReplAll e.Rpl)) e.Datum2) e.x0 (NotContains t.Var (e.String)) e.x1
+    = <SubstituteEquals ThirdStep (e.Datum1 (Eq t.Var (ReplAll e.Rpl)) e.Datum2) e.x0 (NotContains (ReplAll e.Rpl) (e.String)) e.x1>;
+ ThirdStep (e.Datum1 (Eq t.Var (ReplAll e.Rpl)) e.Datum2) e.x0 (Contains t.Var (e.String)) e.x1
+    = <SubstituteEquals ThirdStep (e.Datum1 (Eq t.Var (ReplAll e.Rpl)) e.Datum2) e.x0 (Contains (ReplAll e.Rpl) (e.String)) e.x1>;
+ ThirdStep (e.Datum) e.x = <SortConditions ( ) () ( ) () e.Datum e.x>; }
+
+Minimal {
+ (e.Fst)(e.Snd)()(e.List2) = (e.Fst)(e.Snd e.List2);
+ (e.Fst)(e.Snd)(e.List)() = (e.Fst)(e.Snd e.List);
+ (e.Fst)(e.Snd)((String e.1) e.List)((String e.2) e.List2) = <Minimal (e.Fst (String e.1))(e.Snd (String e.2))(e.List)(e.List2)>;
+ (e.Fst)(e.Snd)((Var e.1) e.List)((Var e.2) e.List2) = <Minimal (e.Fst (Var e.1))(e.Snd (Var e.2))(e.List)(e.List2)>;
+ (e.Fst)(e.Snd)((String e.1) e.List)((Var e.2) e.List2) = <Minimal (e.Fst (String e.1))(e.Snd)(e.List)((Var e.2) e.List2)>;
+ (e.Fst)(e.Snd)((Var e.1) e.List)((String e.2) e.List2) = <Minimal (e.Fst )(e.Snd (String e.2))((Var e.1) e.List)( e.List2)>;
+}
+
+SortConditions {
+ (e.NCont)(e.Asg)(e.Cont)(e.Repl) = e.NCont e.Cont e.Asg e.Repl;
+ (e.NCont)(e.Asg)(e.Cont)(e.Repl)(Eq t.Var (Concat e.X)) e.Rest
+   = <SortConditions (e.NCont)(e.Asg (Eq t.Var (Concat e.X)))(e.Cont)(e.Repl) e.Rest>;
+ (e.NCont)(e.Asg)(e.Cont)(e.Repl)(Eq t.Var (Var e.X)) e.Rest
+   = <SortConditions (e.NCont)((Eq t.Var (Var e.X)) e.Asg)(e.Cont)(e.Repl) e.Rest>;
+ (e.NCont)(e.Asg)(e.Cont)(e.Repl)(Eq t.Var (ReplAll e.X)) e.Rest
+   = <SortConditions (e.NCont)(e.Asg)(e.Cont)(e.Repl (Eq t.Var (ReplAll e.X))) e.Rest>;
+ (e.NCont)(e.Asg)(e.Cont)(e.Repl)(Contains e.X) e.Rest
+   = <SortConditions (e.NCont)(e.Asg)(e.Cont (Contains e.X))(e.Repl) e.Rest>;
+ (e.NCont)(e.Asg)(e.Cont)(e.Repl)(NotContains e.X) e.Rest
+   = <SortConditions (e.NCont (NotContains e.X))(e.Asg)(e.Cont)(e.Repl) e.Rest>;
+}
+
+LastBrackets {
+  e.X')' = (e.X')');
+   e.X'>' = (e.X'>');
+ e.X s.Z = <LastBrackets e.X> s.Z;
+}
+
+ListSep {
+  10 (e.Prefix) e.Full
+  , <LastBrackets e.Prefix> : (e.Synt) e.Rest
+   = <Putout 2 e.Synt><ListSep 0 ('    ') e.Rest e.Full>;
+   s.Num (e.Prefix) s.1 s.2 s.3 s.4 s.5 s.6 s.7 s.8 s.9 s.10 s.11 s.12 s.13 s.14 e.Full
+     = <ListSep <Add s.Num 1> (e.Prefix s.1 s.2 s.3 s.4 s.5 s.6 s.7 s.8 s.9 s.10 s.11 s.12 s.13 s.14) e.Full>;
+   s.Num (e.Prefix) e.Rest
+    = <Putout 2 e.Prefix e.Rest>;
+}
+
+ExtractFunList {
+  = ;
+  (Eq t.Var (ReplAll t.Var2 t.String1 t.String2)) e.Rest
+   = (ReplAll t.String1 t.String2) <ExtractFunList e.Rest>;
+   (Contains t.Var t.String) e.Rest
+    = (Contains t.String)<ExtractFunList e.Rest>;
+   (NotContains t.Var t.String) e.Rest
+    = (NotContains t.String)<ExtractFunList e.Rest>;
+    t.Concat e.Rest = <ExtractFunList e.Rest>;
+}
+
+GenerateConditions {
+  = '>;';
+  (Eq (Var e.Name) (Var e.Name2)) e.Rest = '<IsEqual (e.'e.Name')(e.'e.Name2')>'<GenerateConditions e.Rest>;
+  (Eq (Var e.Name) (Concat e.List)) e.Rest = '<IsEqual (e.'e.Name')('<RefalExpr e.List>')>'<GenerateConditions e.Rest>;
+  (Eq (Concat e.List) (Concat e.List2)) e.Rest = '<IsEqual ('<RefalExpr e.List>')('<RefalExpr e.List>')>'<GenerateConditions e.Rest>;
+  (Eq (Var e.Name) (ReplAll (Var e.Name2) (e.Str1)(e.Str2))) e.Rest
+     = '<IsEqual (e.'e.Name')(<Repl_'e.Str1'_'e.Str2' e.'e.Name2'>)>'
+     <GenerateConditions e.Rest>;
+  (Contains (ReplAll (Var e.Name)(e.S1)(e.S2)) (e.Str)) e.Rest
+     = '<Cont_'e.Str' <Repl_'e.S1'_'e.S2' e.'e.Name'>>'
+     <GenerateConditions e.Rest>;
+  (NotContains (ReplAll (Var e.Name)(e.S1)(e.S2)) (e.Str)) e.Rest
+     = '<NCont_'e.Str' <Repl_'e.S1'_'e.S2' e.'e.Name'>>'
+     <GenerateConditions e.Rest>;
+  (Contains (Concat e.List) (e.Str)) e.Rest
+     = '<Cont_'e.Str' '<RefalExpr e.List> '>'
+     <GenerateConditions e.Rest>;
+  (NotContains (Concat e.List) (e.Str)) e.Rest
+     = '<NCont_'e.Str' '<RefalExpr e.List>'>'
+     <GenerateConditions e.Rest>;
+  (Contains (Var e.Name) (e.Str)) e.Rest
+     = '<Cont_'e.Str' e.'e.Name'>'
+     <GenerateConditions e.Rest>;
+  (NotContains (Var e.Name) (e.Str)) e.Rest
+     = '<NCont_'e.Str' e.'e.Name'>'
+     <GenerateConditions e.Rest>;
+  (Eq (Var e.Name) (e.String)) e.Rest = '<IsEqual (e.'e.Name')(\''e.String'\')>'<GenerateConditions e.Rest>;
+}
+
+RefalExpr {
+  = ;
+  (Var e.Name) = 'e.'e.Name;
+  (e.Other) = '\''e.Other'\'';
+  (Var e.Name) e.Rest = 'e.'e.Name' '<RefalExpr e.Rest>;
+  (e.Other) e.Rest = '\''e.Other'\' '<RefalExpr e.Rest>;
+}
+
+SMTCodegen {
+  (e.VarList)(e.Model)
+   = <Putout 1 '(set-logic QF_SLIA)'>
+   <Putout 1 '(set-option :strings-exp true)'>
+   <Putout 1>
+                         <SMTFunDecl e.VarList>
+			 <Putout 1>
+                         <SMTModelDecl e.Model>
+			 <Putout 1>
+                         <Putout 1 '(check-sat)'>;
+}
+
+Superstring {
+  (e.x) e.1 e.x e.2 = True;
+  (e.x) e.y = False;
+}
+
+SMTFunDecl {
+   = ;
+   (Var e.Name) e.Rest = <Putout 1 '(declare-fun 'e.Name' () String)'><SMTFunDecl e.Rest>;
+}
+
+SMTModelDecl {
+  = ;
+  (Eq (Var e.Name) (Var e.Name2)) e.Rest = 
+     <Putout 1 '(assert (= 'e.Name' 'e.Name2'))'>
+     <SMTModelDecl e.Rest>;
+  (Eq (Var e.Name) (Concat e.Expr)) e.Rest = 
+     <Putout 1 '(assert (= 'e.Name' (str.++ '<SMTExpr e.Expr>') ))'>
+     <SMTModelDecl e.Rest>;
+  (Eq (Var e.Name) (ReplAll (Var e.Name2) (e.Str1) (e.Str2))) e.Rest = 
+     <Putout 1 '(assert (= 'e.Name' (str.replace_all 'e.Name2' \"'e.Str1'\" \"'e.Str2'\" ) ))'>
+     <SMTModelDecl e.Rest>;
+  (Contains (Var e.Name) (e.Str)) e.Rest
+     = <Putout 1 '(assert (str.contains 'e.Name' \"'e.Str'\"))'><SMTModelDecl e.Rest>;
+  (NotContains (Var e.Name) (e.Str)) e.Rest
+     = <Putout 1 '(assert (not (str.contains 'e.Name' \"'e.Str'\")))'><SMTModelDecl e.Rest>;
+  (Eq (Var e.Name) (e.String)) e.Rest = 
+     <Putout 1 '(assert (= 'e.Name' \"'e.String'\"))'>
+     <SMTModelDecl e.Rest>;
+}
+
+SMTExpr {
+  (Var e.Name) = e.Name;
+  (e.String) = '\"'e.String'\"';
+  (Var e.Name) e.Rest = e.Name' '<SMTExpr e.Rest>;
+  (e.String) e.Rest = '\"'e.String'\" '<SMTExpr e.Rest>;  
+}

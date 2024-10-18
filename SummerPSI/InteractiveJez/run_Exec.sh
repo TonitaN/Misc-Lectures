@@ -1,6 +1,6 @@
 #!/bin/bash
 
-refgo Preprocess_Inline Exec
+refgo Preprocess_Inline TestExec_2
 Str0=`cat temp`
 refc $Str0'.ref'
 refgo Preprocess_Inline Main
