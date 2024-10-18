@@ -1,3 +1,8 @@
+$ENTRY ListLen {
+ s.Len t.Let e.Rest = <ListLen <Add s.Len 1> e.Rest>;
+ s.Len = s.Len;
+}
+
 $ENTRY Go
   {, <Numb <Arg 1>> : s.RefalMode , <Numb <Arg 2>> : s.Max = <GenerateAllModels s.RefalMode 1 <Add s.Max 1>>;
   }
@@ -5,19 +10,36 @@ $ENTRY Go
 GenerateAllModels {
    s.Mode s.Max s.Max = ;
    s.Mode s.Num s.Max 
-		, <GenerateEquation s.Mode <Add <Add <RandNum 1 3><RandNum 1 3>><Add <RandNum 0 1><RandNum 0 1>>>
-		 			<Add <Add <RandNum 1 3><RandNum 1 3>><Add <RandNum 0 1><RandNum 0 1>>>> : (e.LHS)(e.RHS)
+		, <GenerateEquation s.Mode <Add <Add <RandNum 1 3><RandNum 1 3>><Add <RandNum 0 5><RandNum 0 5>>>
+		 			<Add <Add <RandNum 1 3><RandNum 1 3>><Add <RandNum 0 5><RandNum 0 5>>>> : (e.LHS)(e.RHS)
      =	<Open 'r' 3 'Preamble.ref'><Open 'w' 2 'TestExec_'<Symb s.Num>'.ref'>
 		<GenerateExecutable ((e.LHS)(e.RHS))(<GeneratePair>) s.Num <Get 3>>
 		<Close 2><Close 3><GenerateAllModels s.Mode <Add s.Num 1> s.Max>; 
 }
 
 GenerateExecutable {
- ((e.LHS)(e.RHS))(e.Pair) s.Num e.1'...'e.2 = <Putout 2 e.1 ><Putout 2 '   '(e.LHS)><Putout 2 '   '(e.RHS) e.2> <GenerateExecutable ()(e.Pair) s.Num <Get 3>>;
+ ((e.LHS)(e.RHS))(e.Pair) s.Num e.1'...'e.2 = <Putout 2 e.1 >
+          <ClipPut '('e.LHS')'><ClipPut '('e.RHS')'> <GenerateExecutable ()(e.Pair) s.Num <Get 3>>;
  (e.Equation)(e.Pair) s.Num e.1',,,'e.2 = <Putout 2 e.1 e.Pair e.2> <GenerateExecutable ()() s.Num <Get 3>>;
  (e.Equation)(e.Pair) s.Num e.1'NNN'e.2 = <Putout 2 e.1 <Symb s.Num> e.2> <GenerateExecutable (e.Equation)(e.Pair) s.Num <Get 3>>;
  (e.E)(e.P) s.N e.3 0 = <Putout 2 e.3>;
  (e.E)(e.P) s.N e.3 = <Putout 2 e.3> <GenerateExecutable (e.E)(e.P) s.N <Get 3>>;
+}
+
+ClipPut {
+e.x
+ , <Compare <ListLen 0 e.x> 10> : 
+ {'-'
+   = <Putout 2 e.x>;
+  s.Z
+   = <SplitByTerms 0 10 () e.x>; 
+ };
+}
+
+SplitByTerms {
+ s.Some s.Max (e.Prefix) = <Putout 2 e.Prefix>;
+ s.Max s.Max (e.Prefix) e.Rest = <Putout 2 e.Prefix><SplitByTerms 0 s.Max () e.Rest>;
+ s.Nmax s.Max (e.Prefix) t.Term e.Rest = <SplitByTerms <Add s.Nmax 1> s.Max (e.Prefix t.Term) e.Rest>;
 }
 
 GenerateEquation {
@@ -124,7 +146,8 @@ $ENTRY RandNum {
 }
 
 VarAlphabet {
-  = 'xxxxxxxxxxxxxxxyyyyyzzzzzqqwwttssvviijj';
+/*  = 'xxxxxxxxxxxxxxxyyyyyzzzzzqqwwttssvviijj';*/
+  = 'xxxxxxxxxxxxxxxyyyyyyyy';
 }
 
 GenerateModel  {
@@ -184,10 +207,7 @@ SplitByPos {
  
 }
 
-ListLen {
- s.Len t.Let e.Rest = <ListLen <Add s.Len 1> e.Rest>;
- s.Len = s.Len;
-}
+
 
 GetLetter {
  1 t.X e.Rest = t.X;
