@@ -1,4 +1,5 @@
 *$INLINE HigherOrder;
+$EXTERN GenerateSMT_BASE, GenerateSMT_LIA;
 
 $EXTERN Pick, BlockComp, PairComp, RecSubst;
 
@@ -40,6 +41,8 @@ Count {
  s.Total = s.Total;
  s.Cur t.1 e.X = <Count <Add s.Cur 1> e.X>;
 }
+
+
 
 Equation {
   = ...;

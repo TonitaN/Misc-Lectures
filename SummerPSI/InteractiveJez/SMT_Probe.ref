@@ -1,0 +1,31 @@
+$EXTERN SMTCodegen;
+
+$ENTRY Go {
+   , <Equation> : (e.LHS)(e.RHS)
+   , <RemDups <GetConsts e.LHS e.RHS>> : e.Alphabet
+   , <RemDups <GetVars e.LHS e.RHS>> : e.Var
+   = <Open 'w' 1 'probe.smt2'><SMTCodegen LIA (e.Alphabet) (e.Var) (AreEqual (e.LHS)(e.RHS))><Close 1>;
+}
+
+GetVars {
+ e.X (Var e.D) e.Y = (Var e.D)<GetVars e.Y>;
+ e.U = ;
+}
+
+GetConsts {
+ (Var e.D) e.Y = <GetConsts e.Y>;
+ t.X e.Y = t.X <GetConsts e.Y>;
+  = ;
+}
+
+RemDups {
+ e.X t.1 e.Y t.1 e.Z = e.X <RemDups t.1 e.Y e.Z>;
+ e.X = e.X;
+}
+
+Equation {
+  = 
+((Var  'q')('a' 0 )(Var  'y')(Var  'x'))
+((Var  'x')(Var  'j')('a' 0 )('b' 0 )('a' 0 ));
+}
+

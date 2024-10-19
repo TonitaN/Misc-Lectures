@@ -1,3 +1,7 @@
+$ENTRY ListLen {
+ s.Len t.Let e.Rest = <ListLen <Add s.Len 1> e.Rest>;
+ s.Len = s.Len;
+}
 
 /*
   <RecSubst t.Old t.New e.Expr> == e.NewExpr

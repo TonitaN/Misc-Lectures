@@ -146,8 +146,8 @@ $ENTRY RandNum {
 }
 
 VarAlphabet {
-/*  = 'xxxxxxxxxxxxxxxyyyyyzzzzzqqwwttssvviijj';*/
-  = 'xxxxxxxxxxxxxxxyyyyyyyy';
+  = 'xxxxxxxxxxxxxxxyyyyyzzzzzqqwwttssvviijj';
+*  = 'xxxxxxxxxxxxxxxyyyyyyyy';
 }
 
 GenerateModel  {
@@ -543,15 +543,20 @@ RefalExpr {
 }
 
 SMTCodegen {
-  (e.VarList)(e.Model)
-   = <Putout 1 '(set-logic QF_SLIA)'>
-   <Putout 1 '(set-option :strings-exp true)'>
-   <Putout 1>
+  s.Mode (e.VarList)(e.Model)
+   = <GetLogic s.Mode>
+     <Putout 1>
                          <SMTFunDecl e.VarList>
 			 <Putout 1>
                          <SMTModelDecl e.Model>
 			 <Putout 1>
                          <Putout 1 '(check-sat)'>;
+}
+
+GetLogic {
+ LIA = <Putout 1 '(set-logic QF_LIA)'>;
+ STR = <Putout 1 '(set-logic QF_SLIA)'>
+   <Putout 1 '(set-option :strings-exp true)'>;
 }
 
 Superstring {
@@ -560,33 +565,44 @@ Superstring {
 }
 
 SMTFunDecl {
-   = ;
-   (Var e.Name) e.Rest = <Putout 1 '(declare-fun 'e.Name' () String)'><SMTFunDecl e.Rest>;
+   s.Mode = ;
+   STR (Var e.Name) e.Rest = <Putout 1 '(declare-fun 'e.Name' () String)'><SMTFunDecl e.Rest>;
+   LIA (Var e.Name) e.Rest = <Putout 1 '(declare-fun 'e.Name' () String)'><Putout 1 '(assert (>= 'e.Name' 0))'><SMTFunDecl e.Rest>;
 }
 
 SMTModelDecl {
   = ;
-  (Eq (Var e.Name) (Var e.Name2)) e.Rest = 
-     <Putout 1 '(assert (= 'e.Name' 'e.Name2'))'>
-     <SMTModelDecl e.Rest>;
-  (Eq (Var e.Name) (Concat e.Expr)) e.Rest = 
-     <Putout 1 '(assert (= 'e.Name' (str.++ '<SMTExpr e.Expr>') ))'>
-     <SMTModelDecl e.Rest>;
-  (Eq (Var e.Name) (ReplAll (Var e.Name2) (e.Str1) (e.Str2))) e.Rest = 
-     <Putout 1 '(assert (= 'e.Name' (str.replace_all 'e.Name2' \"'e.Str1'\" \"'e.Str2'\" ) ))'>
-     <SMTModelDecl e.Rest>;
-  (Contains (Var e.Name) (e.Str)) e.Rest
-     = <Putout 1 '(assert (str.contains 'e.Name' \"'e.Str'\"))'><SMTModelDecl e.Rest>;
-  (NotContains (Var e.Name) (e.Str)) e.Rest
-     = <Putout 1 '(assert (not (str.contains 'e.Name' \"'e.Str'\")))'><SMTModelDecl e.Rest>;
-  (Eq (Var e.Name) (e.String)) e.Rest = 
-     <Putout 1 '(assert (= 'e.Name' \"'e.String'\"))'>
-     <SMTModelDecl e.Rest>;
+ STR (AreEqual (e.LHS)(e.RHS)) = <Putout 1'(assert (= (str.++' <SMTExpr STR e.LHS>')\n''  (str.++ '<SMExpr STR e.RHS>'))'>;
+ LIA (AreEqual (e.LHS)(e.RHS)) = <Putout 1'(assert (= (+' <SMTExpr LIA e.LHS>')\n''  (str.++ '<SMExpr LIA e.RHS>'))'>; 
+}
+
+SMTModelDecl_Proj {
+  ()t.Equation = ;
+  (t.Letter e.Alphabet) t.Equation
+   , t.Equation : (AreEqual (e.LHS)(e.RHS)) = <SMTModelLIA (AreEqual (<ClearConsts t.Letter e.LHS>)(<ClearConsts t.Letter e.RHS>))>
+					<SMTModelDecl_Proj (e.Alphabet)t.Equation>;
+}
+
+SMTModelLIA {
+  (AreEqual (e.LHS)(e.RHS)) = <SMTModelDecl LIA (AreEqual (<ClearConsts t.Letter e.LHS>)(<ClearConsts t.Letter e.RHS>))>;
+}
+
+ClearConsts {
+  (s.Letter s.Num) (Var e.Var) e.List = (Var e.Var s.Letter <Symb s.Num>) <ClearConsts e.List>;
+  t.Term t.Term e.List = t.Term <ClearConsts e.List>;
+  t.Term t.Term2 e.List = <ClearConsts e.List>;
+  t.Term = ;
+}
+
+MorphSMT {
+  STR (s.Sym 0) = '\"'s.Sym'\"';
+  STR (s.Sym 1) = '\"#\"';
+  LIA t.Sym = '1';
 }
 
 SMTExpr {
-  (Var e.Name) = e.Name;
-  (e.String) = '\"'e.String'\"';
-  (Var e.Name) e.Rest = e.Name' '<SMTExpr e.Rest>;
-  (e.String) e.Rest = '\"'e.String'\" '<SMTExpr e.Rest>;  
+  s.Mode (Var s.Name) = s.Name;
+  s.Mode (e.String) = <MorphSMT s.Mode (e.String)>;
+  s.Mode (Var e.Name) e.Rest = e.Name' '<SMTExpr e.Rest>;
+  s.Mode (e.String) e.Rest = <MorphSMT s.Mode (e.String)>' '<SMTExpr e.Rest>;  
 }
