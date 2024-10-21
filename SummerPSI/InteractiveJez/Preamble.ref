@@ -5,8 +5,10 @@ $EXTERN Pick, BlockComp, PairComp, RecSubst;
 
 $EXTERN CounterCheck;
 
-$ENTRY Go {, <Equation> : e.Raw, ((AreEqual e.Raw)()()) : t.Eq
-           , PairComp : t.Call
+$ENTRY Go {, <Equation> : (e.LHS)(e.RHS), ((AreEqual (e.LHS)(e.RHS))()()) : t.Eq
+	   , <RemDups <GetConsts e.LHS e.RHS>> : e.Alphabet
+  	   , <RemDups <GetVars e.LHS e.RHS>> : e.Var           
+	   , PairComp : t.Call
            , ('C' 1)<PairData> : t.LetterWas e.Args
            , <Mu t.Call t.LetterWas e.Args t.Eq> : t.Letter (e.Set)
            , <MapCall Plain FailOnEmptiness <MapCall Plain CounterCheck e.Set>> : e.NewSet
@@ -19,9 +21,26 @@ Resume {
   , <TotalVars Start e.Raw> : s.Vars
 	= <Putout 1 'Total variables: 's.Vars>
           <Putout 1 'Total variants: 's.Variants', total contradictions: 's.Contras>
-	  <Putout 4 <Tabbed 'NNN'>'|'<Tabbed <Symb s.Vars>>'|'<Tabbed  <Symb s.Variants>>'|'<Tabbed <Symb s.Contras>>'|'>;
+	  <Putout 4 <Tabbed 'NNN'>'|'<Tabbed <Symb s.Vars>>'|'<Tabbed  <Symb s.Variants>>'|'<Tabbed <Symb s.Contras>>
+'|'<Tabbed <ISymb <Logg 4 1 4 s.Variants s.Vars>>>'|'<Tabbed <ISymb <Logg 3 1 3 s.Variants s.Vars>>>
+'|'<Tabbed <ISymb <Logg 2 1 2 s.Variants s.Vars>>> '|'<Tabbed <Symb <Sub s.Variants s.Contras>>>>;
   s.V s.C (e.X Contradiction) e.List (e.Raw)= <Resume <Add s.V 1><Add s.C 1> e.List (e.Raw)>;
   s.V s.C (e.X) e.List (e.Raw)= <Resume <Add s.V 1> s.C e.List (e.Raw)>;
+}
+
+ISymb {
+ '!'='!';
+ s.Num = <Symb s.Num>;
+}
+
+Logg {
+  s.B1 s.Log s.Val s.Red 0 = '!';
+  s.B1 s.Log s.Val s.Red s.Base
+  , <Sub s.Red s.Val> :
+ {'-' e.X = s.Log;
+  0 = s.Log;
+  e.V = <Logg s.B1 <Add s.Log 1> <Mul s.Val s.B1> s.Red <Sub s.Base 1>>;
+ };
 }
 
 Tabbed {
@@ -42,7 +61,21 @@ Count {
  s.Cur t.1 e.X = <Count <Add s.Cur 1> e.X>;
 }
 
+GetVars {
+ e.X (Var e.D) e.Y = (Var e.D)<GetVars e.Y>;
+ e.U = ;
+}
 
+GetConsts {
+ (Var e.D) e.Y = <GetConsts e.Y>;
+ t.X e.Y = t.X <GetConsts e.Y>;
+  = ;
+}
+
+RemDups {
+ e.X t.1 e.Y t.1 e.Z = e.X <RemDups t.1 e.Y e.Z>;
+ e.X = e.X;
+}
 
 Equation {
   = ...;
