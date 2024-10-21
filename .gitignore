@@ -2,7 +2,7 @@
 *_INLINED.*
 *.log
 *.aux
-*.pdf
+graph_*.pdf
 *.smt2
 *.smt
 *.seq
